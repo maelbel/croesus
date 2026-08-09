@@ -1,0 +1,10 @@
+node_modules/
+frontend/dist/
+frontend/.env
+backend/.env
+backend/.venv/
+backend/*.db
+backend/__pycache__/
+.env
+target/
+docker-compose.override.yml

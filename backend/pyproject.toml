@@ -1,0 +1,33 @@
+[project]
+name = "croesus-backend"
+version = "0.1.0"
+description = "Croesus API — net worth tracking backend"
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.19.1",
+    "fastapi>=0.141.1",
+    "numpy-financial>=1.0.0",
+    "pandas>=3.0.5",
+    "psycopg[binary]>=3.3.4",
+    "pydantic-settings>=2.15.0",
+    "python-dotenv>=1.2.2",
+    "sqlalchemy>=2.0.51",
+    "uvicorn[standard]>=0.52.1",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.2",
+]
+
+[tool.ruff]
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+# B008: FastAPI's `Depends()`-as-default-argument pattern is intentional, not a bug.
+ignore = ["B008"]

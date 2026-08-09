@@ -1,0 +1,79 @@
+# Releasing
+
+Releases are fully automated from commit history. As a maintainer, you never
+manually bump a version number, write a changelog entry, or create a git tag
+by hand — you just merge PRs with well-formed commit messages, and merge one
+extra PR when you're ready to ship.
+
+## The pieces
+
+- **[Conventional Commits](https://www.conventionalcommits.org/)** — every
+  commit message on `main` is structured (`feat: ...`, `fix: ...`, etc.). See
+  [CONTRIBUTING.md](../CONTRIBUTING.md#commit-messages-conventional-commits)
+  for the exact format.
+- **[release-please](https://github.com/googleapis/release-please)** — a
+  GitHub Action that watches commits on `main`. It figures out the next
+  [SemVer](https://semver.org/) version from commit types (`feat` → minor,
+  `fix` → patch, `!`/`BREAKING CHANGE` → major), and keeps a standing
+  **"Release PR"** open with the version bump and generated `CHANGELOG.md`
+  entry.
+- **GitHub Releases** — created automatically when the Release PR is merged.
+- **GitHub Actions `publish.yml`** — triggered by the GitHub Release being
+  published. Builds and pushes the backend/frontend Docker images to GHCR,
+  and builds desktop binaries for Windows/Linux/macOS via
+  [tauri-action](https://github.com/tauri-apps/tauri-action), attaching them
+  to the release.
+
+## How a release actually happens
+
+1. You merge PRs to `main` as normal, using Conventional Commit messages.
+2. After each merge, `release-please` (workflow: `.github/workflows/release.yml`)
+   updates (or creates) a PR titled something like `chore(main): release 0.2.0`.
+   This PR contains: the version bump across `frontend/package.json`,
+   `backend/pyproject.toml`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`,
+   and the root manifest — plus the new `CHANGELOG.md` section. **Nothing is
+   released yet at this point.**
+3. When you're ready to cut a release, review and **merge that Release PR**.
+   That's the entire "release button."
+4. Merging it makes release-please create a git tag (`vX.Y.Z`) and a GitHub
+   Release with the changelog as its description.
+5. The GitHub Release being published triggers `.github/workflows/publish.yml`,
+   which:
+   - builds and pushes `ghcr.io/<owner>/<repo>-backend:X.Y.Z` and `:latest`
+   - builds and pushes `ghcr.io/<owner>/<repo>-frontend:X.Y.Z` and `:latest`
+   - builds desktop installers for Windows (`.msi`/`.exe`), macOS (`.dmg`),
+     and Linux (`.deb`/`.AppImage`), and uploads them as release assets
+
+You don't touch version numbers or the changelog by hand anywhere in this
+flow — if you find yourself editing `CHANGELOG.md` or a `version` field
+directly, something's off.
+
+## Versioning policy
+
+A single version number covers the whole project (backend, frontend, desktop
+shell) — there's no independent versioning per component. This keeps things
+simple for a project this size; it can be revisited if backend/frontend ever
+need to evolve independently (e.g. a hosted API serving multiple frontend
+versions).
+
+## First release
+
+The manifest (`.release-please-manifest.json`) starts at `0.1.0`. Follow
+[SemVer](https://semver.org/): stay in `0.x` while the API/data model is
+still expected to change in breaking ways; move to `1.0.0` once the v1 scope
+in [ROADMAP.md](../ROADMAP.md) is done and the project is considered stable
+enough for others to rely on.
+
+## One-time repository setup
+
+Before the first automated release can run, a maintainer needs to:
+
+1. Push this repository to GitHub.
+2. Make sure Actions have `contents: write` and `pull-requests: write`
+   permissions (Settings → Actions → General → Workflow permissions), so
+   `release-please` can open PRs and create releases.
+3. Make sure GHCR packages are allowed for the repo (usually on by default for
+   public repos using `GITHUB_TOKEN`).
+
+No other secrets are required — Docker publishing and desktop builds both use
+the built-in `GITHUB_TOKEN`.
