@@ -5,6 +5,10 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Croesus</title>
+    <script>
+      document.documentElement.classList.add(localStorage.getItem('croesus-theme') === 'light' ? 'light' : 'dark')
+      document.documentElement.dataset.skin = localStorage.getItem('croesus-skin') === 'neumorphic' ? 'neumorphic' : 'ledger'
+    </script>
   </head>
   <body>
     <div id="app"></div>
