@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '../api/client'
-import type { Envelope, EnvelopeCreate } from '../api/types'
+import type { Envelope, EnvelopeCreate, EnvelopeUpdate } from '../api/types'
 
 export const useEnvelopesStore = defineStore('envelopes', () => {
   const envelopes = ref<Envelope[]>([])
@@ -22,10 +22,17 @@ export const useEnvelopesStore = defineStore('envelopes', () => {
     return envelope
   }
 
+  async function update(id: number, payload: EnvelopeUpdate) {
+    const envelope = await api.patch<Envelope>(`/envelopes/${id}`, payload)
+    const index = envelopes.value.findIndex((e) => e.id === id)
+    if (index !== -1) envelopes.value[index] = envelope
+    return envelope
+  }
+
   async function remove(id: number) {
     await api.delete(`/envelopes/${id}`)
     envelopes.value = envelopes.value.filter((e) => e.id !== id)
   }
 
-  return { envelopes, loading, fetchAll, create, remove }
+  return { envelopes, loading, fetchAll, create, update, remove }
 })

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '../api/client'
-import type { Liability, LiabilityCreate } from '../api/types'
+import type { Liability, LiabilityCreate, LiabilityUpdate } from '../api/types'
 
 export const useLiabilitiesStore = defineStore('liabilities', () => {
   const liabilities = ref<Liability[]>([])
@@ -22,10 +22,17 @@ export const useLiabilitiesStore = defineStore('liabilities', () => {
     return liability
   }
 
+  async function update(id: number, payload: LiabilityUpdate) {
+    const liability = await api.patch<Liability>(`/liabilities/${id}`, payload)
+    const index = liabilities.value.findIndex((l) => l.id === id)
+    if (index !== -1) liabilities.value[index] = liability
+    return liability
+  }
+
   async function remove(id: number) {
     await api.delete(`/liabilities/${id}`)
     liabilities.value = liabilities.value.filter((l) => l.id !== id)
   }
 
-  return { liabilities, loading, fetchAll, create, remove }
+  return { liabilities, loading, fetchAll, create, update, remove }
 })
