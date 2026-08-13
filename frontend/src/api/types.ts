@@ -35,6 +35,7 @@ export interface Account {
 }
 
 export type AccountCreate = Omit<Account, 'id' | 'created_at' | 'updated_at'>
+export type AccountUpdate = Partial<AccountCreate>
 
 export interface Valuation {
   id: number
@@ -46,6 +47,32 @@ export interface Valuation {
 }
 
 export type ValuationCreate = Omit<Valuation, 'id' | 'created_at'>
+export type ValuationUpdate = Partial<Omit<ValuationCreate, 'account_id'>>
+
+export type AssetClass = 'stock' | 'etf' | 'crypto' | 'fund' | 'other'
+
+export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
+  stock: 'Stock',
+  etf: 'ETF',
+  crypto: 'Crypto',
+  fund: 'Fund',
+  other: 'Other',
+}
+
+export interface Asset {
+  id: number
+  account_id: number
+  name: string
+  symbol: string | null
+  asset_class: AssetClass
+  quantity: string
+  unit_cost: string
+  created_at: string
+  updated_at: string
+}
+
+export type AssetCreate = Omit<Asset, 'id' | 'created_at' | 'updated_at'>
+export type AssetUpdate = Partial<Omit<AssetCreate, 'account_id'>>
 
 export type LiabilityType = 'mortgage' | 'consumer_loan' | 'other'
 
@@ -70,6 +97,7 @@ export interface Liability {
 }
 
 export type LiabilityCreate = Omit<Liability, 'id' | 'created_at' | 'updated_at'>
+export type LiabilityUpdate = Partial<LiabilityCreate>
 
 export interface Envelope {
   id: number
@@ -83,6 +111,7 @@ export interface Envelope {
 }
 
 export type EnvelopeCreate = Omit<Envelope, 'id' | 'created_at' | 'updated_at'>
+export type EnvelopeUpdate = Partial<EnvelopeCreate>
 
 export interface NetWorth {
   total_assets: number
