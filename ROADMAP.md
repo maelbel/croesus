@@ -65,16 +65,19 @@ Two target usage modes:
 
 ## Phase 1 — v1: manual entry + dashboard
 
-- [ ] Account CRUD (all types: Checking, Regulated savings, PEA, Life
+- [x] Account CRUD (all types: Checking, Regulated savings, PEA, Life
       insurance, Brokerage, Crypto, Real estate, SCPI, Other)
-- [ ] Asset CRUD (portfolio line items) inside brokerage accounts
-- [ ] Manual entry of periodic valuations → historical tracking over time
-- [ ] Liability CRUD (loans, credit) with monthly payment and remaining
+- [x] Asset CRUD (portfolio line items) inside brokerage accounts — managed
+      per-account from the account detail panel
+- [x] Manual entry of periodic valuations → historical tracking over time —
+      add/edit/delete from the account detail panel
+- [x] Liability CRUD (loans, credit) with monthly payment and remaining
       balance
-- [ ] Emergency fund: special account + target goal + progress bar
-- [ ] Budget envelopes: CRUD buckets + allocated/used amount
-- [ ] Dashboard: current net worth (assets − liabilities), evolution curve
-      over time, breakdown by account type / asset class
+- [x] Emergency fund: special account + target goal + progress bar
+- [x] Budget envelopes: CRUD buckets + allocated/used amount
+- [x] Dashboard: current net worth (assets − liabilities), evolution curve
+      over time, breakdown by account type / asset class — refreshes
+      automatically after any edit, no manual reload needed
 - [ ] Local desktop mode: FastAPI sidecar + embedded SQLite, packaged with
       PyInstaller
 - [ ] Remote desktop mode: server URL configuration + authentication
