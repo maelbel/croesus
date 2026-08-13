@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.account import Account
 from app.models.valuation import Valuation
-from app.schemas.valuation import ValuationCreate, ValuationRead
+from app.schemas.valuation import ValuationCreate, ValuationRead, ValuationUpdate
 
 router = APIRouter(prefix="/valuations", tags=["valuations"])
 
@@ -23,6 +23,20 @@ def create_valuation(payload: ValuationCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Account not found")
     valuation = Valuation(**payload.model_dump())
     db.add(valuation)
+    db.commit()
+    db.refresh(valuation)
+    return valuation
+
+
+@router.patch("/{valuation_id}", response_model=ValuationRead)
+def update_valuation(
+    valuation_id: int, payload: ValuationUpdate, db: Session = Depends(get_db)
+):
+    valuation = db.get(Valuation, valuation_id)
+    if valuation is None:
+        raise HTTPException(status_code=404, detail="Valuation not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(valuation, field, value)
     db.commit()
     db.refresh(valuation)
     return valuation

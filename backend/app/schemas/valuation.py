@@ -1,17 +1,24 @@
-from datetime import date, datetime
+from datetime import date as DateValue
+from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
 
 class ValuationBase(BaseModel):
-    date: date
+    date: DateValue
     value: Decimal
     note: str | None = None
 
 
 class ValuationCreate(ValuationBase):
     account_id: int
+
+
+class ValuationUpdate(BaseModel):
+    date: DateValue | None = None
+    value: Decimal | None = None
+    note: str | None = None
 
 
 class ValuationRead(ValuationBase):
