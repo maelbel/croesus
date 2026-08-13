@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/maelbel/croesus/compare/v0.2.0...v0.2.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **release:** use a PAT so releases can trigger the publish workflow ([5ffc1ae](https://github.com/maelbel/croesus/commit/5ffc1ae1a19005f4ad73f7ce499ad74aab6e9760))
+
 ## [0.2.0](https://github.com/maelbel/croesus/compare/v0.1.0...v0.2.0) (2026-08-13)
 
 
