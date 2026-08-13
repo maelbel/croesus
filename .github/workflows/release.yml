@@ -17,3 +17,9 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
+        with:
+          # A release created with the default GITHUB_TOKEN can't trigger other
+          # workflows (GitHub's anti-recursion rule), so publish.yml would never
+          # fire on the resulting release. RELEASE_PAT is a fine-grained PAT
+          # scoped to just this repo (contents + pull requests, read & write).
+          token: ${{ secrets.RELEASE_PAT }}

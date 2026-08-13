@@ -72,8 +72,16 @@ Before the first automated release can run, a maintainer needs to:
 2. Make sure Actions have `contents: write` and `pull-requests: write`
    permissions (Settings → Actions → General → Workflow permissions), so
    `release-please` can open PRs and create releases.
-3. Make sure GHCR packages are allowed for the repo (usually on by default for
+3. Also under Settings → Actions → General → Workflow permissions, enable
+   **"Allow GitHub Actions to create and approve pull requests"** — this is a
+   separate toggle from the read/write setting above, and `release-please`
+   can't open its Release PR without it.
+4. Create a fine-grained PAT scoped to just this repo (`Settings → Developer
+   settings → Personal access tokens` → **Contents**: read & write,
+   **Pull requests**: read & write) and add it as a repository secret named
+   `RELEASE_PAT` (`Settings → Secrets and variables → Actions`). A release
+   created with the default `GITHUB_TOKEN` can't trigger other workflows
+   (GitHub's anti-recursion rule) — without this, the Release PR gets created
+   fine, but merging it produces a release that never triggers `publish.yml`.
+5. Make sure GHCR packages are allowed for the repo (usually on by default for
    public repos using `GITHUB_TOKEN`).
-
-No other secrets are required — Docker publishing and desktop builds both use
-the built-in `GITHUB_TOKEN`.
