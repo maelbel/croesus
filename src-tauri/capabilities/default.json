@@ -6,6 +6,10 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [{ "name": "binaries/croesus-backend", "sidecar": true }]
+    }
   ]
 }

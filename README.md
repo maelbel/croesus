@@ -88,12 +88,20 @@ App available at http://localhost:5173.
 ### Desktop (Tauri)
 
 ```bash
+cd backend && uv sync && bash build-sidecar.sh && cd ..  # package the FastAPI backend as a sidecar binary
 pnpm install                # from the repo root, installs @tauri-apps/cli
 pnpm tauri dev               # launches the frontend + a native window
 ```
 
+The desktop app runs fully standalone: the sidecar binary embeds the backend
+and serves it on `localhost:8000` against a SQLite database in the OS's
+per-user app data directory — no Docker/Postgres required. Re-run
+`build-sidecar.sh` after backend code changes; it needs to be run once
+before the first `pnpm tauri dev` or `pnpm tauri build`.
+
 Linux prerequisites: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `librsvg2-dev`,
-`libgtk-3-dev`, `libayatana-appindicator3-dev`, `patchelf`. To build Windows/
+`libgtk-3-dev`, `libayatana-appindicator3-dev`, `patchelf`, `libdbus-1-dev`,
+`pkg-config`. To build Windows/
 macOS binaries, use a CI (GitHub Actions) rather than building locally — there
 is no reliable cross-compilation path from Linux ARM.
 

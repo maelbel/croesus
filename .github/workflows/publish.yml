@@ -53,7 +53,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev librsvg2-dev \
-            libgtk-3-dev libayatana-appindicator3-dev patchelf
+            libgtk-3-dev libayatana-appindicator3-dev patchelf libdbus-1-dev pkg-config
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync
+        working-directory: backend
+      - name: Build desktop sidecar
+        run: bash build-sidecar.sh
+        working-directory: backend
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

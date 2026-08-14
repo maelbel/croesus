@@ -10,6 +10,7 @@ dependencies = [
     "fastapi>=0.141.1",
     "numpy-financial>=1.0.0",
     "pandas>=3.0.5",
+    "platformdirs>=4.5.0",
     "psycopg[binary]>=3.3.4",
     "pydantic-settings>=2.15.0",
     "python-dotenv>=1.2.2",
@@ -22,6 +23,7 @@ package = false
 
 [dependency-groups]
 dev = [
+    "pyinstaller>=6.16.0",
     "ruff>=0.16.2",
 ]
 
