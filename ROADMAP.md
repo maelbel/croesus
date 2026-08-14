@@ -78,7 +78,7 @@ Two target usage modes:
 - [x] Dashboard: current net worth (assets − liabilities), evolution curve
       over time, breakdown by account type / asset class — refreshes
       automatically after any edit, no manual reload needed
-- [ ] Local desktop mode: FastAPI sidecar + embedded SQLite, packaged with
+- [x] Local desktop mode: FastAPI sidecar + embedded SQLite, packaged with
       PyInstaller
 - [ ] Remote desktop mode: server URL configuration + authentication
 - [ ] Generic OIDC SSO support (self-hosted + remote desktop mode) — works
@@ -109,11 +109,45 @@ Two target usage modes:
 - [ ] If integrated: categorized expense tracking, linked to budget envelopes
       (e.g. a "Vacation" expense decrements the matching envelope)
 
+## Phase 5 — Internationalization
+
+- [ ] UI language support (i18n) — externalize frontend strings, start with
+      French + English
+- [ ] Multi-currency — per-account currency, conversion to a reference
+      currency for the consolidated net worth view (supersedes the earlier
+      "EUR only" non-goal)
+
+## Phase 6 — Advanced analytics
+
+- [ ] Performance against market — compare portfolio return (XIRR) against a
+      benchmark index (CAC 40, S&P 500, MSCI World...) over the same period
+- [ ] Contribution vs. performance decomposition — split net worth growth
+      into money contributed vs. market/valuation effect
+- [ ] Simple net worth projections — linear/compound projection from
+      existing valuation history (e.g. "at this savings rate, when do I
+      reach €X") — kept deliberately simple; see non-goals
+- [ ] Tax-wrapper limit tracking — flag accounts approaching contribution
+      ceilings (PEA €150k, Livret A cap, etc.)
+
+## Phase 7 — Household sharing (optional)
+
+- [ ] Shared/household net worth — multiple users on one instance, with
+      some accounts shared and others kept private (supersedes the earlier
+      single-user non-goal)
+
+## Phase 8 — Data portability & reliability
+
+- [ ] Import from spreadsheet/CSV (bootstrapping from an existing manual
+      tracker)
+- [ ] Export — CSV and/or PDF net worth report
+- [ ] Encrypted backup export, restorable independently of the running
+      instance
+- [ ] Valuation staleness reminders (e.g. "account X hasn't been updated in
+      60 days")
+
 ## Non-goals (for now)
 
-- Multi-user / shared net worth (single-user to start)
-- Automated financial advice, complex projections
-- Multi-currency (EUR only to start)
+- Automated financial advice (projections stay simple — see Phase 6)
 - Automated cross-platform builds (will come via CI/CD — GitHub Actions —
   rather than locally from the Pi, which can't natively compile Windows/macOS
   binaries)

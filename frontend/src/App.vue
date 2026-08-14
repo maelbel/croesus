@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { waitForBackend } from './api/client'
 import { useAccountsStore } from './stores/accounts'
 import { useLiabilitiesStore } from './stores/liabilities'
 import { useEnvelopesStore } from './stores/envelopes'
@@ -19,7 +20,19 @@ const valuationsStore = useValuationsStore()
 const assetsStore = useAssetsStore()
 const themeStore = useThemeStore()
 
-onMounted(() => {
+// In desktop mode the backend starts as a sidecar process and can take a
+// couple of seconds to come up — wait for it before firing the first
+// requests, instead of showing a failed fetch on a slow cold start.
+const backendReady = ref(false)
+const backendUnreachable = ref(false)
+
+onMounted(async () => {
+  if (!(await waitForBackend())) {
+    backendUnreachable.value = true
+    return
+  }
+  backendReady.value = true
+
   accountsStore.fetchAll()
   liabilitiesStore.fetchAll()
   envelopesStore.fetchAll()
@@ -45,7 +58,21 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
 
 <template>
   <UApp class="isolate">
-    <div class="grid min-h-screen grid-cols-[248px_minmax(0,1fr)] bg-default text-default">
+    <div
+      v-if="backendUnreachable"
+      class="flex min-h-screen flex-col items-center justify-center gap-2 bg-default text-default"
+    >
+      <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
+      <p class="text-muted">Couldn't reach the backend. Please restart the app.</p>
+    </div>
+    <div
+      v-else-if="!backendReady"
+      class="flex min-h-screen flex-col items-center justify-center gap-2 bg-default text-default"
+    >
+      <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
+      <p class="text-muted">Starting up…</p>
+    </div>
+    <div v-else class="grid min-h-screen grid-cols-[248px_minmax(0,1fr)] bg-default text-default">
       <aside class="app-sidebar sticky top-0 flex h-screen flex-col border-r-2 border-default">
         <div class="neu-flat flex flex-col gap-2 border-b-2 border-default px-6 py-6">
           <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
