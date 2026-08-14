@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/maelbel/croesus/compare/v0.2.1...v0.3.0) (2026-08-14)
+
+
+### Features
+
+* add local desktop mode with FastAPI sidecar ([c063dbb](https://github.com/maelbel/croesus/commit/c063dbb305ab9594523de4807c436f67b8a607ff))
+
 ## [0.2.1](https://github.com/maelbel/croesus/compare/v0.2.0...v0.2.1) (2026-08-13)
 
 
