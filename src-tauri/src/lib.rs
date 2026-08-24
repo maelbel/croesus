@@ -14,6 +14,11 @@ struct SidecarProcess(Mutex<Option<CommandChild>>);
 struct ConnectionConfig {
   mode: String,
   server_url: Option<String>,
+  // False until the user has been through the onboarding screen once (or
+  // used Settings). Lets the frontend tell "never configured, show
+  // onboarding" apart from "explicitly left on local mode".
+  #[serde(default)]
+  configured: bool,
 }
 
 impl Default for ConnectionConfig {
@@ -21,6 +26,7 @@ impl Default for ConnectionConfig {
     ConnectionConfig {
       mode: "local".into(),
       server_url: None,
+      configured: false,
     }
   }
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { isTauri } from '@tauri-apps/api/core'
 import { waitForBackend } from './api/client'
 import { useAccountsStore } from './stores/accounts'
 import { useLiabilitiesStore } from './stores/liabilities'
@@ -13,6 +14,7 @@ import { useConnectionStore } from './stores/connection'
 import { useAuthStore } from './stores/auth'
 import { formatCurrency, formatDate, deltaColorClass } from './lib/format'
 import LoginForm from './components/LoginForm.vue'
+import OnboardingScreen from './components/OnboardingScreen.vue'
 
 const route = useRoute()
 const accountsStore = useAccountsStore()
@@ -31,6 +33,11 @@ const authStore = useAuthStore()
 const backendReady = ref(false)
 const backendUnreachable = ref(false)
 
+// First launch of the desktop shell: ask local-vs-remote before showing
+// anything else. Picking remote saves + relaunches (see OnboardingScreen);
+// picking local just needs to fall through to the usual boot sequence below.
+const showOnboarding = ref(false)
+
 function loadData() {
   accountsStore.fetchAll()
   liabilitiesStore.fetchAll()
@@ -40,9 +47,7 @@ function loadData() {
   assetsStore.fetchAll()
 }
 
-onMounted(async () => {
-  await connectionStore.load()
-
+async function bootAfterConnectionDecided() {
   if (!(await waitForBackend())) {
     backendUnreachable.value = true
     return
@@ -51,6 +56,22 @@ onMounted(async () => {
 
   await authStore.checkStatus()
   if (!authStore.authEnabled || authStore.token) loadData()
+}
+
+function onOnboardingContinueLocal() {
+  showOnboarding.value = false
+  bootAfterConnectionDecided()
+}
+
+onMounted(async () => {
+  await connectionStore.load()
+
+  if (isTauri() && !connectionStore.configured) {
+    showOnboarding.value = true
+    return
+  }
+
+  await bootAfterConnectionDecided()
 })
 
 // Covers both the initial "already logged in" case and logging in fresh —
@@ -83,7 +104,13 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
 <template>
   <UApp class="isolate">
     <div
-      v-if="backendUnreachable"
+      v-if="showOnboarding"
+      class="flex min-h-screen flex-col items-center justify-center bg-default text-default"
+    >
+      <OnboardingScreen @continue-local="onOnboardingContinueLocal" />
+    </div>
+    <div
+      v-else-if="backendUnreachable"
       class="flex min-h-screen flex-col items-center justify-center gap-2 bg-default text-default"
     >
       <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>

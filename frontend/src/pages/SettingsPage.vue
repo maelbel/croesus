@@ -6,7 +6,8 @@ import { SKINS, useThemeStore } from '../stores/theme'
 import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
-import { useConnectionStore, type ConnectionMode } from '../stores/connection'
+import { useConnectionStore } from '../stores/connection'
+import { normalizeUrl, useConnectionForm } from '../composables/useConnectionForm'
 
 const themeStore = useThemeStore()
 const accountsStore = useAccountsStore()
@@ -18,37 +19,16 @@ const connectionStore = useConnectionStore()
 // server — the self-hosted/browser build always just talks to VITE_API_URL.
 const isTauriApp = isTauri()
 
-const pendingMode = ref<ConnectionMode>(connectionStore.mode)
-const pendingServerUrl = ref(connectionStore.serverUrl ?? '')
-const testing = ref(false)
-const testError = ref<string | null>(null)
-const testOk = ref(false)
+const {
+  mode: pendingMode,
+  serverUrl: pendingServerUrl,
+  testing,
+  testError,
+  testOk,
+  testConnection,
+  resetTest,
+} = useConnectionForm()
 const applying = ref(false)
-
-function normalizeUrl(url: string) {
-  return url.trim().replace(/\/+$/, '')
-}
-
-async function testConnection() {
-  testError.value = null
-  testOk.value = false
-  const url = normalizeUrl(pendingServerUrl.value)
-  if (!url) {
-    testError.value = 'Enter a server URL first.'
-    return
-  }
-
-  testing.value = true
-  try {
-    const response = await fetch(`${url}/auth/status`)
-    if (!response.ok) throw new Error(`Server responded with ${response.status}`)
-    testOk.value = true
-  } catch {
-    testError.value = "Couldn't reach that server. Check the URL and that it's running."
-  } finally {
-    testing.value = false
-  }
-}
 
 async function applyConnection() {
   if (pendingMode.value === 'remote' && !testOk.value) return
@@ -119,7 +99,7 @@ async function deleteAllData() {
                 v-model="pendingServerUrl"
                 placeholder="https://croesus.example.com"
                 class="w-full"
-                @update:model-value="testOk = false"
+                @update:model-value="resetTest"
               />
             </UFormField>
             <UButton variant="outline" color="neutral" :loading="testing" @click="testConnection">
