@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { isTauri } from '@tauri-apps/api/core'
+import { isTauri, invoke } from '@tauri-apps/api/core'
 import { waitForBackend } from './api/client'
 import { useAccountsStore } from './stores/accounts'
 import { useLiabilitiesStore } from './stores/liabilities'
@@ -32,6 +32,10 @@ const authStore = useAuthStore()
 // requests, instead of showing a failed fetch on a slow cold start.
 const backendReady = ref(false)
 const backendUnreachable = ref(false)
+// Populated from the sidecar's own stdout/stderr when it doesn't come up —
+// there's no console visible in a packaged app otherwise, so this is the
+// only way to see *why* short of restarting with a terminal attached.
+const sidecarLog = ref<string[]>([])
 
 // First launch of the desktop shell: ask local-vs-remote before showing
 // anything else. Picking remote saves + relaunches (see OnboardingScreen);
@@ -50,6 +54,9 @@ function loadData() {
 async function bootAfterConnectionDecided() {
   if (!(await waitForBackend())) {
     backendUnreachable.value = true
+    if (isTauri() && connectionStore.mode === 'local') {
+      sidecarLog.value = await invoke<string[]>('get_sidecar_log')
+    }
     return
   }
   backendReady.value = true
@@ -111,10 +118,14 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
     </div>
     <div
       v-else-if="backendUnreachable"
-      class="flex min-h-screen flex-col items-center justify-center gap-2 bg-default text-default"
+      class="flex min-h-screen flex-col items-center justify-center gap-3 bg-default text-default"
     >
       <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
       <p class="text-muted">Couldn't reach the backend. Please restart the app.</p>
+      <pre
+        v-if="sidecarLog.length"
+        class="neu-inset max-h-64 w-full max-w-2xl overflow-auto border border-default p-3 text-left text-xs text-muted"
+      >{{ sidecarLog.join('\n') }}</pre>
     </div>
     <div
       v-else-if="!backendReady"
