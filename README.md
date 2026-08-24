@@ -60,6 +60,27 @@ means exactly one thing: **wealth, tracked over the long run.**
 | `src-tauri/`          | Desktop shell (Tauri) — Windows/Linux/macOS                     |
 | `docker-compose.yml`  | Self-hosted deployment (backend + Postgres + frontend)          |
 
+## Prerequisites
+
+| For                    | You need                                                                 |
+|------------------------|---------------------------------------------------------------------------|
+| Backend                | Python 3.13+, [uv](https://docs.astral.sh/uv/)                          |
+| Frontend               | Node 22+, pnpm (version pinned via `packageManager` — `corepack enable` picks up the right one) |
+| Desktop (Tauri)        | Rust stable (1.77.2+, via [rustup](https://rustup.rs)) + platform build deps, see below |
+| Self-hosted (Docker)   | Docker + Docker Compose                                                  |
+
+Desktop build deps, by platform:
+
+- **Linux**: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `librsvg2-dev`,
+  `libgtk-3-dev`, `libayatana-appindicator3-dev`, `patchelf`,
+  `libdbus-1-dev`, `pkg-config`
+- **macOS**: Xcode Command Line Tools (`xcode-select --install`)
+- **Windows**: Microsoft C++ Build Tools and the WebView2 runtime (already
+  installed on most Windows 10/11 machines)
+
+To build Windows/macOS binaries, use CI (GitHub Actions) rather than building
+locally — there is no reliable cross-compilation path from Linux ARM.
+
 ## Local development
 
 ### Backend
@@ -104,12 +125,6 @@ self-hosted instance: in Settings → Connection, switch to "Remote", enter
 that server's URL, and restart. If the self-hosted instance has
 `ADMIN_USERNAME`/`ADMIN_PASSWORD` configured (see below), you'll be prompted
 to log in.
-
-Linux prerequisites: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `librsvg2-dev`,
-`libgtk-3-dev`, `libayatana-appindicator3-dev`, `patchelf`, `libdbus-1-dev`,
-`pkg-config`. To build Windows/
-macOS binaries, use a CI (GitHub Actions) rather than building locally — there
-is no reliable cross-compilation path from Linux ARM.
 
 ## Self-hosted deployment (Docker)
 
