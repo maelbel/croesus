@@ -110,6 +110,7 @@ App available at http://localhost:5173.
 
 ```bash
 cd backend && uv sync && bash build-sidecar.sh && cd ..  # package the FastAPI backend as a sidecar binary
+cd frontend && pnpm install && cd ..        # frontend has its own lockfile, not covered by the next line
 pnpm install                # from the repo root, installs @tauri-apps/cli
 pnpm tauri dev               # launches the frontend + a native window
 ```
