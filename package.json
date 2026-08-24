@@ -6,7 +6,9 @@
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "setup": "bash scripts/prod-setup.sh",
+    "setup:dev": "bash scripts/dev-setup.sh"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

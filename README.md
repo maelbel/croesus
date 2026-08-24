@@ -87,7 +87,7 @@ Want everything (backend, frontend, and the desktop sidecar) set up in one
 shot? Run:
 
 ```bash
-./scripts/dev-setup.sh
+pnpm setup:dev
 ```
 
 It checks for the tools above, installs both the root and `frontend/`
@@ -120,7 +120,7 @@ App available at http://localhost:5173.
 
 ### Desktop (Tauri)
 
-Run `./scripts/dev-setup.sh` first (see above), then:
+Run `pnpm setup:dev` first (see above), then:
 
 ```bash
 pnpm tauri dev   # launches the frontend + a native window
@@ -145,7 +145,7 @@ output, never anything from a remote server you've connected to).
 ## Self-hosted deployment (Docker)
 
 ```bash
-./scripts/prod-setup.sh
+pnpm setup
 ```
 
 Walks you through generating `POSTGRES_PASSWORD`, optionally enabling login
