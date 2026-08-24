@@ -99,6 +99,12 @@ per-user app data directory — no Docker/Postgres required. Re-run
 `build-sidecar.sh` after backend code changes; it needs to be run once
 before the first `pnpm tauri dev` or `pnpm tauri build`.
 
+Instead of the local database, the desktop app can point at an existing
+self-hosted instance: in Settings → Connection, switch to "Remote", enter
+that server's URL, and restart. If the self-hosted instance has
+`ADMIN_USERNAME`/`ADMIN_PASSWORD` configured (see below), you'll be prompted
+to log in.
+
 Linux prerequisites: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `librsvg2-dev`,
 `libgtk-3-dev`, `libayatana-appindicator3-dev`, `patchelf`, `libdbus-1-dev`,
 `pkg-config`. To build Windows/
@@ -113,7 +119,10 @@ docker compose up -d --build
 ```
 
 By default this publishes the frontend on port `8080` and the API on port
-`8000` directly — no reverse proxy required to get started.
+`8000` directly — no reverse proxy required to get started. The API is open
+by default (no login); set `ADMIN_USERNAME`, `ADMIN_PASSWORD` and
+`JWT_SECRET` in `.env` to require login — needed if you want to connect to
+this instance from the desktop app's remote mode.
 
 Running behind a reverse proxy (Traefik, Caddy, nginx...) instead? Edit
 `docker-compose.yml` directly to add your proxy's labels/config. A dedicated

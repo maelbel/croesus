@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { waitForBackend } from './api/client'
 import { useAccountsStore } from './stores/accounts'
@@ -9,7 +9,10 @@ import { useNetWorthStore } from './stores/networth'
 import { useValuationsStore } from './stores/valuations'
 import { useAssetsStore } from './stores/assets'
 import { useThemeStore } from './stores/theme'
+import { useConnectionStore } from './stores/connection'
+import { useAuthStore } from './stores/auth'
 import { formatCurrency, formatDate, deltaColorClass } from './lib/format'
+import LoginForm from './components/LoginForm.vue'
 
 const route = useRoute()
 const accountsStore = useAccountsStore()
@@ -19,6 +22,8 @@ const netWorthStore = useNetWorthStore()
 const valuationsStore = useValuationsStore()
 const assetsStore = useAssetsStore()
 const themeStore = useThemeStore()
+const connectionStore = useConnectionStore()
+const authStore = useAuthStore()
 
 // In desktop mode the backend starts as a sidecar process and can take a
 // couple of seconds to come up — wait for it before firing the first
@@ -26,20 +31,39 @@ const themeStore = useThemeStore()
 const backendReady = ref(false)
 const backendUnreachable = ref(false)
 
-onMounted(async () => {
-  if (!(await waitForBackend())) {
-    backendUnreachable.value = true
-    return
-  }
-  backendReady.value = true
-
+function loadData() {
   accountsStore.fetchAll()
   liabilitiesStore.fetchAll()
   envelopesStore.fetchAll()
   netWorthStore.fetchAll()
   valuationsStore.fetchAll()
   assetsStore.fetchAll()
+}
+
+onMounted(async () => {
+  await connectionStore.load()
+
+  if (!(await waitForBackend())) {
+    backendUnreachable.value = true
+    return
+  }
+  backendReady.value = true
+
+  await authStore.checkStatus()
+  if (!authStore.authEnabled || authStore.token) loadData()
 })
+
+// Covers both the initial "already logged in" case and logging in fresh —
+// and doubles as the recovery path if a 401 mid-session clears the token
+// and the user logs back in, since showLogin reacts to authStore.token too.
+watch(
+  () => authStore.token,
+  (token) => {
+    if (token && backendReady.value) loadData()
+  },
+)
+
+const showLogin = computed(() => backendReady.value && authStore.authEnabled && !authStore.token)
 
 const links = [
   { label: 'Dashboard', to: '/', count: null },
@@ -71,6 +95,12 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
     >
       <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
       <p class="text-muted">Starting up…</p>
+    </div>
+    <div
+      v-else-if="showLogin"
+      class="flex min-h-screen flex-col items-center justify-center bg-default text-default"
+    >
+      <LoginForm />
     </div>
     <div v-else class="grid min-h-screen grid-cols-[248px_minmax(0,1fr)] bg-default text-default">
       <aside class="app-sidebar sticky top-0 flex h-screen flex-col border-r-2 border-default">

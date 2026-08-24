@@ -1,6 +1,16 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+import { useConnectionStore } from '../stores/connection'
+import { useAuthStore } from '../stores/auth'
 
-class ApiError extends Error {
+// Local desktop mode and self-hosted/browser mode both resolve here. Remote
+// desktop mode instead points at whatever server URL the user configured in
+// Settings — see stores/connection.ts.
+function resolveBaseUrl(): string {
+  const connection = useConnectionStore()
+  if (connection.mode === 'remote' && connection.serverUrl) return connection.serverUrl
+  return import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+}
+
+export class ApiError extends Error {
   status: number
 
   constructor(status: number, message: string) {
@@ -10,10 +20,18 @@ class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+  const auth = useAuthStore()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (auth.token) headers.Authorization = `Bearer ${auth.token}`
+
+  const response = await fetch(`${resolveBaseUrl()}${path}`, {
+    headers,
     ...options,
   })
+
+  // A previously valid token expired or was revoked server-side — drop it so
+  // the UI falls back to the login screen instead of looping on 401s.
+  if (response.status === 401) auth.logout()
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
@@ -43,7 +61,7 @@ export async function waitForBackend(timeoutMs = 15000, intervalMs = 300): Promi
 
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`)
+      const response = await fetch(`${resolveBaseUrl()}/health`)
       if (response.ok) return true
     } catch {
       // backend not up yet, keep polling

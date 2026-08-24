@@ -14,6 +14,7 @@ declare module 'vue' {
     AccountDetailPanel: typeof import('./src/components/AccountDetailPanel.vue')['default']
     CompositionChart: typeof import('./src/components/CompositionChart.vue')['default']
     EntityFormModal: typeof import('./src/components/EntityFormModal.vue')['default']
+    LoginForm: typeof import('./src/components/LoginForm.vue')['default']
     NetWorthRings: typeof import('./src/components/NetWorthRings.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
