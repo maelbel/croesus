@@ -83,6 +83,18 @@ locally — there is no reliable cross-compilation path from Linux ARM.
 
 ## Local development
 
+Want everything (backend, frontend, and the desktop sidecar) set up in one
+shot? Run:
+
+```bash
+./scripts/dev-setup.sh
+```
+
+It checks for the tools above, installs both the root and `frontend/`
+dependencies (they have separate lockfiles), and builds the sidecar binary.
+The sections below are the same steps broken out individually, if you only
+need one piece or want to see what's happening.
+
 ### Backend
 
 ```bash
@@ -108,37 +120,51 @@ App available at http://localhost:5173.
 
 ### Desktop (Tauri)
 
+Run `./scripts/dev-setup.sh` first (see above), then:
+
 ```bash
-cd backend && uv sync && bash build-sidecar.sh && cd ..  # package the FastAPI backend as a sidecar binary
-cd frontend && pnpm install && cd ..        # frontend has its own lockfile, not covered by the next line
-pnpm install                # from the repo root, installs @tauri-apps/cli
-pnpm tauri dev               # launches the frontend + a native window
+pnpm tauri dev   # launches the frontend + a native window
 ```
 
 The desktop app runs fully standalone: the sidecar binary embeds the backend
 and serves it on `localhost:8000` against a SQLite database in the OS's
 per-user app data directory — no Docker/Postgres required. Re-run
-`build-sidecar.sh` after backend code changes; it needs to be run once
-before the first `pnpm tauri dev` or `pnpm tauri build`.
+`build-sidecar.sh` after backend code changes.
 
-Instead of the local database, the desktop app can point at an existing
-self-hosted instance: in Settings → Connection, switch to "Remote", enter
-that server's URL, and restart. If the self-hosted instance has
+On first launch you'll be asked to choose Local or Remote. Instead of the
+local database, the desktop app can point at an existing self-hosted
+instance: pick "Remote" (or later, in Settings → Connection), enter that
+server's URL, and restart. If the self-hosted instance has
 `ADMIN_USERNAME`/`ADMIN_PASSWORD` configured (see below), you'll be prompted
 to log in.
+
+If the app can't reach the backend, the screen it shows includes the
+sidecar's own log output — check there first (this only ever contains local
+output, never anything from a remote server you've connected to).
 
 ## Self-hosted deployment (Docker)
 
 ```bash
-cp .env.example .env         # set a real POSTGRES_PASSWORD
-docker compose up -d --build
+./scripts/prod-setup.sh
 ```
+
+Walks you through generating `POSTGRES_PASSWORD`, optionally enabling login
+(`ADMIN_USERNAME`/`ADMIN_PASSWORD` + a generated `JWT_SECRET` — needed if
+you want to connect to this instance from the desktop app's remote mode),
+and setting `CORS_ORIGINS` correctly if so, then runs
+`docker compose up -d --build`. Safe to re-run — it never overwrites a value
+you've already set in `.env`.
 
 By default this publishes the frontend on port `8080` and the API on port
 `8000` directly — no reverse proxy required to get started. The API is open
-by default (no login); set `ADMIN_USERNAME`, `ADMIN_PASSWORD` and
-`JWT_SECRET` in `.env` to require login — needed if you want to connect to
-this instance from the desktop app's remote mode.
+by default (no login).
+
+Prefer doing it by hand instead?
+
+```bash
+cp .env.example .env         # set a real POSTGRES_PASSWORD, and the rest as needed
+docker compose up -d --build
+```
 
 Running behind a reverse proxy (Traefik, Caddy, nginx...) instead? Edit
 `docker-compose.yml` directly to add your proxy's labels/config. A dedicated
