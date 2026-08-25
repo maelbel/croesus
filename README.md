@@ -134,9 +134,16 @@ per-user app data directory — no Docker/Postgres required. Re-run
 On first launch you'll be asked to choose Local or Remote. Instead of the
 local database, the desktop app can point at an existing self-hosted
 instance: pick "Remote" (or later, in Settings → Connection), enter that
-server's URL, and restart. If the self-hosted instance has
+server's **backend API** URL, and restart. If the self-hosted instance has
 `ADMIN_USERNAME`/`ADMIN_PASSWORD` configured (see below), you'll be prompted
 to log in.
+
+If your deployment serves the frontend and the API on separate hosts (e.g.
+behind a reverse proxy with `app.example.com` routed to the frontend and
+`api.example.com` routed to the backend), make sure you enter the **API**
+host here — pointing the desktop app at the frontend's URL will fail with a
+CORS/404-looking error, since the frontend server doesn't proxy or set CORS
+headers for API paths.
 
 If the app can't reach the backend, the screen it shows includes the
 sidecar's own log output — check there first (this only ever contains local
@@ -168,7 +175,12 @@ docker compose up -d --build
 
 Running behind a reverse proxy (Traefik, Caddy, nginx...) instead? Edit
 `docker-compose.yml` directly to add your proxy's labels/config. A dedicated
-guide for this is planned — see [ROADMAP.md](./ROADMAP.md).
+guide for this is planned — see [ROADMAP.md](./ROADMAP.md). Whatever you set
+`CORS_ORIGINS` to, make sure it still includes `tauri://localhost` (and
+`http://tauri.localhost` for Windows builds) if you want desktop remote mode
+to keep working — those are the origins a packaged desktop app is served
+from, and they're easy to drop when overriding the value for a custom
+domain.
 
 ## Stack
 
