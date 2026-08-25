@@ -48,8 +48,8 @@ if [ -z "$(get_env POSTGRES_PASSWORD)" ]; then
 fi
 
 echo
-read -rp "Require login on this instance? Needed to use it from the desktop app's remote mode. [y/N] " enable_auth
-if [[ "$enable_auth" =~ ^[Yy]$ ]]; then
+read -rp "Require login on this instance? Needed to use it from the desktop app's remote mode. [Y/n] " enable_auth
+if [[ ! "$enable_auth" =~ ^[Nn]$ ]]; then
   read -rp "Admin username [admin]: " admin_user
   set_env ADMIN_USERNAME "${admin_user:-admin}"
 

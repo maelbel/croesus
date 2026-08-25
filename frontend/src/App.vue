@@ -190,6 +190,14 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
               :label="themeStore.mode === 'dark' ? 'Light' : 'Dark'"
               @click="themeStore.toggle()"
             />
+            <UButton
+              v-if="authStore.authEnabled"
+              variant="outline"
+              color="neutral"
+              size="sm"
+              label="Log out"
+              @click="authStore.logout()"
+            />
           </div>
         </header>
 

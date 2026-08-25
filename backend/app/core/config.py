@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     admin_username: str | None = None
     admin_password: str | None = None
     jwt_secret: str = "dev-insecure-secret-change-me"
-    jwt_expires_minutes: int = 60 * 24 * 30
+    jwt_expires_minutes: int = 60
 
     @property
     def auth_enabled(self) -> bool:

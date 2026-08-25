@@ -155,16 +155,18 @@ output, never anything from a remote server you've connected to).
 pnpm setup
 ```
 
-Walks you through generating `POSTGRES_PASSWORD`, optionally enabling login
+Walks you through generating `POSTGRES_PASSWORD`, enabling login by default
 (`ADMIN_USERNAME`/`ADMIN_PASSWORD` + a generated `JWT_SECRET` — needed if
-you want to connect to this instance from the desktop app's remote mode),
-and setting `CORS_ORIGINS` correctly if so, then runs
-`docker compose up -d --build`. Safe to re-run — it never overwrites a value
-you've already set in `.env`.
+you want to connect to this instance from the desktop app's remote mode; you
+can opt out if you'd rather run without one), and setting `CORS_ORIGINS`
+correctly if so, then runs `docker compose up -d --build`. Safe to re-run —
+it never overwrites a value you've already set in `.env`.
 
 By default this publishes the frontend on port `8080` and the API on port
-`8000` directly — no reverse proxy required to get started. The API is open
-by default (no login).
+`8000` directly — no reverse proxy required to get started. `pnpm setup`
+defaults to requiring login; setting up `.env` by hand instead (below)
+leaves the API open with no login unless you set `ADMIN_USERNAME`/
+`ADMIN_PASSWORD` yourself.
 
 Prefer doing it by hand instead?
 
