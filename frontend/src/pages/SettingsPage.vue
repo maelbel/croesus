@@ -1,13 +1,49 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { isTauri } from '@tauri-apps/api/core'
+import { relaunch } from '@tauri-apps/plugin-process'
 import { SKINS, useThemeStore } from '../stores/theme'
 import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
+import { useConnectionStore } from '../stores/connection'
+import { normalizeUrl, useConnectionForm } from '../composables/useConnectionForm'
 
 const themeStore = useThemeStore()
 const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
+const connectionStore = useConnectionStore()
+
+// Only the desktop shell can choose between a local sidecar and a remote
+// server — the self-hosted/browser build always just talks to VITE_API_URL.
+const isTauriApp = isTauri()
+
+const {
+  mode: pendingMode,
+  serverUrl: pendingServerUrl,
+  testing,
+  testError,
+  testOk,
+  testConnection,
+  resetTest,
+} = useConnectionForm()
+const applying = ref(false)
+
+async function applyConnection() {
+  if (pendingMode.value === 'remote' && !testOk.value) return
+
+  applying.value = true
+  try {
+    await connectionStore.save(
+      pendingMode.value,
+      pendingMode.value === 'remote' ? normalizeUrl(pendingServerUrl.value) : null,
+    )
+    await relaunch()
+  } finally {
+    applying.value = false
+  }
+}
 
 async function deleteAllData() {
   const total =
@@ -28,6 +64,64 @@ async function deleteAllData() {
 
 <template>
   <div class="flex max-w-[760px] flex-col">
+    <div
+      v-if="isTauriApp"
+      class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6"
+    >
+      <div class="flex flex-col gap-1">
+        <span class="font-heading text-[16.5px] font-extrabold">Connection</span>
+        <span class="text-sm text-muted">Local database, or an existing self-hosted server.</span>
+      </div>
+      <div class="flex flex-col items-start gap-3">
+        <div class="neu-inset flex w-max border border-default">
+          <UButton
+            size="sm"
+            :variant="pendingMode === 'local' ? 'solid' : 'ghost'"
+            color="neutral"
+            @click="pendingMode = 'local'"
+          >
+            Local
+          </UButton>
+          <UButton
+            size="sm"
+            :variant="pendingMode === 'remote' ? 'solid' : 'ghost'"
+            color="neutral"
+            @click="pendingMode = 'remote'"
+          >
+            Remote
+          </UButton>
+        </div>
+
+        <template v-if="pendingMode === 'remote'">
+          <div class="flex w-full max-w-sm items-end gap-2">
+            <UFormField label="Server URL" class="flex-1">
+              <UInput
+                v-model="pendingServerUrl"
+                placeholder="https://croesus.example.com"
+                class="w-full"
+                @update:model-value="resetTest"
+              />
+            </UFormField>
+            <UButton variant="outline" color="neutral" :loading="testing" @click="testConnection">
+              Test
+            </UButton>
+          </div>
+          <p v-if="testError" class="text-sm text-error">{{ testError }}</p>
+          <p v-else-if="testOk" class="text-sm text-success">Reachable — ready to connect.</p>
+        </template>
+
+        <UButton
+          color="primary"
+          :loading="applying"
+          :disabled="pendingMode === 'remote' && !testOk"
+          @click="applyConnection"
+        >
+          Save & restart
+        </UButton>
+        <span class="text-sm text-muted">Switching modes restarts the app.</span>
+      </div>
+    </div>
+
     <div class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6">
       <div class="flex flex-col gap-1">
         <span class="font-heading text-[16.5px] font-extrabold">Theme</span>

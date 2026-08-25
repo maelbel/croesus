@@ -80,7 +80,11 @@ Two target usage modes:
       automatically after any edit, no manual reload needed
 - [x] Local desktop mode: FastAPI sidecar + embedded SQLite, packaged with
       PyInstaller
-- [ ] Remote desktop mode: server URL configuration + authentication
+- [x] Remote desktop mode: server URL configuration + authentication — a
+      Settings → Connection toggle points the desktop app at an existing
+      self-hosted instance instead of the local sidecar; classic
+      username/password login (single admin account, opt-in via
+      `ADMIN_USERNAME`/`ADMIN_PASSWORD` on the self-hosted side)
 - [ ] Generic OIDC SSO support (self-hosted + remote desktop mode) — works
       with any provider (Authentik, Keycloak, etc.)
 - [ ] Docs: reverse proxy setup guide (Traefik, Caddy, nginx examples via

@@ -9,6 +9,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-croesus}:${POSTGRES_PASSWORD:?database password required}@postgres:5432/${POSTGRES_DB:-croesus}
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:8080"]}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:

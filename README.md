@@ -60,7 +60,40 @@ means exactly one thing: **wealth, tracked over the long run.**
 | `src-tauri/`          | Desktop shell (Tauri) — Windows/Linux/macOS                     |
 | `docker-compose.yml`  | Self-hosted deployment (backend + Postgres + frontend)          |
 
+## Prerequisites
+
+| For                    | You need                                                                 |
+|------------------------|---------------------------------------------------------------------------|
+| Backend                | Python 3.13+, [uv](https://docs.astral.sh/uv/)                          |
+| Frontend               | Node 22+, pnpm (version pinned via `packageManager` — `corepack enable` picks up the right one) |
+| Desktop (Tauri)        | Rust stable (1.77.2+, via [rustup](https://rustup.rs)) + platform build deps, see below |
+| Self-hosted (Docker)   | Docker + Docker Compose                                                  |
+
+Desktop build deps, by platform:
+
+- **Linux**: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `librsvg2-dev`,
+  `libgtk-3-dev`, `libayatana-appindicator3-dev`, `patchelf`,
+  `libdbus-1-dev`, `pkg-config`
+- **macOS**: Xcode Command Line Tools (`xcode-select --install`)
+- **Windows**: Microsoft C++ Build Tools and the WebView2 runtime (already
+  installed on most Windows 10/11 machines)
+
+To build Windows/macOS binaries, use CI (GitHub Actions) rather than building
+locally — there is no reliable cross-compilation path from Linux ARM.
+
 ## Local development
+
+Want everything (backend, frontend, and the desktop sidecar) set up in one
+shot? Run:
+
+```bash
+pnpm setup:dev
+```
+
+It checks for the tools above, installs both the root and `frontend/`
+dependencies (they have separate lockfiles), and builds the sidecar binary.
+The sections below are the same steps broken out individually, if you only
+need one piece or want to see what's happening.
 
 ### Backend
 
@@ -87,37 +120,69 @@ App available at http://localhost:5173.
 
 ### Desktop (Tauri)
 
+Run `pnpm setup:dev` first (see above), then:
+
 ```bash
-cd backend && uv sync && bash build-sidecar.sh && cd ..  # package the FastAPI backend as a sidecar binary
-pnpm install                # from the repo root, installs @tauri-apps/cli
-pnpm tauri dev               # launches the frontend + a native window
+pnpm tauri dev   # launches the frontend + a native window
 ```
 
 The desktop app runs fully standalone: the sidecar binary embeds the backend
 and serves it on `localhost:8000` against a SQLite database in the OS's
 per-user app data directory — no Docker/Postgres required. Re-run
-`build-sidecar.sh` after backend code changes; it needs to be run once
-before the first `pnpm tauri dev` or `pnpm tauri build`.
+`build-sidecar.sh` after backend code changes.
 
-Linux prerequisites: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `librsvg2-dev`,
-`libgtk-3-dev`, `libayatana-appindicator3-dev`, `patchelf`, `libdbus-1-dev`,
-`pkg-config`. To build Windows/
-macOS binaries, use a CI (GitHub Actions) rather than building locally — there
-is no reliable cross-compilation path from Linux ARM.
+On first launch you'll be asked to choose Local or Remote. Instead of the
+local database, the desktop app can point at an existing self-hosted
+instance: pick "Remote" (or later, in Settings → Connection), enter that
+server's **backend API** URL, and restart. If the self-hosted instance has
+`ADMIN_USERNAME`/`ADMIN_PASSWORD` configured (see below), you'll be prompted
+to log in.
+
+If your deployment serves the frontend and the API on separate hosts (e.g.
+behind a reverse proxy with `app.example.com` routed to the frontend and
+`api.example.com` routed to the backend), make sure you enter the **API**
+host here — pointing the desktop app at the frontend's URL will fail with a
+CORS/404-looking error, since the frontend server doesn't proxy or set CORS
+headers for API paths.
+
+If the app can't reach the backend, the screen it shows includes the
+sidecar's own log output — check there first (this only ever contains local
+output, never anything from a remote server you've connected to).
 
 ## Self-hosted deployment (Docker)
 
 ```bash
-cp .env.example .env         # set a real POSTGRES_PASSWORD
+pnpm setup
+```
+
+Walks you through generating `POSTGRES_PASSWORD`, enabling login by default
+(`ADMIN_USERNAME`/`ADMIN_PASSWORD` + a generated `JWT_SECRET` — needed if
+you want to connect to this instance from the desktop app's remote mode; you
+can opt out if you'd rather run without one), and setting `CORS_ORIGINS`
+correctly if so, then runs `docker compose up -d --build`. Safe to re-run —
+it never overwrites a value you've already set in `.env`.
+
+By default this publishes the frontend on port `8080` and the API on port
+`8000` directly — no reverse proxy required to get started. `pnpm setup`
+defaults to requiring login; setting up `.env` by hand instead (below)
+leaves the API open with no login unless you set `ADMIN_USERNAME`/
+`ADMIN_PASSWORD` yourself.
+
+Prefer doing it by hand instead?
+
+```bash
+cp .env.example .env         # set a real POSTGRES_PASSWORD, and the rest as needed
 docker compose up -d --build
 ```
 
-By default this publishes the frontend on port `8080` and the API on port
-`8000` directly — no reverse proxy required to get started.
-
 Running behind a reverse proxy (Traefik, Caddy, nginx...) instead? Edit
 `docker-compose.yml` directly to add your proxy's labels/config. A dedicated
-guide for this is planned — see [ROADMAP.md](./ROADMAP.md).
+guide for this is planned — see [ROADMAP.md](./ROADMAP.md). Whatever you set
+`CORS_ORIGINS` to, make sure it still includes `tauri://localhost` (and
+`http://tauri.localhost` for Windows builds) if you want desktop remote mode
+to keep working — those are the origins a packaged desktop app is served
+from, and they're easy to drop when overriding the value for a custom
+domain.
 
 ## Stack
 

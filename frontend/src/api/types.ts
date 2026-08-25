@@ -125,3 +125,12 @@ export interface NetWorthHistoryPoint {
   total_liabilities: number
   net_worth: number
 }
+
+export interface AuthStatus {
+  auth_enabled: boolean
+}
+
+export interface TokenResponse {
+  access_token: string
+  token_type: string
+}

@@ -16,7 +16,8 @@
         "width": 800,
         "height": 600,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "maximized": true
       }
     ],
     "security": {
@@ -26,9 +27,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": [
-      "binaries/croesus-backend"
-    ],
+    "externalBin": ["binaries/croesus-backend"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
