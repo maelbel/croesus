@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/maelbel/croesus/compare/v0.3.0...v0.4.0) (2026-08-25)
+
+
+### Features
+
+* desktop remote mode, security defaults, and Node-based setup scripts ([#6](https://github.com/maelbel/croesus/issues/6)) ([015278a](https://github.com/maelbel/croesus/commit/015278a4fe8803d6a4b4637444d9d24a6363ec3f))
+
 ## [0.3.0](https://github.com/maelbel/croesus/compare/v0.2.1...v0.3.0) (2026-08-14)
 
 
