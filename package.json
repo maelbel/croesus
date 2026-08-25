@@ -7,10 +7,11 @@
   "packageManager": "pnpm@11.9.0",
   "scripts": {
     "tauri": "tauri",
-    "setup": "bash scripts/prod-setup.sh",
-    "setup:dev": "bash scripts/dev-setup.sh"
+    "setup": "node scripts/prod-setup.mjs",
+    "setup:dev": "node scripts/dev-setup.mjs"
   },
   "devDependencies": {
+    "@clack/prompts": "^1.7.0",
     "@tauri-apps/cli": "^2"
   }
 }
