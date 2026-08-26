@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/maelbel/croesus/compare/v0.4.0...v0.5.0) (2026-08-26)
+
+
+### Features
+
+* generic OIDC SSO support (self-hosted + remote desktop mode) ([#8](https://github.com/maelbel/croesus/issues/8)) ([a332589](https://github.com/maelbel/croesus/commit/a33258919c4b02520bc5056573847ea69d4f99d9))
+
 ## [0.4.0](https://github.com/maelbel/croesus/compare/v0.3.0...v0.4.0) (2026-08-25)
 
 
