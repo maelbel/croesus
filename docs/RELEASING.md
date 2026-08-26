@@ -56,13 +56,35 @@ simple for a project this size; it can be revisited if backend/frontend ever
 need to evolve independently (e.g. a hosted API serving multiple frontend
 versions).
 
-## First release
+### Pre-1.0 (done)
 
-The manifest (`.release-please-manifest.json`) starts at `0.1.0`. Follow
-[SemVer](https://semver.org/): stay in `0.x` while the API/data model is
-still expected to change in breaking ways; move to `1.0.0` once the v1 scope
-in [ROADMAP.md](../ROADMAP.md) is done and the project is considered stable
+The manifest (`.release-please-manifest.json`) started at `0.1.0`, staying in
+`0.x` while the API/data model was still expected to change in breaking
+ways. `1.0.0` was cut once the v1 scope (Phase 0 + Phase 1 in
+[ROADMAP.md](../ROADMAP.md)) was done and the project was considered stable
 enough for others to rely on.
+
+### Post-1.0
+
+From `1.0.0` onward, the minor version tracks **ROADMAP phases**, not
+individual features — a minor bump means "a whole phase shipped," not "a PR
+with `feat:` merged." In practice:
+
+- **Regular releases** (bug fixes, and features that are part of an
+  in-progress phase) land as a **patch** bump: `1.0.0` → `1.0.1` → `1.0.2`...
+- **Phase-completion releases** (every checkbox in a ROADMAP.md phase is
+  checked) land as a **minor** bump, patch reset to `0`: finishing Phase 2 →
+  `1.1.0`, Phase 3 → `1.2.0`, and so on.
+
+release-please still infers a bump from Conventional Commit types as usual
+(`fix:` → patch, `feat:` → minor), so a `feat:` commit mid-phase will
+naturally propose a minor bump on its own — that's expected and fine to
+leave as-is if it happens to land close to a phase boundary, but otherwise
+the pending Release PR's version needs a manual nudge back to a patch bump
+so day-to-day releases don't drift ahead of schedule. To force a specific
+version (for either case), add a `Release-As: X.Y.Z` footer to a commit —
+release-please picks this up and targets that version on its next run. This
+is also how `1.0.0` itself was triggered.
 
 ## One-time repository setup
 
