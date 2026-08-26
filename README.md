@@ -9,6 +9,11 @@
 [![CI](https://github.com/maelbel/croesus/actions/workflows/ci.yml/badge.svg)](https://github.com/maelbel/croesus/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](./LICENSE)
 
+[![Python](https://img.shields.io/badge/python-3.13+-3776AB.svg)](./backend/pyproject.toml)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
+[![Vue 3](https://img.shields.io/badge/Vue-3-4FC08D.svg)](https://vuejs.org/)
+[![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB.svg)](https://tauri.app/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED.svg)](https://docs.docker.com/)
 
 Self-hosted · Desktop (Windows/macOS/Linux) · Your data, your server
 
