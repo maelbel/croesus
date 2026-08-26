@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/maelbel/croesus/compare/v1.0.0...v1.0.1) (2026-08-26)
+
+
+### Documentation
+
+* add stack badges to README ([#13](https://github.com/maelbel/croesus/issues/13)) ([0dc08aa](https://github.com/maelbel/croesus/commit/0dc08aa970b3b93fd83f44bc693d6857d49a7b52))
+
 ## [1.0.0](https://github.com/maelbel/croesus/compare/v0.5.0...v1.0.0) (2026-08-26)
 
 
