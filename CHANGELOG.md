@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0](https://github.com/maelbel/croesus/compare/v0.5.0...v1.0.0) (2026-08-26)
+
+
+### Documentation
+
+* **releasing:** post-1.0 versioning policy — minor bumps track phases ([#12](https://github.com/maelbel/croesus/issues/12)) ([697d4ca](https://github.com/maelbel/croesus/commit/697d4caa4e804b1532ef6f8d429d30a22f7d5cb1))
+* reverse proxy setup guide (Traefik, Caddy, nginx) ([#10](https://github.com/maelbel/croesus/issues/10)) ([0f00e7a](https://github.com/maelbel/croesus/commit/0f00e7a36e6213df83cc2296d9beaf49d2503d4a))
+
 ## [0.5.0](https://github.com/maelbel/croesus/compare/v0.4.0...v0.5.0) (2026-08-26)
 
 
