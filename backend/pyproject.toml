@@ -1,6 +1,6 @@
 [project]
 name = "croesus-backend"
-version = "0.5.0"
+version = "1.0.0"
 description = "Croesus API — net worth tracking backend"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
