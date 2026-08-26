@@ -128,6 +128,75 @@ fn parse_query_param(request_line: &str, key: &str) -> Option<String> {
   None
 }
 
+// Shown in the system browser tab after the loopback listener catches the
+// OIDC redirect — the only UI this flow has outside the app itself, so it's
+// worth matching Croesus's own look (fonts/palette mirror frontend/src/style.css)
+// rather than leaving it as unstyled text.
+fn callback_page(success: bool) -> String {
+  let (heading, message, accent_dark, accent_light) = if success {
+    ("Signed in", "You can close this tab and return to Croesus.", "#9dbe6a", "#4e6b2c")
+  } else {
+    ("Sign-in failed", "Close this tab and try again from Croesus.", "#d4694a", "#9a3a1b")
+  };
+  let mark = if success { "&#10003;" } else { "&#10005;" };
+
+  format!(
+    r#"<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Croesus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@800&family=Archivo:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {{
+    --bg: #16110e; --text: #f2eadd; --muted: #cbbaa6;
+    --border: rgba(242, 234, 221, 0.28); --accent: {accent_dark};
+  }}
+  @media (prefers-color-scheme: light) {{
+    :root {{
+      --bg: #f4eee3; --text: #1e1711; --muted: #4a3c2e;
+      --border: rgba(30, 23, 17, 0.26); --accent: {accent_light};
+    }}
+  }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ height: 100%; margin: 0; }}
+  body {{
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg); color: var(--text);
+    font-family: 'Archivo', system-ui, sans-serif;
+  }}
+  .card {{
+    width: 320px; padding: 2rem; text-align: center;
+    border: 1px solid var(--border);
+  }}
+  .wordmark {{
+    font-family: 'Bitter', Georgia, serif; font-weight: 800;
+    letter-spacing: -0.01em; font-size: 1.25rem; margin-bottom: 1.5rem;
+  }}
+  .mark {{
+    width: 48px; height: 48px; margin: 0 auto 1.25rem; border: 2px solid var(--accent);
+    color: var(--accent); font-size: 1.25rem; line-height: 44px;
+  }}
+  h1 {{
+    font-family: 'Bitter', Georgia, serif; font-weight: 800;
+    font-size: 1.1rem; margin: 0 0 0.5rem;
+  }}
+  p {{ margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="wordmark">CROESUS</div>
+    <div class="mark">{mark}</div>
+    <h1>{heading}</h1>
+    <p>{message}</p>
+  </div>
+</body>
+</html>"#
+  )
+}
+
 // Native-app OAuth (RFC 8252): open the sign-in flow in the system browser
 // rather than an embedded webview (many IdPs refuse to authenticate inside
 // one), and catch the redirect back on a one-shot local HTTP listener
@@ -175,11 +244,7 @@ async fn start_oidc_login(app: AppHandle, server_url: String) -> Result<String, 
     let token = parse_query_param(&request_line, "token");
     let error = parse_query_param(&request_line, "error");
 
-    let body = if token.is_some() {
-      "<html><body>Signed in \u{2014} you can close this tab and return to Croesus.</body></html>"
-    } else {
-      "<html><body>Sign-in failed \u{2014} you can close this tab and return to Croesus.</body></html>"
-    };
+    let body = callback_page(token.is_some());
     let response = format!(
       "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
       body.len(),
