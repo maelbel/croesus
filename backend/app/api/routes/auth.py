@@ -1,3 +1,4 @@
+import logging
 import secrets
 from urllib.parse import urlencode
 
@@ -13,6 +14,8 @@ from app.core.database import get_db
 from app.core.security import create_access_token, verify_password
 from app.models.user import User
 from app.schemas.auth import AuthStatus, LoginRequest, TokenResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -116,6 +119,7 @@ async def oidc_callback(
             issuer=settings.oidc_issuer,
         )
     except jwt.PyJWTError as exc:
+        logger.warning("OIDC id_token verification failed: %s", exc)
         raise HTTPException(status_code=401, detail="Invalid OIDC id_token") from exc
 
     if id_claims.get("nonce") != claims["nonce"]:
