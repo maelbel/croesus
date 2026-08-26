@@ -176,9 +176,9 @@ cp .env.example .env         # set a real POSTGRES_PASSWORD, and the rest as nee
 docker compose up -d --build
 ```
 
-Running behind a reverse proxy (Traefik, Caddy, nginx...) instead? Edit
-`docker-compose.yml` directly to add your proxy's labels/config. A dedicated
-guide for this is planned — see [ROADMAP.md](./ROADMAP.md). Whatever you set
+Running behind a reverse proxy (Traefik, Caddy, nginx...) instead? See
+[docs/REVERSE_PROXY.md](./docs/REVERSE_PROXY.md) for `docker-compose.override.yml`
+examples of each. Whatever you set
 `CORS_ORIGINS` to, make sure it still includes `tauri://localhost` (and
 `http://tauri.localhost` for Windows builds) if you want desktop remote mode
 to keep working — those are the origins a packaged desktop app is served

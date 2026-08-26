@@ -28,7 +28,7 @@ Two target usage modes:
     with authentication
 - **Self-hosted**: Docker Compose (FastAPI + Postgres); reverse proxy
   (Traefik, Caddy, nginx...) is up to the deployer — see
-  [docker-compose.override.yml.example](./docker-compose.override.yml.example)
+  [docs/REVERSE_PROXY.md](./docs/REVERSE_PROXY.md)
 - **Auth**: OIDC SSO support, once v1 is stable, plus classic login for
   desktop's remote mode
 - **Package management**: `uv` (Python), `pnpm` (JS/TS)
@@ -87,7 +87,7 @@ Two target usage modes:
       `ADMIN_USERNAME`/`ADMIN_PASSWORD` on the self-hosted side)
 - [x] Generic OIDC SSO support (self-hosted + remote desktop mode) — works
       with any provider (Authentik, Keycloak, etc.)
-- [ ] Docs: reverse proxy setup guide (Traefik, Caddy, nginx examples via
+- [x] Docs: reverse proxy setup guide (Traefik, Caddy, nginx examples via
       `docker-compose.override.yml`)
 
 ## Phase 2 — Automated pricing
