@@ -70,7 +70,21 @@ function onOnboardingContinueLocal() {
   bootAfterConnectionDecided()
 }
 
+// Self-hosted/browser OIDC return trip: the backend redirects back here
+// with the token in the URL fragment (never sent to any server) rather
+// than a query param. Desktop remote mode never hits this — its token
+// comes back through the loopback listener in signInWithSso() instead.
+function consumeOidcTokenFromUrl() {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const token = hash.get('token')
+  if (token) {
+    authStore.setToken(token)
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+  }
+}
+
 onMounted(async () => {
+  consumeOidcTokenFromUrl()
   await connectionStore.load()
 
   if (isTauri() && !connectionStore.configured) {

@@ -13,3 +13,6 @@ class TokenResponse(BaseModel):
 
 class AuthStatus(BaseModel):
     auth_enabled: bool
+    password_enabled: bool
+    oidc_enabled: bool
+    oidc_display_name: str | None = None

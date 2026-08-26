@@ -85,7 +85,7 @@ Two target usage modes:
       self-hosted instance instead of the local sidecar; classic
       username/password login (single admin account, opt-in via
       `ADMIN_USERNAME`/`ADMIN_PASSWORD` on the self-hosted side)
-- [ ] Generic OIDC SSO support (self-hosted + remote desktop mode) — works
+- [x] Generic OIDC SSO support (self-hosted + remote desktop mode) — works
       with any provider (Authentik, Keycloak, etc.)
 - [ ] Docs: reverse proxy setup guide (Traefik, Caddy, nginx examples via
       `docker-compose.override.yml`)

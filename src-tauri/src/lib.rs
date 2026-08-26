@@ -1,9 +1,13 @@
 use std::fs;
+use std::io::{BufRead, BufReader, Write};
+use std::net::TcpListener;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, RunEvent};
+use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
@@ -81,15 +85,126 @@ fn save_connection_config(app: AppHandle, config: ConnectionConfig) -> Result<()
   fs::write(path, contents).map_err(|e| e.to_string())
 }
 
+fn percent_encode(input: &str) -> String {
+  let mut out = String::with_capacity(input.len());
+  for byte in input.bytes() {
+    match byte {
+      b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(byte as char),
+      _ => out.push_str(&format!("%{:02X}", byte)),
+    }
+  }
+  out
+}
+
+fn percent_decode(input: &str) -> String {
+  let bytes = input.as_bytes();
+  let mut out = Vec::with_capacity(bytes.len());
+  let mut i = 0;
+  while i < bytes.len() {
+    if bytes[i] == b'%' && i + 2 < bytes.len() {
+      if let Ok(byte) = u8::from_str_radix(&input[i + 1..i + 3], 16) {
+        out.push(byte);
+        i += 3;
+        continue;
+      }
+    }
+    out.push(if bytes[i] == b'+' { b' ' } else { bytes[i] });
+    i += 1;
+  }
+  String::from_utf8_lossy(&out).into_owned()
+}
+
+// Parses a query param out of a raw HTTP request line, e.g.
+// "GET /callback?token=abc HTTP/1.1" -> Some("abc") for key "token".
+fn parse_query_param(request_line: &str, key: &str) -> Option<String> {
+  let path_and_query = request_line.split_whitespace().nth(1)?;
+  let query = path_and_query.split_once('?')?.1;
+  for pair in query.split('&') {
+    let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
+    if k == key {
+      return Some(percent_decode(v));
+    }
+  }
+  None
+}
+
+// Native-app OAuth (RFC 8252): open the sign-in flow in the system browser
+// rather than an embedded webview (many IdPs refuse to authenticate inside
+// one), and catch the redirect back on a one-shot local HTTP listener
+// instead of a registered custom URL scheme — simpler to set up per-IdP,
+// and the backend already knows how to target a loopback redirect_uri (see
+// core/oidc.py on the backend). The listener only ever accepts a single
+// connection, from the OS's own loopback interface, for one login attempt.
+#[tauri::command]
+async fn start_oidc_login(app: AppHandle, server_url: String) -> Result<String, String> {
+  let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
+  let port = listener.local_addr().map_err(|e| e.to_string())?.port();
+
+  let redirect_uri = percent_encode(&format!("http://127.0.0.1:{port}/callback"));
+  let login_url = format!("{}/auth/oidc/login?redirect_uri={}", server_url.trim_end_matches('/'), redirect_uri);
+
+  app
+    .opener()
+    .open_url(login_url, None::<&str>)
+    .map_err(|e| e.to_string())?;
+
+  tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
+    listener.set_nonblocking(true).map_err(|e| e.to_string())?;
+    let deadline = Instant::now() + Duration::from_secs(300);
+
+    let mut stream = loop {
+      match listener.accept() {
+        Ok((stream, _)) => break stream,
+        Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+          if Instant::now() >= deadline {
+            return Err("Timed out waiting for sign-in".into());
+          }
+          std::thread::sleep(Duration::from_millis(200));
+        }
+        Err(e) => return Err(e.to_string()),
+      }
+    };
+    stream.set_nonblocking(false).map_err(|e| e.to_string())?;
+    stream.set_read_timeout(Some(Duration::from_secs(10))).ok();
+
+    let mut request_line = String::new();
+    BufReader::new(stream.try_clone().map_err(|e| e.to_string())?)
+      .read_line(&mut request_line)
+      .map_err(|e| e.to_string())?;
+
+    let token = parse_query_param(&request_line, "token");
+    let error = parse_query_param(&request_line, "error");
+
+    let body = if token.is_some() {
+      "<html><body>Signed in \u{2014} you can close this tab and return to Croesus.</body></html>"
+    } else {
+      "<html><body>Sign-in failed \u{2014} you can close this tab and return to Croesus.</body></html>"
+    };
+    let response = format!(
+      "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+      body.len(),
+      body
+    );
+    let _ = stream.write_all(response.as_bytes());
+    let _ = stream.flush();
+
+    token.ok_or_else(|| error.unwrap_or_else(|| "SSO sign-in failed".into()))
+  })
+  .await
+  .map_err(|e| e.to_string())?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let app = tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_process::init())
+    .plugin(tauri_plugin_opener::init())
     .invoke_handler(tauri::generate_handler![
       get_connection_config,
       save_connection_config,
-      get_sidecar_log
+      get_sidecar_log,
+      start_oidc_login
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {

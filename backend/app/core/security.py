@@ -16,7 +16,9 @@ def hash_password(password: str) -> str:
     return f"{salt}${digest.hex()}"
 
 
-def verify_password(password: str, password_hash: str) -> bool:
+def verify_password(password: str, password_hash: str | None) -> bool:
+    if password_hash is None:
+        return False
     salt, _, digest_hex = password_hash.partition("$")
     if not salt or not digest_hex:
         return False

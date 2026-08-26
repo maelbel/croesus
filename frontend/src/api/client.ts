@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/auth'
 // Local desktop mode and self-hosted/browser mode both resolve here. Remote
 // desktop mode instead points at whatever server URL the user configured in
 // Settings — see stores/connection.ts.
-function resolveBaseUrl(): string {
+export function resolveBaseUrl(): string {
   const connection = useConnectionStore()
   if (connection.mode === 'remote' && connection.serverUrl) return connection.serverUrl
   return import.meta.env.VITE_API_URL ?? 'http://localhost:8000'

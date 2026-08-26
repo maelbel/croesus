@@ -21,7 +21,16 @@ from app.models.user import User
 
 settings = get_settings()
 
-PUBLIC_PATHS = {"/health", "/auth/status", "/auth/login", "/docs", "/openapi.json", "/redoc"}
+PUBLIC_PATHS = {
+    "/health",
+    "/auth/status",
+    "/auth/login",
+    "/auth/oidc/login",
+    "/auth/oidc/callback",
+    "/docs",
+    "/openapi.json",
+    "/redoc",
+}
 
 
 def _seed_admin_user() -> None:
@@ -29,8 +38,11 @@ def _seed_admin_user() -> None:
 
     Lets a self-hosted deployer rotate the password by changing
     ADMIN_PASSWORD and restarting, with no separate admin CLI/flow.
+
+    OIDC-only accounts aren't seeded here — they're created lazily on first
+    successful OIDC login instead (see api/routes/auth.py).
     """
-    if not settings.auth_enabled:
+    if not settings.password_enabled:
         return
 
     db = SessionLocal()

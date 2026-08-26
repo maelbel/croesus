@@ -128,6 +128,9 @@ export interface NetWorthHistoryPoint {
 
 export interface AuthStatus {
   auth_enabled: boolean
+  password_enabled: boolean
+  oidc_enabled: boolean
+  oidc_display_name: string | null
 }
 
 export interface TokenResponse {

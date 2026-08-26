@@ -11,6 +11,10 @@
       "identifier": "shell:allow-execute",
       "allow": [{ "name": "binaries/croesus-backend", "sidecar": true }]
     },
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://**" }, { "url": "http://**" }]
+    },
     "process:allow-restart"
   ]
 }
