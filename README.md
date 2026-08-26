@@ -158,9 +158,10 @@ pnpm setup
 Walks you through generating `POSTGRES_PASSWORD`, enabling login by default
 (`ADMIN_USERNAME`/`ADMIN_PASSWORD` + a generated `JWT_SECRET` — needed if
 you want to connect to this instance from the desktop app's remote mode; you
-can opt out if you'd rather run without one), and setting `CORS_ORIGINS`
-correctly if so, then runs `docker compose up -d --build`. Safe to re-run —
-it never overwrites a value you've already set in `.env`.
+can opt out if you'd rather run without one), optionally setting up OIDC SSO
+(see below), and setting `CORS_ORIGINS` correctly if so, then runs
+`docker compose up -d --build`. Safe to re-run — it never overwrites a
+value you've already set in `.env`.
 
 By default this publishes the frontend on port `8080` and the API on port
 `8000` directly — no reverse proxy required to get started. `pnpm setup`
@@ -183,6 +184,38 @@ guide for this is planned — see [ROADMAP.md](./ROADMAP.md). Whatever you set
 to keep working — those are the origins a packaged desktop app is served
 from, and they're easy to drop when overriding the value for a custom
 domain.
+
+### Single Sign-On (OIDC)
+
+Croesus works with any OIDC-compliant provider — Authentik, Keycloak,
+Zitadel, or your own — via standard discovery (no provider-specific code).
+It's independent of `ADMIN_USERNAME`/`ADMIN_PASSWORD`: run OIDC alone, the
+password login alone, or both side by side.
+
+1. In your IdP, create an OIDC/OAuth2 provider and application for Croesus
+   (a "confidential"/server-side client, not public/SPA), with its redirect
+   URI set to this backend's own public URL + `/auth/oidc/callback` — e.g.
+   `https://api.example.com/auth/oidc/callback`.
+2. Set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and
+   `OIDC_REDIRECT_URI` (matching what you registered in step 1) in `.env` —
+   `pnpm setup` will prompt for these, or set them by hand per
+   `.env.example`. `OIDC_DISPLAY_NAME` controls the login button's label
+   (e.g. "Sign in with Authentik").
+3. Restart (`docker compose up -d --build`). The login screen picks it up
+   automatically — a password form, an SSO button, or both, depending on
+   what's configured.
+
+Access control is entirely up to your IdP: whoever it lets authenticate
+against the Croesus client is trusted — Croesus doesn't keep a separate
+allow-list on top. Scope who can sign in via your IdP's own
+application/policy bindings (e.g. Authentik's "Bindings" on the
+application, or Keycloak's client scopes/group membership).
+
+The desktop app's remote mode picks up SSO with no extra desktop-side
+config: it opens the sign-in flow in your system browser (some IdPs refuse
+to authenticate inside an embedded app window) and catches the redirect on
+a short-lived local port — no custom URL scheme or extra IdP configuration
+needed beyond the one redirect URI from step 1.
 
 ## Stack
 

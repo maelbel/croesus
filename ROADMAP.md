@@ -85,7 +85,7 @@ Two target usage modes:
       self-hosted instance instead of the local sidecar; classic
       username/password login (single admin account, opt-in via
       `ADMIN_USERNAME`/`ADMIN_PASSWORD` on the self-hosted side)
-- [ ] Generic OIDC SSO support (self-hosted + remote desktop mode) — works
+- [x] Generic OIDC SSO support (self-hosted + remote desktop mode) — works
       with any provider (Authentik, Keycloak, etc.)
 - [ ] Docs: reverse proxy setup guide (Traefik, Caddy, nginx examples via
       `docker-compose.override.yml`)
@@ -97,15 +97,7 @@ Two target usage modes:
 - [ ] Automatic brokerage account valuation from positions + prices
 - [ ] Local price history cache (avoid hammering the external API)
 
-## Phase 3 — Bank aggregation
-
-- [ ] Powens (formerly Budget Insight) or Bridge API integration for
-      automatic sync of French bank accounts
-- [ ] Bank connection token management, refresh, error handling
-- ⚠️ Notable complexity: PSD2 accreditation for aggregators, API cost
-      depending on provider, handling user reconnection
-
-## Phase 4 — Expense tracking extension (optional)
+## Phase 3 — Expense tracking extension (optional)
 
 - [ ] Decision to make when the time comes: a module integrated into
       Croesus, or a separate app (likely cleaner given the difference
@@ -113,7 +105,7 @@ Two target usage modes:
 - [ ] If integrated: categorized expense tracking, linked to budget envelopes
       (e.g. a "Vacation" expense decrements the matching envelope)
 
-## Phase 5 — Internationalization
+## Phase 4 — Internationalization
 
 - [ ] UI language support (i18n) — externalize frontend strings, start with
       French + English
@@ -121,7 +113,7 @@ Two target usage modes:
       currency for the consolidated net worth view (supersedes the earlier
       "EUR only" non-goal)
 
-## Phase 6 — Advanced analytics
+## Phase 5 — Advanced analytics
 
 - [ ] Performance against market — compare portfolio return (XIRR) against a
       benchmark index (CAC 40, S&P 500, MSCI World...) over the same period
@@ -133,13 +125,13 @@ Two target usage modes:
 - [ ] Tax-wrapper limit tracking — flag accounts approaching contribution
       ceilings (PEA €150k, Livret A cap, etc.)
 
-## Phase 7 — Household sharing (optional)
+## Phase 6 — Household sharing (optional)
 
 - [ ] Shared/household net worth — multiple users on one instance, with
       some accounts shared and others kept private (supersedes the earlier
       single-user non-goal)
 
-## Phase 8 — Data portability & reliability
+## Phase 7 — Data portability & reliability
 
 - [ ] Import from spreadsheet/CSV (bootstrapping from an existing manual
       tracker)
@@ -148,6 +140,14 @@ Two target usage modes:
       instance
 - [ ] Valuation staleness reminders (e.g. "account X hasn't been updated in
       60 days")
+
+## Phase 8 — Bank aggregation
+
+- [ ] Powens (formerly Budget Insight) or Bridge API integration for
+      automatic sync of French bank accounts
+- [ ] Bank connection token management, refresh, error handling
+- ⚠️ Notable complexity: PSD2 accreditation for aggregators, API cost
+      depending on provider, handling user reconnection
 
 ## Non-goals (for now)
 

@@ -11,12 +11,13 @@ dependencies = [
     "numpy-financial>=1.0.0",
     "pandas>=3.0.5",
     "platformdirs>=4.5.0",
-    "pyjwt>=2.10.1",
+    "pyjwt[crypto]>=2.10.1",
     "psycopg[binary]>=3.3.4",
     "pydantic-settings>=2.15.0",
     "python-dotenv>=1.2.2",
     "sqlalchemy>=2.0.51",
     "uvicorn[standard]>=0.52.1",
+    "httpx>=0.28.1",
 ]
 
 [tool.uv]

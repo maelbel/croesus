@@ -98,6 +98,46 @@ if (enableAuth) {
   }
 }
 
+const enableOidc = cancelIfNeeded(
+  await p.confirm({
+    message: 'Set up Single Sign-On (Authentik, Keycloak, or any other OIDC provider)?',
+    initialValue: false,
+  }),
+)
+
+if (enableOidc) {
+  const issuer = cancelIfNeeded(
+    await p.text({
+      message: 'OIDC issuer URL (your IdP prints this, e.g. https://idp.example.com/application/o/croesus/)',
+    }),
+  )
+  const clientId = cancelIfNeeded(await p.text({ message: 'OIDC client ID' }))
+  const clientSecret = cancelIfNeeded(await p.password({ message: 'OIDC client secret' }))
+  const redirectUri = cancelIfNeeded(
+    await p.text({
+      message: "This backend's own public URL + /auth/oidc/callback (register this in your IdP's client config)",
+      placeholder: 'https://api.example.com/auth/oidc/callback',
+    }),
+  )
+  const displayName = cancelIfNeeded(
+    await p.text({ message: 'Name to show on the login button', defaultValue: 'SSO', placeholder: 'SSO' }),
+  )
+
+  env = setEnv(env, 'OIDC_ISSUER', issuer)
+  env = setEnv(env, 'OIDC_CLIENT_ID', clientId)
+  env = setEnv(env, 'OIDC_CLIENT_SECRET', clientSecret)
+  env = setEnv(env, 'OIDC_REDIRECT_URI', redirectUri)
+  env = setEnv(env, 'OIDC_DISPLAY_NAME', displayName || 'SSO')
+  writeFileSync(envPath, env)
+  p.log.info('Saved OIDC settings')
+
+  if (!getEnv(env, 'JWT_SECRET')) {
+    env = setEnv(env, 'JWT_SECRET', randomBytes(32).toString('hex'))
+    writeFileSync(envPath, env)
+    p.log.info('Generated JWT_SECRET')
+  }
+}
+
 const remoteMode = cancelIfNeeded(
   await p.confirm({
     message: "Will you connect to this instance from the desktop app's remote mode?",
