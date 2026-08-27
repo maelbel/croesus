@@ -12,6 +12,7 @@ import { useAssetsStore } from './stores/assets'
 import { useConnectionStore } from './stores/connection'
 import { useAuthStore } from './stores/auth'
 import { usePageActionStore } from './stores/pageActions'
+import { useSidebarStore } from './stores/sidebar'
 import { useOidcCallback } from './composables/useOidcCallback'
 import { formatCurrency, formatDate, deltaColorClass } from './lib/format'
 import LoginForm from './components/LoginForm.vue'
@@ -27,6 +28,7 @@ const assetsStore = useAssetsStore()
 const connectionStore = useConnectionStore()
 const authStore = useAuthStore()
 const pageActionStore = usePageActionStore()
+const sidebarStore = useSidebarStore()
 const oidcCallback = useOidcCallback()
 
 // In desktop mode the backend starts as a sidecar process and can take a
@@ -147,46 +149,61 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
     >
       <LoginForm />
     </div>
-    <div v-else class="grid min-h-screen grid-cols-[248px_minmax(0,1fr)] bg-default text-default">
-      <aside class="app-sidebar sticky top-0 flex h-screen flex-col border-r-2 border-default">
-        <div class="neu-flat flex flex-col gap-2 border-b-2 border-default px-6 py-6">
-          <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
-          <span class="text-sm text-muted">Every euro, accounted for.</span>
-        </div>
+    <div v-else class="grid min-h-screen grid-cols-[auto_minmax(0,1fr)] bg-default text-default">
+      <aside
+        class="app-sidebar sticky top-0 h-screen overflow-hidden transition-[width] duration-200"
+        :class="sidebarStore.open ? 'w-[248px] border-r-2 border-default' : 'w-0 border-r-0'"
+      >
+        <div class="flex h-full w-[248px] flex-col">
+          <div class="neu-flat flex flex-col gap-2 border-b-2 border-default px-6 py-6">
+            <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
+            <span class="text-sm text-muted">Every euro, accounted for.</span>
+          </div>
 
-        <nav class="flex flex-col py-3">
-          <RouterLink
-            v-for="link in links"
-            :key="link.to"
-            :to="link.to"
-            class="nav-link group flex items-center gap-3 py-2.5 pr-6 text-sm"
-            active-class="nav-active font-semibold text-highlighted"
-          >
-            <span
-              class="nav-bar-indicator block w-[3px] self-stretch"
-              :class="route.path === link.to ? 'bg-primary' : 'bg-transparent'"
-            />
-            <span class="flex-1 text-left" :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'">
-              {{ link.label }}
+          <nav class="flex flex-col py-3">
+            <RouterLink
+              v-for="link in links"
+              :key="link.to"
+              :to="link.to"
+              class="nav-link group flex items-center gap-3 py-2.5 pr-6 text-sm"
+              active-class="nav-active font-semibold text-highlighted"
+            >
+              <span
+                class="nav-bar-indicator block w-[3px] self-stretch"
+                :class="route.path === link.to ? 'bg-primary' : 'bg-transparent'"
+              />
+              <span class="flex-1 text-left" :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'">
+                {{ link.label }}
+              </span>
+              <span v-if="link.count !== null" class="text-[13.5px] text-muted">{{ link.count }}</span>
+            </RouterLink>
+          </nav>
+
+          <div class="app-networth mt-auto flex flex-col gap-1.5 border-t-2 border-default px-6 py-5">
+            <span class="text-sm text-muted">Net worth</span>
+            <span class="font-heading text-2xl leading-none font-extrabold tracking-tight">{{ netWorth }}</span>
+            <span class="text-sm" :class="deltaColorClass(netDelta)">
+              {{ netDelta === null ? '—' : formatCurrency(netDelta) }} · 30 days
             </span>
-            <span v-if="link.count !== null" class="text-[13.5px] text-muted">{{ link.count }}</span>
-          </RouterLink>
-        </nav>
-
-        <div class="app-networth mt-auto flex flex-col gap-1.5 border-t-2 border-default px-6 py-5">
-          <span class="text-sm text-muted">Net worth</span>
-          <span class="font-heading text-2xl leading-none font-extrabold tracking-tight">{{ netWorth }}</span>
-          <span class="text-sm" :class="deltaColorClass(netDelta)">
-            {{ netDelta === null ? '—' : formatCurrency(netDelta) }} · 30 days
-          </span>
+          </div>
         </div>
       </aside>
 
       <div class="min-w-0">
-        <header class="app-header flex items-end justify-between gap-6 border-b-2 border-default px-10 py-6">
-          <div class="flex flex-col gap-1.5">
-            <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
-            <h1 class="text-[37px] tracking-tight">{{ route.meta.title }}</h1>
+        <header class="app-header sticky top-0 z-10 flex items-end justify-between gap-6 border-b-2 border-default bg-default px-10 py-6">
+          <div class="flex items-end gap-4">
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              icon="i-lucide-panel-left"
+              :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
+              @click="sidebarStore.toggle()"
+            />
+            <div class="flex flex-col gap-1.5">
+              <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
+              <h1 class="text-[37px] tracking-tight">{{ route.meta.title }}</h1>
+            </div>
           </div>
           <div class="flex items-center gap-2.5">
             <span class="text-sm text-muted">{{ asOf }}</span>
