@@ -9,9 +9,9 @@ import { useEnvelopesStore } from './stores/envelopes'
 import { useNetWorthStore } from './stores/networth'
 import { useValuationsStore } from './stores/valuations'
 import { useAssetsStore } from './stores/assets'
-import { useThemeStore } from './stores/theme'
 import { useConnectionStore } from './stores/connection'
 import { useAuthStore } from './stores/auth'
+import { usePageActionStore } from './stores/pageActions'
 import { useOidcCallback } from './composables/useOidcCallback'
 import { formatCurrency, formatDate, deltaColorClass } from './lib/format'
 import LoginForm from './components/LoginForm.vue'
@@ -24,9 +24,9 @@ const envelopesStore = useEnvelopesStore()
 const netWorthStore = useNetWorthStore()
 const valuationsStore = useValuationsStore()
 const assetsStore = useAssetsStore()
-const themeStore = useThemeStore()
 const connectionStore = useConnectionStore()
 const authStore = useAuthStore()
+const pageActionStore = usePageActionStore()
 const oidcCallback = useOidcCallback()
 
 // In desktop mode the backend starts as a sidecar process and can take a
@@ -191,19 +191,11 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
           <div class="flex items-center gap-2.5">
             <span class="text-sm text-muted">{{ asOf }}</span>
             <UButton
-              variant="outline"
-              color="neutral"
+              v-if="pageActionStore.label"
+              color="primary"
               size="sm"
-              :label="themeStore.mode === 'dark' ? 'Light' : 'Dark'"
-              @click="themeStore.toggle()"
-            />
-            <UButton
-              v-if="authStore.authEnabled"
-              variant="outline"
-              color="neutral"
-              size="sm"
-              label="Log out"
-              @click="authStore.logout()"
+              :label="pageActionStore.label"
+              @click="pageActionStore.action?.()"
             />
           </div>
         </header>

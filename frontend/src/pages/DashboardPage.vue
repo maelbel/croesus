@@ -8,12 +8,15 @@ import { useNetWorthStore } from '../stores/networth'
 import { useValuationsStore } from '../stores/valuations'
 import { ACCOUNT_TYPE_LABELS } from '../api/types'
 import { formatCurrency, formatSignedCurrency, formatDate, deltaColorClass } from '../lib/format'
+import { usePageAction } from '../composables/usePageAction'
 import StatCard from '../components/StatCard.vue'
 import StatCardRow from '../components/StatCardRow.vue'
 import NetWorthRings from '../components/NetWorthRings.vue'
 import CompositionChart from '../components/CompositionChart.vue'
 
 const router = useRouter()
+
+usePageAction('Record a valuation', () => router.push('/accounts'))
 const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()

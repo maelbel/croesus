@@ -8,6 +8,7 @@ import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useConnectionStore } from '../stores/connection'
+import { useAuthStore } from '../stores/auth'
 import { normalizeUrl, useConnectionForm } from '../composables/useConnectionForm'
 import ConnectionModeFields from '../components/ConnectionModeFields.vue'
 
@@ -18,6 +19,7 @@ const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
 const connectionStore = useConnectionStore()
+const authStore = useAuthStore()
 
 // Only the desktop shell can choose between a local sidecar and a remote
 // server — the self-hosted/browser build always just talks to VITE_API_URL.
@@ -69,7 +71,7 @@ async function deleteAllData() {
     toast.add({
       title: `${failed} of ${total} item(s) couldn't be deleted`,
       description: 'Check your connection and try again.',
-      color: 'error',
+      color: 'rust',
     })
   }
 }
@@ -187,13 +189,23 @@ async function deleteAllData() {
       </div>
     </div>
 
+    <div v-if="authStore.authEnabled" class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6">
+      <div class="flex flex-col gap-1">
+        <span class="font-heading text-[16.5px] font-extrabold">Session</span>
+        <span class="text-sm text-muted">Signed in to this instance.</span>
+      </div>
+      <div class="flex flex-col items-start gap-3">
+        <UButton color="neutral" variant="outline" @click="authStore.logout()">Log out</UButton>
+      </div>
+    </div>
+
     <div class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 py-6">
       <div class="flex flex-col gap-1">
         <span class="font-heading text-[16.5px] font-extrabold">Danger zone</span>
         <span class="text-sm text-muted">This cannot be undone.</span>
       </div>
       <div class="flex flex-col items-start gap-3">
-        <UButton color="error" variant="outline" @click="deleteAllData">Delete all data</UButton>
+        <UButton color="rust" variant="outline" @click="deleteAllData">Delete all data</UButton>
         <span class="text-sm text-muted">Removes every account, liability and envelope from this instance.</span>
       </div>
     </div>

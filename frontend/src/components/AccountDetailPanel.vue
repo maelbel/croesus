@@ -154,7 +154,7 @@ async function removeAsset(asset: Asset) {
                   />
                   <UButton
                     variant="ghost"
-                    color="error"
+                    color="rust"
                     icon="i-lucide-trash-2"
                     size="xs"
                     title="Delete valuation"
@@ -228,7 +228,7 @@ async function removeAsset(asset: Asset) {
                   />
                   <UButton
                     variant="ghost"
-                    color="error"
+                    color="rust"
                     icon="i-lucide-trash-2"
                     size="xs"
                     title="Remove holding"

@@ -4,6 +4,7 @@ import { useEnvelopesStore } from '../stores/envelopes'
 import { useAccountsStore } from '../stores/accounts'
 import { useValuationsStore } from '../stores/valuations'
 import { useCrudForm } from '../composables/useCrudForm'
+import { usePageAction } from '../composables/usePageAction'
 import { formatCurrency } from '../lib/format'
 import type { Envelope, EnvelopeCreate } from '../api/types'
 import StatCard from '../components/StatCard.vue'
@@ -80,6 +81,8 @@ const envelopeForm = useCrudForm<Envelope, EnvelopeCreate>({
   update: (id, payload) => envelopesStore.update(id, payload),
 })
 
+usePageAction('Add an envelope', () => envelopeForm.openCreate())
+
 async function removeEnvelope(envelope: Envelope) {
   if (!window.confirm(`Delete "${envelope.name}"?`)) return
   await envelopesStore.remove(envelope.id)
@@ -88,11 +91,6 @@ async function removeEnvelope(envelope: Envelope) {
 
 <template>
   <div class="flex flex-col gap-7">
-    <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold">Envelopes</h2>
-      <UButton icon="i-lucide-plus" label="Add an envelope" @click="envelopeForm.openCreate()" />
-    </div>
-
     <EntityFormModal
       :open="envelopeForm.state.open"
       :title="envelopeForm.state.isEditing ? 'Edit envelope' : 'Add an envelope'"
@@ -172,7 +170,7 @@ async function removeEnvelope(envelope: Envelope) {
                   @click="envelopeForm.openEdit(envelope)"
                 />
                 <UButton
-                  color="error"
+                  color="rust"
                   variant="ghost"
                   icon="i-lucide-trash-2"
                   size="xs"

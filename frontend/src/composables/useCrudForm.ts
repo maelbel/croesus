@@ -84,7 +84,7 @@ export function useCrudForm<TEntity extends { id: number }, TCreate extends obje
       toast.add({
         title: `Couldn't save ${entityLabel}`,
         description: errorMessage(error),
-        color: 'error',
+        color: 'rust',
       })
       return false
     } finally {

@@ -43,6 +43,18 @@
   --ui-color-rust-900: color-mix(in srgb, #9a3a1b 40%, black);
   --ui-color-rust-950: color-mix(in srgb, #9a3a1b 25%, black);
 
+  --ui-color-error-50: color-mix(in srgb, #9a3a1b 6%, white);
+  --ui-color-error-100: color-mix(in srgb, #9a3a1b 14%, white);
+  --ui-color-error-200: color-mix(in srgb, #9a3a1b 28%, white);
+  --ui-color-error-300: color-mix(in srgb, #9a3a1b 45%, white);
+  --ui-color-error-400: #d4694a;
+  --ui-color-error-500: #9a3a1b;
+  --ui-color-error-600: color-mix(in srgb, #9a3a1b 85%, black);
+  --ui-color-error-700: color-mix(in srgb, #9a3a1b 70%, black);
+  --ui-color-error-800: color-mix(in srgb, #9a3a1b 55%, black);
+  --ui-color-error-900: color-mix(in srgb, #9a3a1b 40%, black);
+  --ui-color-error-950: color-mix(in srgb, #9a3a1b 25%, black);
+
   /* Warm neutral (Tailwind 'stone') for structural chrome not covered by
      the semantic bg/text/border overrides below. */
   --ui-color-neutral-50: #fafaf9;
@@ -66,6 +78,7 @@
   --ui-primary: var(--ui-color-primary-400);
   --ui-moss: var(--ui-color-primary-400);
   --ui-rust: var(--ui-color-rust-400);
+  --ui-error: var(--ui-color-error-400);
   --ui-bg: #16110e;
   --ui-bg-muted: #201812;
   --ui-bg-elevated: #201812;
@@ -83,6 +96,7 @@
   --ui-primary: var(--ui-color-primary-500);
   --ui-moss: var(--ui-color-primary-500);
   --ui-rust: var(--ui-color-rust-500);
+  --ui-error: var(--ui-color-error-500);
   --ui-bg: #f4eee3;
   --ui-bg-muted: #eae2d3;
   --ui-bg-elevated: #eae2d3;
@@ -200,6 +214,18 @@ h6 {
   --ui-color-rust-800: color-mix(in srgb, #c2543a 55%, black);
   --ui-color-rust-900: color-mix(in srgb, #c2543a 40%, black);
   --ui-color-rust-950: color-mix(in srgb, #c2543a 25%, black);
+
+  --ui-color-error-50: color-mix(in srgb, #c2543a 6%, white);
+  --ui-color-error-100: color-mix(in srgb, #c2543a 14%, white);
+  --ui-color-error-200: color-mix(in srgb, #c2543a 28%, white);
+  --ui-color-error-300: color-mix(in srgb, #c2543a 45%, white);
+  --ui-color-error-400: #ef8069;
+  --ui-color-error-500: #c2543a;
+  --ui-color-error-600: color-mix(in srgb, #c2543a 85%, black);
+  --ui-color-error-700: color-mix(in srgb, #c2543a 70%, black);
+  --ui-color-error-800: color-mix(in srgb, #c2543a 55%, black);
+  --ui-color-error-900: color-mix(in srgb, #c2543a 40%, black);
+  --ui-color-error-950: color-mix(in srgb, #c2543a 25%, black);
 }
 
 [data-skin='neumorphic'].dark {
@@ -208,6 +234,7 @@ h6 {
   --ui-primary: var(--ui-color-primary-400);
   --ui-moss: var(--ui-color-primary-400);
   --ui-rust: var(--ui-color-rust-400);
+  --ui-error: var(--ui-color-error-400);
   --ui-bg: #262b33;
   --ui-bg-muted: #2b313a;
   --ui-bg-elevated: #2b313a;
@@ -233,6 +260,7 @@ h6 {
   --ui-primary: var(--ui-color-primary-500);
   --ui-moss: var(--ui-color-primary-500);
   --ui-rust: var(--ui-color-rust-500);
+  --ui-error: var(--ui-color-error-500);
   --ui-bg: #e7eaf1;
   --ui-bg-muted: #edeff5;
   --ui-bg-elevated: #edeff5;
@@ -262,9 +290,11 @@ h6 {
   border: none;
   border-radius: 999px;
   background: var(--ui-bg);
-  color: var(--ui-text);
   box-shadow: var(--neu-raised);
   transition: box-shadow 0.15s ease;
+}
+[data-skin='neumorphic'] button[data-slot='base'].text-inverted {
+  color: var(--ui-text);
 }
 [data-skin='neumorphic'] button[data-slot='base']:hover:not(:disabled) {
   box-shadow: var(--neu-raised-sm);
