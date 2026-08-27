@@ -1,15 +1,17 @@
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
-use std::net::TcpListener;
+use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use percent_encoding::{utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, RunEvent};
 use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
+use uuid::Uuid;
 
 struct SidecarProcess(Mutex<Option<CommandChild>>);
 
@@ -85,33 +87,16 @@ fn save_connection_config(app: AppHandle, config: ConnectionConfig) -> Result<()
   fs::write(path, contents).map_err(|e| e.to_string())
 }
 
+const QUERY_ENCODE_SET: &AsciiSet = &NON_ALPHANUMERIC.remove(b'-').remove(b'_').remove(b'.').remove(b'~');
+
 fn percent_encode(input: &str) -> String {
-  let mut out = String::with_capacity(input.len());
-  for byte in input.bytes() {
-    match byte {
-      b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(byte as char),
-      _ => out.push_str(&format!("%{:02X}", byte)),
-    }
-  }
-  out
+  utf8_percent_encode(input, QUERY_ENCODE_SET).to_string()
 }
 
 fn percent_decode(input: &str) -> String {
-  let bytes = input.as_bytes();
-  let mut out = Vec::with_capacity(bytes.len());
-  let mut i = 0;
-  while i < bytes.len() {
-    if bytes[i] == b'%' && i + 2 < bytes.len() {
-      if let Ok(byte) = u8::from_str_radix(&input[i + 1..i + 3], 16) {
-        out.push(byte);
-        i += 3;
-        continue;
-      }
-    }
-    out.push(if bytes[i] == b'+' { b' ' } else { bytes[i] });
-    i += 1;
-  }
-  String::from_utf8_lossy(&out).into_owned()
+  percent_encoding::percent_decode_str(&input.replace('+', " "))
+    .decode_utf8_lossy()
+    .into_owned()
 }
 
 // Parses a query param out of a raw HTTP request line, e.g.
@@ -197,19 +182,71 @@ fn callback_page(success: bool) -> String {
   )
 }
 
+fn write_callback_response(stream: &mut TcpStream, success: bool) {
+  let body = callback_page(success);
+  let response = format!(
+    "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+    body.len(),
+    body
+  );
+  let _ = stream.write_all(response.as_bytes());
+  let _ = stream.flush();
+}
+
+fn wait_for_callback(
+  listener: &TcpListener,
+  attempt_token: &str,
+  deadline: Instant,
+) -> Result<(Option<String>, Option<String>), String> {
+  loop {
+    let mut stream = match listener.accept() {
+      Ok((stream, _)) => stream,
+      Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+        if Instant::now() >= deadline {
+          return Err("Timed out waiting for sign-in".into());
+        }
+        std::thread::sleep(Duration::from_millis(200));
+        continue;
+      }
+      Err(e) => return Err(e.to_string()),
+    };
+
+    if stream.set_nonblocking(false).is_err() {
+      continue;
+    }
+    stream.set_read_timeout(Some(Duration::from_secs(10))).ok();
+
+    let mut request_line = String::new();
+    let read_ok = stream
+      .try_clone()
+      .map(|clone| BufReader::new(clone).read_line(&mut request_line))
+      .is_ok_and(|result| result.is_ok());
+
+    if !read_ok || parse_query_param(&request_line, "attempt").as_deref() != Some(attempt_token) {
+      continue;
+    }
+
+    let token = parse_query_param(&request_line, "token");
+    let error = parse_query_param(&request_line, "error");
+    write_callback_response(&mut stream, token.is_some());
+    return Ok((token, error));
+  }
+}
+
 // Native-app OAuth (RFC 8252): open the sign-in flow in the system browser
 // rather than an embedded webview (many IdPs refuse to authenticate inside
-// one), and catch the redirect back on a one-shot local HTTP listener
-// instead of a registered custom URL scheme — simpler to set up per-IdP,
-// and the backend already knows how to target a loopback redirect_uri (see
-// core/oidc.py on the backend). The listener only ever accepts a single
-// connection, from the OS's own loopback interface, for one login attempt.
+// one), and catch the redirect back on a local HTTP listener instead of a
+// registered custom URL scheme — simpler to set up per-IdP, and the backend
+// already knows how to target a loopback redirect_uri (see core/oidc.py on
+// the backend).
 #[tauri::command]
 async fn start_oidc_login(app: AppHandle, server_url: String) -> Result<String, String> {
   let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
   let port = listener.local_addr().map_err(|e| e.to_string())?.port();
+  listener.set_nonblocking(true).map_err(|e| e.to_string())?;
 
-  let redirect_uri = percent_encode(&format!("http://127.0.0.1:{port}/callback"));
+  let attempt_token = Uuid::new_v4().to_string();
+  let redirect_uri = percent_encode(&format!("http://127.0.0.1:{port}/callback?attempt={attempt_token}"));
   let login_url = format!("{}/auth/oidc/login?redirect_uri={}", server_url.trim_end_matches('/'), redirect_uri);
 
   app
@@ -217,42 +254,9 @@ async fn start_oidc_login(app: AppHandle, server_url: String) -> Result<String, 
     .open_url(login_url, None::<&str>)
     .map_err(|e| e.to_string())?;
 
+  let deadline = Instant::now() + Duration::from_secs(300);
   tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
-    listener.set_nonblocking(true).map_err(|e| e.to_string())?;
-    let deadline = Instant::now() + Duration::from_secs(300);
-
-    let mut stream = loop {
-      match listener.accept() {
-        Ok((stream, _)) => break stream,
-        Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-          if Instant::now() >= deadline {
-            return Err("Timed out waiting for sign-in".into());
-          }
-          std::thread::sleep(Duration::from_millis(200));
-        }
-        Err(e) => return Err(e.to_string()),
-      }
-    };
-    stream.set_nonblocking(false).map_err(|e| e.to_string())?;
-    stream.set_read_timeout(Some(Duration::from_secs(10))).ok();
-
-    let mut request_line = String::new();
-    BufReader::new(stream.try_clone().map_err(|e| e.to_string())?)
-      .read_line(&mut request_line)
-      .map_err(|e| e.to_string())?;
-
-    let token = parse_query_param(&request_line, "token");
-    let error = parse_query_param(&request_line, "error");
-
-    let body = callback_page(token.is_some());
-    let response = format!(
-      "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-      body.len(),
-      body
-    );
-    let _ = stream.write_all(response.as_bytes());
-    let _ = stream.flush();
-
+    let (token, error) = wait_for_callback(&listener, &attempt_token, deadline)?;
     token.ok_or_else(|| error.unwrap_or_else(|| "SSO sign-in failed".into()))
   })
   .await
@@ -326,4 +330,61 @@ pub fn run() {
       }
     }
   });
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::io::Read;
+
+  #[test]
+  fn percent_round_trip_handles_multibyte() {
+    let input = "hello €/wörld?x=1";
+    assert_eq!(percent_decode(&percent_encode(input)), input);
+  }
+
+  #[test]
+  fn percent_decode_does_not_panic_on_split_multibyte_escape() {
+    assert_eq!(percent_decode("%€"), "%€");
+  }
+
+  #[test]
+  fn parse_query_param_extracts_value() {
+    let line = "GET /callback?token=abc&foo=bar HTTP/1.1";
+    assert_eq!(parse_query_param(line, "token"), Some("abc".to_string()));
+    assert_eq!(parse_query_param(line, "foo"), Some("bar".to_string()));
+    assert_eq!(parse_query_param(line, "missing"), None);
+  }
+
+  #[test]
+  fn wait_for_callback_ignores_connections_with_wrong_attempt_token() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    std::thread::spawn(move || {
+      if let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) {
+        let _ = stream.write_all(b"GET /callback?attempt=wrong&token=stolen HTTP/1.1\r\n\r\n");
+      }
+      std::thread::sleep(Duration::from_millis(100));
+      if let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) {
+        let _ = stream.write_all(b"GET /callback?attempt=right&token=abc123 HTTP/1.1\r\n\r\n");
+        let mut buf = [0u8; 4096];
+        let _ = stream.read(&mut buf);
+      }
+    });
+
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let (token, error) = wait_for_callback(&listener, "right", deadline).unwrap();
+    assert_eq!(token, Some("abc123".to_string()));
+    assert_eq!(error, None);
+  }
+
+  #[test]
+  fn wait_for_callback_times_out_with_no_connection() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let result = wait_for_callback(&listener, "whatever", Instant::now());
+    assert!(result.is_err());
+  }
 }
