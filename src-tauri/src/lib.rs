@@ -30,6 +30,14 @@ fn push_sidecar_log(log: &SidecarLog, line: String) {
   }
 }
 
+fn handle_sidecar_line(log_handle: &AppHandle, level: log::Level, line: Vec<u8>) {
+  let text = String::from_utf8_lossy(&line).into_owned();
+  log::log!(level, "[croesus-backend] {}", text);
+  if let Some(state) = log_handle.try_state::<SidecarLog>() {
+    push_sidecar_log(&state, text);
+  }
+}
+
 #[tauri::command]
 fn get_sidecar_log(app: AppHandle) -> Vec<String> {
   match app.try_state::<SidecarLog>() {
@@ -39,26 +47,24 @@ fn get_sidecar_log(app: AppHandle) -> Vec<String> {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Default)]
+#[serde(rename_all = "lowercase")]
+enum ConnectionMode {
+  #[default]
+  Local,
+  Remote,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 struct ConnectionConfig {
-  mode: String,
+  mode: ConnectionMode,
   server_url: Option<String>,
   // False until the user has been through the onboarding screen once (or
   // used Settings). Lets the frontend tell "never configured, show
   // onboarding" apart from "explicitly left on local mode".
   #[serde(default)]
   configured: bool,
-}
-
-impl Default for ConnectionConfig {
-  fn default() -> Self {
-    ConnectionConfig {
-      mode: "local".into(),
-      server_url: None,
-      configured: false,
-    }
-  }
 }
 
 fn connection_config_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -199,12 +205,13 @@ fn wait_for_callback(
   deadline: Instant,
 ) -> Result<(Option<String>, Option<String>), String> {
   loop {
+    if Instant::now() >= deadline {
+      return Err("Timed out waiting for sign-in".into());
+    }
+
     let mut stream = match listener.accept() {
       Ok((stream, _)) => stream,
       Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-        if Instant::now() >= deadline {
-          return Err("Timed out waiting for sign-in".into());
-        }
         std::thread::sleep(Duration::from_millis(200));
         continue;
       }
@@ -287,7 +294,7 @@ pub fn run() {
       // Remote mode points the frontend at an existing self-hosted instance
       // instead — skip spawning the local backend/SQLite entirely.
       let config = read_connection_config(app.handle());
-      if config.mode == "local" {
+      if config.mode == ConnectionMode::Local {
         let (mut rx, child) = app.shell().sidecar("croesus-backend")?.spawn()?;
         app.manage(SidecarProcess(Mutex::new(Some(child))));
         app.manage(SidecarLog(Mutex::new(Vec::new())));
@@ -296,20 +303,8 @@ pub fn run() {
         tauri::async_runtime::spawn(async move {
           while let Some(event) = rx.recv().await {
             match event {
-              CommandEvent::Stdout(line) => {
-                let text = String::from_utf8_lossy(&line).into_owned();
-                log::info!("[croesus-backend] {}", text);
-                if let Some(state) = log_handle.try_state::<SidecarLog>() {
-                  push_sidecar_log(&state, text);
-                }
-              }
-              CommandEvent::Stderr(line) => {
-                let text = String::from_utf8_lossy(&line).into_owned();
-                log::error!("[croesus-backend] {}", text);
-                if let Some(state) = log_handle.try_state::<SidecarLog>() {
-                  push_sidecar_log(&state, text);
-                }
-              }
+              CommandEvent::Stdout(line) => handle_sidecar_line(&log_handle, log::Level::Info, line),
+              CommandEvent::Stderr(line) => handle_sidecar_line(&log_handle, log::Level::Error, line),
               _ => {}
             }
           }
@@ -386,5 +381,31 @@ mod tests {
     listener.set_nonblocking(true).unwrap();
     let result = wait_for_callback(&listener, "whatever", Instant::now());
     assert!(result.is_err());
+  }
+
+  #[test]
+  fn wait_for_callback_times_out_despite_a_stream_of_non_matching_connections() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let deadline = Instant::now() + Duration::from_millis(300);
+
+    let keep_spamming = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
+    let spammer_flag = keep_spamming.clone();
+    let spammer = std::thread::spawn(move || {
+      while spammer_flag.load(std::sync::atomic::Ordering::Relaxed) {
+        if let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) {
+          let _ = stream.write_all(b"GET /callback?attempt=wrong&token=stolen HTTP/1.1\r\n\r\n");
+        }
+      }
+    });
+
+    let started = Instant::now();
+    let result = wait_for_callback(&listener, "right", deadline);
+    keep_spamming.store(false, std::sync::atomic::Ordering::Relaxed);
+    spammer.join().unwrap();
+
+    assert!(result.is_err());
+    assert!(started.elapsed() < Duration::from_secs(2), "deadline was not honored: took {:?}", started.elapsed());
   }
 }
