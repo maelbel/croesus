@@ -78,7 +78,7 @@ async function deleteAllData() {
 </script>
 
 <template>
-  <div class="flex max-w-[760px] flex-col">
+  <div class="mx-auto flex max-w-[760px] flex-col">
     <div
       v-if="isTauriApp"
       class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6"

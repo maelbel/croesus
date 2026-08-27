@@ -200,7 +200,7 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
           </div>
         </header>
 
-        <main class="max-w-[1360px] px-10 py-8 pb-16">
+        <main class="mx-auto max-w-[1360px] px-10 py-8 pb-16">
           <RouterView />
         </main>
       </div>
