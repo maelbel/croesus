@@ -30,6 +30,16 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
+    bind = op.get_bind()
+    null_count = bind.execute(sa.text("SELECT COUNT(*) FROM users WHERE password_hash IS NULL")).scalar()
+    if null_count:
+        raise RuntimeError(
+            f"Cannot downgrade: {null_count} user(s) have a NULL password_hash "
+            "(OIDC-only accounts, created after this migration's upgrade). "
+            "Assign them a password_hash or delete those rows first — "
+            "re-adding the NOT NULL constraint would otherwise fail against "
+            "existing data."
+        )
     with op.batch_alter_table('users') as batch_op:
         batch_op.alter_column('password_hash',
                    existing_type=sa.VARCHAR(length=255),

@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -14,10 +15,13 @@ from app.api.routes import (
     liabilities,
     valuations,
 )
+from app.core import oidc
 from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.security import decode_access_token, hash_password
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -52,6 +56,12 @@ def _seed_admin_user() -> None:
         if user is None:
             db.add(User(username=settings.admin_username, password_hash=password_hash))
         else:
+            if user.password_hash is None:
+                logger.warning(
+                    "Attaching a password to existing OIDC-only account %r — "
+                    "it can now log in via both password and OIDC.",
+                    user.username,
+                )
             user.password_hash = password_hash
         db.commit()
     finally:
@@ -62,6 +72,7 @@ def _seed_admin_user() -> None:
 async def lifespan(app: FastAPI):
     _seed_admin_user()
     yield
+    await oidc.aclose_http_client()
 
 
 app = FastAPI(title="Croesus API", version="0.1.0", lifespan=lifespan)

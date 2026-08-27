@@ -2,10 +2,10 @@ import logging
 import secrets
 from urllib.parse import urlencode
 
-import httpx
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import oidc
@@ -87,26 +87,31 @@ async def oidc_callback(
     if claims is None:
         raise HTTPException(status_code=400, detail="Invalid or expired login attempt")
 
+    app_redirect_uri = claims["redirect_uri"]
+
+    def error_redirect(error: str) -> RedirectResponse:
+        return RedirectResponse(oidc.build_client_redirect(app_redirect_uri, error=error))
+
     discovery = await oidc.get_discovery_document(settings.oidc_issuer)
 
-    async with httpx.AsyncClient() as client:
-        token_response = await client.post(
-            discovery["token_endpoint"],
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "redirect_uri": settings.oidc_redirect_uri,
-                "client_id": settings.oidc_client_id,
-                "client_secret": settings.oidc_client_secret,
-                "code_verifier": claims["code_verifier"],
-            },
-        )
+    token_response = await oidc.get_http_client().post(
+        discovery["token_endpoint"],
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": settings.oidc_redirect_uri,
+            "client_id": settings.oidc_client_id,
+            "client_secret": settings.oidc_client_secret,
+            "code_verifier": claims["code_verifier"],
+        },
+    )
     if token_response.status_code != 200:
-        raise HTTPException(status_code=401, detail="OIDC token exchange failed")
+        logger.warning("OIDC token exchange failed: %s", token_response.text)
+        return error_redirect("token_exchange_failed")
 
     id_token = token_response.json().get("id_token")
     if not id_token:
-        raise HTTPException(status_code=401, detail="OIDC provider did not return an id_token")
+        return error_redirect("missing_id_token")
 
     jwks_client = oidc.get_jwks_client(discovery["jwks_uri"])
     try:
@@ -120,19 +125,21 @@ async def oidc_callback(
         )
     except jwt.PyJWTError as exc:
         logger.warning("OIDC id_token verification failed: %s", exc)
-        raise HTTPException(status_code=401, detail="Invalid OIDC id_token") from exc
+        return error_redirect("invalid_id_token")
 
     if id_claims.get("nonce") != claims["nonce"]:
-        raise HTTPException(status_code=401, detail="OIDC nonce mismatch")
+        return error_redirect("nonce_mismatch")
 
     username = settings.admin_username or _SSO_ONLY_USERNAME
     user = db.query(User).filter(User.username == username).first()
     if user is None:
         user = User(username=username, password_hash=None)
         db.add(user)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            user = db.query(User).filter(User.username == username).first()
 
     access_token = create_access_token(user.username)
-    app_redirect_uri = claims["redirect_uri"]
-    separator = "?" if oidc.is_loopback(app_redirect_uri) else "#"
-    return RedirectResponse(f"{app_redirect_uri}{separator}token={access_token}")
+    return RedirectResponse(oidc.build_client_redirect(app_redirect_uri, token=access_token))
