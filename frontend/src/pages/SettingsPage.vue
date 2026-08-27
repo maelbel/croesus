@@ -122,7 +122,7 @@ async function deleteAllData() {
           v-for="s in SKINS"
           :key="s.value"
           type="button"
-          class="flex w-48 flex-col gap-1.5 rounded-md border p-4 text-left"
+          class="flex w-48 cursor-pointer flex-col gap-1.5 rounded-md border p-4 text-left"
           :class="
             themeStore.skin === s.value
               ? 'neu-inset border-primary bg-elevated'
