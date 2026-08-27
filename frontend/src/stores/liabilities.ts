@@ -1,38 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { api } from '../api/client'
+import { createCrudStore } from '../composables/useCrudStore'
 import type { Liability, LiabilityCreate, LiabilityUpdate } from '../api/types'
 
 export const useLiabilitiesStore = defineStore('liabilities', () => {
-  const liabilities = ref<Liability[]>([])
-  const loading = ref(false)
-
-  async function fetchAll() {
-    loading.value = true
-    try {
-      liabilities.value = await api.get<Liability[]>('/liabilities')
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function create(payload: LiabilityCreate) {
-    const liability = await api.post<Liability>('/liabilities', payload)
-    liabilities.value.push(liability)
-    return liability
-  }
-
-  async function update(id: number, payload: LiabilityUpdate) {
-    const liability = await api.patch<Liability>(`/liabilities/${id}`, payload)
-    const index = liabilities.value.findIndex((l) => l.id === id)
-    if (index !== -1) liabilities.value[index] = liability
-    return liability
-  }
-
-  async function remove(id: number) {
-    await api.delete(`/liabilities/${id}`)
-    liabilities.value = liabilities.value.filter((l) => l.id !== id)
-  }
+  const { items: liabilities, loading, fetchAll, create, update, remove } = createCrudStore<
+    Liability,
+    LiabilityCreate,
+    LiabilityUpdate
+  >('/liabilities')
 
   return { liabilities, loading, fetchAll, create, update, remove }
 })

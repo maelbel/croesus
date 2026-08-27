@@ -2,12 +2,16 @@
 import { ref } from 'vue'
 import { isTauri } from '@tauri-apps/api/core'
 import { relaunch } from '@tauri-apps/plugin-process'
+import { useToast } from '@nuxt/ui/composables'
 import { SKINS, useThemeStore } from '../stores/theme'
 import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useConnectionStore } from '../stores/connection'
 import { normalizeUrl, useConnectionForm } from '../composables/useConnectionForm'
+import ConnectionModeFields from '../components/ConnectionModeFields.vue'
+
+const toast = useToast()
 
 const themeStore = useThemeStore()
 const accountsStore = useAccountsStore()
@@ -54,11 +58,20 @@ async function deleteAllData() {
   )
   if (!confirmed) return
 
-  await Promise.all([
+  const results = await Promise.allSettled([
     ...accountsStore.accounts.map((a) => accountsStore.remove(a.id)),
     ...liabilitiesStore.liabilities.map((l) => liabilitiesStore.remove(l.id)),
     ...envelopesStore.envelopes.map((e) => envelopesStore.remove(e.id)),
   ])
+
+  const failed = results.filter((r) => r.status === 'rejected').length
+  if (failed > 0) {
+    toast.add({
+      title: `${failed} of ${total} item(s) couldn't be deleted`,
+      description: 'Check your connection and try again.',
+      color: 'error',
+    })
+  }
 }
 </script>
 
@@ -73,42 +86,17 @@ async function deleteAllData() {
         <span class="text-sm text-muted">Local database, or an existing self-hosted server.</span>
       </div>
       <div class="flex flex-col items-start gap-3">
-        <div class="neu-inset flex w-max border border-default">
-          <UButton
-            size="sm"
-            :variant="pendingMode === 'local' ? 'solid' : 'ghost'"
-            color="neutral"
-            @click="pendingMode = 'local'"
-          >
-            Local
-          </UButton>
-          <UButton
-            size="sm"
-            :variant="pendingMode === 'remote' ? 'solid' : 'ghost'"
-            color="neutral"
-            @click="pendingMode = 'remote'"
-          >
-            Remote
-          </UButton>
+        <div class="w-full max-w-sm">
+          <ConnectionModeFields
+            v-model:mode="pendingMode"
+            v-model:server-url="pendingServerUrl"
+            :testing="testing"
+            :test-error="testError"
+            :test-ok="testOk"
+            @test="testConnection"
+            @reset-test="resetTest"
+          />
         </div>
-
-        <template v-if="pendingMode === 'remote'">
-          <div class="flex w-full max-w-sm items-end gap-2">
-            <UFormField label="Server URL" class="flex-1">
-              <UInput
-                v-model="pendingServerUrl"
-                placeholder="https://croesus.example.com"
-                class="w-full"
-                @update:model-value="resetTest"
-              />
-            </UFormField>
-            <UButton variant="outline" color="neutral" :loading="testing" @click="testConnection">
-              Test
-            </UButton>
-          </div>
-          <p v-if="testError" class="text-sm text-error">{{ testError }}</p>
-          <p v-else-if="testOk" class="text-sm text-success">Reachable — ready to connect.</p>
-        </template>
 
         <UButton
           color="primary"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useValuationsStore } from '../stores/valuations'
 import { useAssetsStore } from '../stores/assets'
 import { useCrudForm } from '../composables/useCrudForm'
@@ -83,6 +83,14 @@ const assetForm = useCrudForm<Asset, AssetFormValues, AssetUpdate>({
   create: (payload) => assetsStore.create({ ...payload, account_id: props.account!.id }),
   update: (id, payload) => assetsStore.update(id, payload),
 })
+
+watch(
+  () => [props.open, props.account?.id],
+  () => {
+    valuationForm.openCreate()
+    assetForm.openCreate()
+  },
+)
 
 function costBasis(asset: Asset) {
   return Number(asset.quantity) * Number(asset.unit_cost)
