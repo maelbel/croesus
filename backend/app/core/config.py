@@ -2,6 +2,8 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_JWT_SECRET = "dev-insecure-secret-change-me"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -15,7 +17,7 @@ class Settings(BaseSettings):
 
     admin_username: str | None = None
     admin_password: str | None = None
-    jwt_secret: str = "dev-insecure-secret-change-me"
+    jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_expires_minutes: int = 60
 
     oidc_issuer: str | None = None
