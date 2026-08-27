@@ -96,6 +96,15 @@
   --ui-border-accented: color-mix(in srgb, #1e1711 48%, transparent);
 }
 
+:root {
+  --band-1: color-mix(in srgb, var(--ui-text) 82%, transparent);
+  --band-2: color-mix(in srgb, var(--ui-text) 68%, transparent);
+  --band-3: color-mix(in srgb, var(--ui-text) 55%, transparent);
+  --band-4: color-mix(in srgb, var(--ui-text) 40%, transparent);
+  --band-5: color-mix(in srgb, var(--ui-text) 28%, transparent);
+  --band-6: color-mix(in srgb, var(--ui-text) 18%, transparent);
+}
+
 html,
 body,
 #app {
@@ -132,7 +141,7 @@ h6 {
 .stripe-fill {
   display: block;
   height: 100%;
-  background: repeating-linear-gradient(90deg, var(--ui-primary) 0 10px, transparent 10px 12px);
+  background: repeating-linear-gradient(90deg, var(--stripe-color, var(--ui-primary)) 0 10px, transparent 10px 12px);
 }
 
 .stripe-track-v {
@@ -144,7 +153,14 @@ h6 {
 .stripe-fill-v {
   display: block;
   width: 100%;
-  background: repeating-linear-gradient(0deg, var(--ui-primary) 0 10px, transparent 10px 12px);
+  background: repeating-linear-gradient(0deg, var(--stripe-color, var(--ui-primary)) 0 10px, transparent 10px 12px);
+}
+
+.paid-off-fill {
+  --stripe-color: color-mix(in srgb, var(--ui-text) 62%, transparent);
+}
+[data-skin='neumorphic'] .paid-off-fill {
+  --stripe-color: var(--band-3);
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -203,6 +219,12 @@ h6 {
   --ui-border: color-mix(in srgb, #eef1f6 12%, transparent);
   --ui-border-muted: color-mix(in srgb, #eef1f6 12%, transparent);
   --ui-border-accented: color-mix(in srgb, #eef1f6 16%, transparent);
+  --band-1: #c2c7d2;
+  --band-2: #a7aebd;
+  --band-3: #8f98a9;
+  --band-4: #798395;
+  --band-5: #646e80;
+  --band-6: #515b6b;
 }
 
 [data-skin='neumorphic'].light {
@@ -222,6 +244,12 @@ h6 {
   --ui-border: color-mix(in srgb, #232833 12%, transparent);
   --ui-border-muted: color-mix(in srgb, #232833 12%, transparent);
   --ui-border-accented: color-mix(in srgb, #232833 16%, transparent);
+  --band-1: #3f4653;
+  --band-2: #515867;
+  --band-3: #656d7e;
+  --band-4: #7c8494;
+  --band-5: #929aa8;
+  --band-6: #a8afbd;
 }
 
 /* Nuxt UI primitives: target their public `data-slot` hooks directly so
@@ -291,6 +319,9 @@ h6 {
 [data-skin='neumorphic'] .stripe-fill,
 [data-skin='neumorphic'] .stripe-fill-v {
   border-radius: 999px;
+}
+[data-skin='neumorphic'] .figure-rounded {
+  border-radius: 6px;
 }
 
 /* App shell */

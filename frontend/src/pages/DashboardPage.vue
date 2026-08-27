@@ -39,6 +39,16 @@ const assetsByClass = computed(() => {
   return [...totals.entries()]
     .map(([label, value]) => ({ label, value, pct: total > 0 ? value / total : 0 }))
     .sort((a, b) => b.value - a.value)
+    .map((c, idx) => ({ ...c, fill: `var(--band-${(idx % 6) + 1})`, flex: Math.round(c.pct * 1000) }))
+})
+
+const cairnClasses = computed(() => [...assetsByClass.value].reverse())
+
+const liabilitiesBar = computed(() => {
+  const totalAssets = netWorthStore.current?.total_assets ?? 0
+  const totalLiabilities = netWorthStore.current?.total_liabilities ?? 0
+  const pct = totalAssets > 0 ? totalLiabilities / totalAssets : 0
+  return { heightPx: Math.round(pct * 340), pct }
 })
 
 const recentHistory = computed(() =>
@@ -164,30 +174,46 @@ const recentHistory = computed(() =>
             <span class="text-sm text-muted">What the total is made of</span>
             <h2 class="text-[22px]">By asset class</h2>
           </div>
-          <div class="flex flex-col gap-0.5">
-            <span
-              v-for="c in assetsByClass"
-              :key="c.label"
-              class="h-2.5 bg-primary"
-              :style="{ opacity: 0.35 + c.pct * 0.65, width: `${Math.max(c.pct * 100, 1)}%` }"
-            />
+          <div class="flex items-start gap-7">
+            <div class="flex h-[340px] w-[104px] flex-none flex-col gap-1">
+              <span
+                v-for="c in cairnClasses"
+                :key="c.label"
+                class="figure-rounded min-h-1.5"
+                :style="{ flexGrow: c.flex, background: c.fill }"
+              />
+            </div>
+            <table class="w-full flex-1 border-collapse">
+              <tbody>
+                <tr v-for="c in assetsByClass" :key="c.label" class="border-b border-default">
+                  <td class="w-3.5 py-3 pr-2.5">
+                    <span class="block h-3 w-3" :style="{ background: c.fill }" />
+                  </td>
+                  <td class="py-3 pr-2.5 text-[15px]">{{ c.label }}</td>
+                  <td class="py-3 pr-3.5 text-right font-heading text-[15px] font-extrabold whitespace-nowrap">
+                    {{ formatCurrency(c.value) }}
+                  </td>
+                  <td class="py-3 text-right text-sm whitespace-nowrap text-muted">
+                    {{ (c.pct * 100).toFixed(1) }}%
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <table class="w-full border-collapse">
-            <tbody>
-              <tr v-for="c in assetsByClass" :key="c.label" class="border-b border-default">
-                <td class="w-3.5 py-3 pr-2.5">
-                  <span class="block h-3 w-3 bg-primary" :style="{ opacity: 0.35 + c.pct * 0.65 }" />
-                </td>
-                <td class="py-3 pr-2.5 text-[15px]">{{ c.label }}</td>
-                <td class="py-3 pr-3.5 text-right font-heading text-[15px] font-extrabold whitespace-nowrap">
-                  {{ formatCurrency(c.value) }}
-                </td>
-                <td class="py-3 text-right text-sm whitespace-nowrap text-muted">
-                  {{ (c.pct * 100).toFixed(1) }}%
-                </td>
-              </tr>
-            </tbody>
-          </table>
+
+          <div class="flex flex-col gap-2.5 border-t-2 border-default pt-4.5">
+            <span class="text-sm text-muted">Set against them</span>
+            <div class="flex items-start gap-7">
+              <span
+                class="figure-rounded w-[104px] flex-none bg-rust"
+                :style="{ height: `${Math.max(liabilitiesBar.heightPx, 8)}px` }"
+              />
+              <span class="flex-1 text-[15px] text-muted">
+                Liabilities · {{ formatCurrency(netWorthStore.current?.total_liabilities ?? 0) }} ·
+                {{ (liabilitiesBar.pct * 100).toFixed(1) }}% of assets, drawn to the same scale as the bar above.
+              </span>
+            </div>
+          </div>
         </section>
 
         <section class="flex flex-col gap-5">

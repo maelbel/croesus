@@ -38,11 +38,17 @@ function ratio(target: string | null, current: string) {
 }
 
 function status(target: string | null, current: string) {
-  const r = ratio(target, current)
   if (!target || Number(target) === 0) return { label: 'Unfunded', color: 'neutral' as const }
+  const r = ratio(target, current)
   if (r >= 1) return { label: 'Funded', color: 'primary' as const }
-  if (r >= 0.5) return { label: 'On track', color: 'neutral' as const }
-  return { label: 'Behind', color: 'error' as const }
+  if (Number(current) === 0) return { label: 'Empty', color: 'neutral' as const }
+  return { label: 'Filling', color: 'neutral' as const }
+}
+
+function barColor(target: string | null, current: string) {
+  return status(target, current).label === 'Funded'
+    ? 'var(--ui-primary)'
+    : 'color-mix(in srgb, var(--ui-text) 62%, transparent)'
 }
 
 function formatEuro(value: string | null) {
@@ -135,7 +141,13 @@ async function removeEnvelope(envelope: Envelope) {
           class="neu-surface flex gap-4.5 bg-default p-5"
         >
           <span class="stripe-track-v">
-            <span class="stripe-fill-v" :style="{ height: `${ratio(envelope.target_amount, envelope.current_amount) * 100}%` }" />
+            <span
+              class="stripe-fill-v"
+              :style="{
+                height: `${ratio(envelope.target_amount, envelope.current_amount) * 100}%`,
+                '--stripe-color': barColor(envelope.target_amount, envelope.current_amount),
+              }"
+            />
           </span>
           <div class="flex min-w-0 flex-1 flex-col gap-3">
             <span class="flex items-baseline justify-between gap-2.5">

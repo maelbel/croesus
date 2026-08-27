@@ -165,7 +165,7 @@ async function removeLiability(liability: Liability) {
             <td class="py-3.5 pl-6">
               <span class="flex items-center gap-2.5">
                 <span class="stripe-track flex-1">
-                  <span class="stripe-fill" :style="{ width: `${paidRatio(liability) * 100}%` }" />
+                  <span class="stripe-fill paid-off-fill" :style="{ width: `${paidRatio(liability) * 100}%` }" />
                 </span>
                 <span class="min-w-[34px] text-right text-sm text-muted">{{ Math.round(paidRatio(liability) * 100) }}%</span>
               </span>

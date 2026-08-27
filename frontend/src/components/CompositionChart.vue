@@ -70,8 +70,8 @@ const chart = computed(() => {
     const forward = upper.map((v, i) => `${x(i)},${y(v)}`)
     const backward = lower.map((v, i) => `${x(i)},${y(v)}`).reverse()
     const points = forward.concat(backward).join(' ')
-    const opacity = Math.max(0.18, 0.85 - idx * 0.13)
-    const polygon = { label: ACCOUNT_TYPE_LABELS[type as keyof typeof ACCOUNT_TYPE_LABELS], points, opacity }
+    const fill = `var(--band-${(idx % 6) + 1})`
+    const polygon = { label: ACCOUNT_TYPE_LABELS[type as keyof typeof ACCOUNT_TYPE_LABELS], points, fill }
     lower = upper
     return polygon
   })
@@ -99,7 +99,7 @@ const chart = computed(() => {
   <div v-if="chart" class="flex flex-col gap-7">
     <div class="relative">
       <svg viewBox="0 0 760 210" width="100%" class="block">
-        <polygon v-for="p in chart.polygons" :key="p.label" :points="p.points" fill="var(--ui-primary)" :fill-opacity="p.opacity" />
+        <polygon v-for="p in chart.polygons" :key="p.label" :points="p.points" :fill="p.fill" />
         <line
           v-for="(g, i) in chart.gridLines"
           :key="i"
@@ -127,7 +127,7 @@ const chart = computed(() => {
     </div>
     <div class="flex flex-wrap gap-4.5 text-[13.5px] text-muted">
       <span v-for="p in chart.polygons" :key="p.label" class="flex items-center gap-1.5">
-        <span class="block h-2.5 w-2.5" :style="{ background: 'var(--ui-primary)', opacity: p.opacity }" />
+        <span class="block h-2.5 w-2.5" :style="{ background: p.fill }" />
         {{ p.label }}
       </span>
       <span class="flex items-center gap-1.5">
