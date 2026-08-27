@@ -571,9 +571,10 @@ dependencies = [
 
 [[package]]
 name = "croesus"
-version = "0.3.0"
+version = "1.0.1"
 dependencies = [
  "log",
+ "percent-encoding",
  "serde",
  "serde_json",
  "tauri",
@@ -582,6 +583,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-process",
  "tauri-plugin-shell",
+ "uuid",
 ]
 
 [[package]]
