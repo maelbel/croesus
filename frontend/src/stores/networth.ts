@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '../api/client'
+import { findReferencePoint } from '../lib/trailingWindow'
 import type { NetWorth, NetWorthHistoryPoint } from '../api/types'
 import { useAccountsStore } from './accounts'
 import { useLiabilitiesStore } from './liabilities'
@@ -41,17 +42,9 @@ export const useNetWorthStore = defineStore('networth', () => {
 
   /** Change in a history field over the trailing ~30 days, or null if there isn't enough history. */
   function deltaOverDays(field: keyof NetWorthHistoryPoint, days: number): number | null {
-    if (history.value.length < 2) return null
+    const reference = findReferencePoint(history.value, (p) => p.date, days)
+    if (!reference) return null
     const latest = history.value[history.value.length - 1]
-    const cutoff = new Date(latest.date)
-    cutoff.setDate(cutoff.getDate() - days)
-
-    let reference = history.value[0]
-    for (const point of history.value) {
-      if (new Date(point.date) <= cutoff) reference = point
-      else break
-    }
-    if (reference === latest) return null
     return Number(latest[field]) - Number(reference[field])
   }
 

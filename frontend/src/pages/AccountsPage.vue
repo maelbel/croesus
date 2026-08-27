@@ -37,9 +37,12 @@ const totalValue = computed(() =>
   accountsStore.accounts.reduce((sum, a) => sum + valuationsStore.currentValue(a.id), 0),
 )
 
-function accountChange(account: Account) {
-  return valuationsStore.changeOverDays(account.id, 30)
-}
+const filteredAccountRows = computed(() =>
+  filteredAccounts.value.map((account) => ({
+    account,
+    change: valuationsStore.changeOverDays(account.id, 30),
+  })),
+)
 
 function updatedLabel(account: Account) {
   const latest = valuationsStore.latest(account.id)
@@ -161,7 +164,7 @@ const detailAccount = ref<Account | null>(null)
           </tr>
         </thead>
         <tbody>
-          <tr v-for="account in filteredAccounts" :key="account.id" class="border-b border-default">
+          <tr v-for="{ account, change } in filteredAccountRows" :key="account.id" class="border-b border-default">
             <td class="py-3.5 pr-3">
               <div class="flex flex-col gap-0.5">
                 <span class="flex items-center gap-2">
@@ -177,8 +180,8 @@ const detailAccount = ref<Account | null>(null)
             <td class="py-3.5 pl-3 text-right font-heading text-[15.5px] font-extrabold whitespace-nowrap">
               {{ formatCurrency(valuationsStore.currentValue(account.id)) }}
             </td>
-            <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap" :class="deltaColorClass(accountChange(account)?.ratio ?? null)">
-              {{ accountChange(account)?.ratio == null ? '—' : formatPercent(accountChange(account)!.ratio!) }}
+            <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap" :class="deltaColorClass(change?.ratio ?? null)">
+              {{ change?.ratio == null ? '—' : formatPercent(change.ratio) }}
             </td>
             <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap text-muted">{{ updatedLabel(account) }}</td>
             <td class="py-3.5 pl-3 text-right whitespace-nowrap">

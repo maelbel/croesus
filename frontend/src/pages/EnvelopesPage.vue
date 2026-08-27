@@ -39,7 +39,7 @@ function ratio(target: string | null, current: string) {
 
 function status(target: string | null, current: string) {
   const r = ratio(target, current)
-  if (!target) return { label: 'Unfunded', color: 'neutral' as const }
+  if (!target || Number(target) === 0) return { label: 'Unfunded', color: 'neutral' as const }
   if (r >= 1) return { label: 'Funded', color: 'primary' as const }
   if (r >= 0.5) return { label: 'On track', color: 'neutral' as const }
   return { label: 'Behind', color: 'error' as const }
