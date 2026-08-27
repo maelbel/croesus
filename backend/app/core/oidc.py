@@ -16,9 +16,6 @@ _STATE_TOKEN_TYPE = "oidc_state"
 _discovery_cache: dict[str, dict] = {}
 _jwks_client_cache: dict[str, jwt.PyJWKClient] = {}
 
-# Shared across every OIDC request (discovery fetch + token exchange) so
-# connections to the IdP can be kept alive instead of paying a fresh
-# TCP+TLS handshake per call. Closed via aclose_http_client() at shutdown.
 _http_client: httpx.AsyncClient | None = None
 
 
@@ -84,12 +81,6 @@ def is_allowed_redirect_uri(uri: str, cors_origins: list[str]) -> bool:
 
 
 def build_client_redirect(app_redirect_uri: str, **params: str) -> str:
-    """Append params (a token on success, an error code on failure) to the
-    app's own redirect_uri using its callback convention: a query string for
-    the desktop loopback listener (it only ever reads raw query params off
-    the request line, never a fragment), a URL fragment for the browser SPA
-    (kept out of any request its own server sees).
-    """
     query = urlencode(params)
     if is_loopback(app_redirect_uri):
         separator = "&" if "?" in app_redirect_uri else "?"

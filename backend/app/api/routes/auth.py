@@ -85,8 +85,6 @@ async def oidc_callback(
 
     claims = oidc.read_state_token(state)
     if claims is None:
-        # No redirect_uri to bounce back to — the state token is what carries
-        # it, and it's exactly what failed to decode here.
         raise HTTPException(status_code=400, detail="Invalid or expired login attempt")
 
     app_redirect_uri = claims["redirect_uri"]
@@ -140,8 +138,6 @@ async def oidc_callback(
         try:
             db.commit()
         except IntegrityError:
-            # Lost a race against a concurrent first-ever OIDC login for the
-            # same account — the other request already created the row.
             db.rollback()
             user = db.query(User).filter(User.username == username).first()
 

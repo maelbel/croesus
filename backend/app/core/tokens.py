@@ -12,12 +12,6 @@ def encode_token(payload: dict, *, typ: str, expires_minutes: int) -> str:
 
 
 def decode_token(token: str, *, typ: str) -> dict | None:
-    """Returns the payload only if it decodes AND was minted with this typ.
-
-    Access tokens and OIDC state tokens share the same secret/algorithm, so
-    without the typ check one would be structurally valid as the other —
-    the typ claim is what actually keeps the two token classes apart.
-    """
     settings = get_settings()
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
