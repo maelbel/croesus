@@ -1,13 +1,12 @@
 import hashlib
 import hmac
 import secrets
-from datetime import UTC, datetime, timedelta
-
-import jwt
 
 from app.core.config import get_settings
+from app.core.tokens import decode_token, encode_token
 
 _PBKDF2_ITERATIONS = 260_000
+_ACCESS_TOKEN_TYPE = "access"
 
 
 def hash_password(password: str) -> str:
@@ -28,14 +27,9 @@ def verify_password(password: str, password_hash: str | None) -> bool:
 
 def create_access_token(username: str) -> str:
     settings = get_settings()
-    expires_at = datetime.now(UTC) + timedelta(minutes=settings.jwt_expires_minutes)
-    return jwt.encode({"sub": username, "exp": expires_at}, settings.jwt_secret, algorithm="HS256")
+    return encode_token({"sub": username}, typ=_ACCESS_TOKEN_TYPE, expires_minutes=settings.jwt_expires_minutes)
 
 
 def decode_access_token(token: str) -> str | None:
-    settings = get_settings()
-    try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-    except jwt.PyJWTError:
-        return None
-    return payload.get("sub")
+    payload = decode_token(token, typ=_ACCESS_TOKEN_TYPE)
+    return payload.get("sub") if payload else None
