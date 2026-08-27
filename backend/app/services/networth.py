@@ -17,7 +17,7 @@ def get_current_net_worth(db: Session) -> dict:
     """Latest known valuation of each account, minus total liabilities."""
     latest_per_account = (
         db.query(Valuation)
-        .order_by(Valuation.account_id, Valuation.date.desc())
+        .order_by(Valuation.account_id, Valuation.date.desc(), Valuation.id.desc())
         .all()
     )
     seen: set[int] = set()
@@ -67,14 +67,17 @@ def get_net_worth_history(db: Session) -> list[dict]:
     pivot = pivot.sort_index().ffill()
     total_assets_by_date = pivot.sum(axis=1)
 
-    total_liabilities = float(get_total_liabilities(db))
+    total_liabilities = get_total_liabilities(db)
 
-    return [
-        {
-            "date": d.isoformat() if isinstance(d, date) else str(d),
-            "total_assets": round(assets, 2),
-            "total_liabilities": total_liabilities,
-            "net_worth": round(assets - total_liabilities, 2),
-        }
-        for d, assets in total_assets_by_date.items()
-    ]
+    history = []
+    for d, assets in total_assets_by_date.items():
+        total_assets = Decimal(str(round(assets, 2)))
+        history.append(
+            {
+                "date": d.isoformat() if isinstance(d, date) else str(d),
+                "total_assets": total_assets,
+                "total_liabilities": total_liabilities,
+                "net_worth": total_assets - total_liabilities,
+            }
+        )
+    return history

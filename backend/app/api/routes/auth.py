@@ -2,6 +2,7 @@ import logging
 import secrets
 from urllib.parse import urlencode
 
+import httpx
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.core import oidc
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
 from app.schemas.auth import AuthStatus, LoginRequest, TokenResponse
 
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # Deployments with no ADMIN_USERNAME configured still need a single account
 # row for OIDC-only logins to mint tokens against.
 _SSO_ONLY_USERNAME = "sso"
+_DUMMY_PASSWORD_HASH = hash_password(secrets.token_hex(32))
 
 
 @router.get("/status", response_model=AuthStatus)
@@ -41,7 +43,9 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Password login is not enabled on this instance")
 
     user = db.query(User).filter(User.username == payload.username).first()
-    if user is None or not verify_password(payload.password, user.password_hash):
+    password_hash = user.password_hash if user and user.password_hash else _DUMMY_PASSWORD_HASH
+    password_ok = verify_password(payload.password, password_hash)
+    if user is None or not password_ok:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     return TokenResponse(access_token=create_access_token(user.username))
@@ -55,7 +59,12 @@ async def oidc_login(redirect_uri: str = Query(...)):
     if not oidc.is_allowed_redirect_uri(redirect_uri, settings.cors_origins):
         raise HTTPException(status_code=400, detail="redirect_uri is not allowed")
 
-    discovery = await oidc.get_discovery_document(settings.oidc_issuer)
+    try:
+        discovery = await oidc.get_discovery_document(settings.oidc_issuer)
+    except httpx.HTTPError as exc:
+        logger.warning("OIDC discovery failed: %s", exc)
+        return RedirectResponse(oidc.build_client_redirect(redirect_uri, error="discovery_failed"))
+
     code_verifier, code_challenge = oidc.generate_pkce_pair()
     nonce = secrets.token_urlsafe(32)
     state = oidc.build_state_token(redirect_uri, code_verifier, nonce)
@@ -92,7 +101,11 @@ async def oidc_callback(
     def error_redirect(error: str) -> RedirectResponse:
         return RedirectResponse(oidc.build_client_redirect(app_redirect_uri, error=error))
 
-    discovery = await oidc.get_discovery_document(settings.oidc_issuer)
+    try:
+        discovery = await oidc.get_discovery_document(settings.oidc_issuer)
+    except httpx.HTTPError as exc:
+        logger.warning("OIDC discovery failed: %s", exc)
+        return error_redirect("discovery_failed")
 
     token_response = await oidc.get_http_client().post(
         discovery["token_endpoint"],

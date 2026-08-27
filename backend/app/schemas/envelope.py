@@ -1,13 +1,13 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EnvelopeBase(BaseModel):
     name: str
-    target_amount: Decimal | None = None
-    current_amount: Decimal = Decimal(0)
+    target_amount: Decimal | None = Field(default=None, ge=0)
+    current_amount: Decimal = Field(default=Decimal(0), ge=0)
     color: str | None = None
     icon: str | None = None
 
@@ -18,8 +18,8 @@ class EnvelopeCreate(EnvelopeBase):
 
 class EnvelopeUpdate(BaseModel):
     name: str | None = None
-    target_amount: Decimal | None = None
-    current_amount: Decimal | None = None
+    target_amount: Decimal | None = Field(default=None, ge=0)
+    current_amount: Decimal | None = Field(default=None, ge=0)
     color: str | None = None
     icon: str | None = None
 

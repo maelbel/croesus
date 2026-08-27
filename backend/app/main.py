@@ -16,7 +16,7 @@ from app.api.routes import (
     valuations,
 )
 from app.core import oidc
-from app.core.config import get_settings
+from app.core.config import DEFAULT_JWT_SECRET, get_settings
 from app.core.database import SessionLocal
 from app.core.security import decode_access_token, hash_password
 from app.models.user import User
@@ -31,10 +31,16 @@ PUBLIC_PATHS = {
     "/auth/login",
     "/auth/oidc/login",
     "/auth/oidc/callback",
-    "/docs",
-    "/openapi.json",
-    "/redoc",
 }
+
+
+def _check_jwt_secret() -> None:
+    if settings.auth_enabled and settings.jwt_secret == DEFAULT_JWT_SECRET:
+        raise RuntimeError(
+            "Auth is enabled (ADMIN_USERNAME/ADMIN_PASSWORD or OIDC_* is set) but JWT_SECRET was "
+            "left at its default value — anyone could forge a valid login token. Set JWT_SECRET to "
+            "a real random value before starting with auth enabled."
+        )
 
 
 def _seed_admin_user() -> None:
@@ -70,6 +76,7 @@ def _seed_admin_user() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _check_jwt_secret()
     _seed_admin_user()
     yield
     await oidc.aclose_http_client()
