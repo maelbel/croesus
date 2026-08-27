@@ -12,6 +12,7 @@ import { useAssetsStore } from './stores/assets'
 import { useThemeStore } from './stores/theme'
 import { useConnectionStore } from './stores/connection'
 import { useAuthStore } from './stores/auth'
+import { useOidcCallback } from './composables/useOidcCallback'
 import { formatCurrency, formatDate, deltaColorClass } from './lib/format'
 import LoginForm from './components/LoginForm.vue'
 import OnboardingScreen from './components/OnboardingScreen.vue'
@@ -26,6 +27,7 @@ const assetsStore = useAssetsStore()
 const themeStore = useThemeStore()
 const connectionStore = useConnectionStore()
 const authStore = useAuthStore()
+const oidcCallback = useOidcCallback()
 
 // In desktop mode the backend starts as a sidecar process and can take a
 // couple of seconds to come up — wait for it before firing the first
@@ -42,7 +44,11 @@ const sidecarLog = ref<string[]>([])
 // picking local just needs to fall through to the usual boot sequence below.
 const showOnboarding = ref(false)
 
+const loadedForToken = ref<string | null>(null)
+
 function loadData() {
+  if (loadedForToken.value === authStore.token) return
+  loadedForToken.value = authStore.token
   accountsStore.fetchAll()
   liabilitiesStore.fetchAll()
   envelopesStore.fetchAll()
@@ -70,21 +76,8 @@ function onOnboardingContinueLocal() {
   bootAfterConnectionDecided()
 }
 
-// Self-hosted/browser OIDC return trip: the backend redirects back here
-// with the token in the URL fragment (never sent to any server) rather
-// than a query param. Desktop remote mode never hits this — its token
-// comes back through the loopback listener in signInWithSso() instead.
-function consumeOidcTokenFromUrl() {
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
-  const token = hash.get('token')
-  if (token) {
-    authStore.setToken(token)
-    history.replaceState(null, '', window.location.pathname + window.location.search)
-  }
-}
-
 onMounted(async () => {
-  consumeOidcTokenFromUrl()
+  oidcCallback.consume()
   await connectionStore.load()
 
   if (isTauri() && !connectionStore.configured) {

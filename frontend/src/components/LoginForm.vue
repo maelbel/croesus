@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { isTauri, invoke } from '@tauri-apps/api/core'
 import { useAuthStore } from '../stores/auth'
 import { resolveBaseUrl } from '../api/client'
+import { errorMessage } from '../lib/errors'
 
 const authStore = useAuthStore()
 const username = ref('')
@@ -25,14 +26,14 @@ async function submit() {
 // Self-hosted/browser mode is a plain redirect; the token comes back as a
 // URL fragment picked up in App.vue.
 async function signInWithSso() {
-  authStore.error = null
+  authStore.setError(null)
   if (isTauri()) {
     ssoSubmitting.value = true
     try {
       const token = await invoke<string>('start_oidc_login', { serverUrl: resolveBaseUrl() })
       authStore.setToken(token)
     } catch (e) {
-      authStore.error = e instanceof Error ? e.message : 'SSO sign-in failed'
+      authStore.setError(errorMessage(e, 'SSO sign-in failed'))
     } finally {
       ssoSubmitting.value = false
     }

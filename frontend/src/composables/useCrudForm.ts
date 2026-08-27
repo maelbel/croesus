@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { useToast } from '@nuxt/ui/composables'
+import { errorMessage } from '../lib/errors'
 
 export interface UseCrudFormOptions<TEntity extends { id: number }, TCreate extends object, TUpdate> {
   /** Human-readable name used in toast messages, e.g. "account". */
@@ -82,7 +83,7 @@ export function useCrudForm<TEntity extends { id: number }, TCreate extends obje
     } catch (error) {
       toast.add({
         title: `Couldn't save ${entityLabel}`,
-        description: error instanceof Error ? error.message : undefined,
+        description: errorMessage(error),
         color: 'error',
       })
       return false
