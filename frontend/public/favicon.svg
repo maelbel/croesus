@@ -1,11 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <clipPath id="coinClip">
-      <circle cx="256" cy="256" r="220"/>
-    </clipPath>
-  </defs>
-  <circle cx="256" cy="256" r="220" fill="#4e6b2c"/>
-  <circle cx="256" cy="256" r="155" fill="none" stroke="#f4eee3" stroke-width="62"/>
-  <polygon points="256,256 577.4,639.0 577.4,-127.0" fill="#4e6b2c" clip-path="url(#coinClip)"/>
-  <circle cx="256" cy="256" r="205" fill="none" stroke="#3a5220" stroke-width="6" stroke-dasharray="6 10"/>
+  <circle cx="256" cy="256" r="220" fill="#16110e"/>
+  <circle cx="256" cy="256" r="205" fill="none" stroke="#2d231b" stroke-width="6" stroke-dasharray="6 10"/>
+  <rect x="155" y="280" width="50" height="70" fill="#4e6b2c"/>
+  <rect x="231" y="230" width="50" height="120" fill="#6f9440"/>
+  <rect x="307" y="180" width="50" height="170" fill="#9dbe6a"/>
+  <path d="M 180 280 L 256 230 L 332 180 L 372 140" fill="none" stroke="#f2eadd" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="180" cy="280" r="10" fill="#f2eadd"/>
+  <circle cx="256" cy="230" r="10" fill="#f2eadd"/>
+  <circle cx="332" cy="180" r="10" fill="#f2eadd"/>
+  <polygon points="372,140 345,146 366,167" fill="#f2eadd"/>
 </svg>
