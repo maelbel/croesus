@@ -155,9 +155,19 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
         :class="sidebarStore.open ? 'w-[248px] border-r-2 border-default' : 'w-0 border-r-0'"
       >
         <div class="flex h-full w-[248px] flex-col">
-          <div class="neu-flat flex flex-col gap-2 border-b-2 border-default px-6 py-6">
-            <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
-            <span class="text-sm text-muted">Every euro, accounted for.</span>
+          <div class="neu-flat flex items-center justify-between gap-2 border-b-2 border-default px-6 py-6">
+            <div class="flex flex-col gap-2">
+              <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
+              <span class="text-sm text-muted">Every euro, accounted for.</span>
+            </div>
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              icon="i-lucide-panel-left-close"
+              aria-label="Hide sidebar"
+              @click="sidebarStore.toggle()"
+            />
           </div>
 
           <nav class="flex flex-col py-3">
@@ -193,11 +203,12 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
         <header class="app-header sticky top-0 z-10 flex items-end justify-between gap-6 border-b-2 border-default bg-default px-10 py-6">
           <div class="flex items-end gap-4">
             <UButton
+              v-if="!sidebarStore.open"
               variant="ghost"
               color="neutral"
               size="sm"
-              icon="i-lucide-panel-left"
-              :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
+              icon="i-lucide-panel-left-open"
+              aria-label="Show sidebar"
               @click="sidebarStore.toggle()"
             />
             <div class="flex flex-col gap-1.5">
