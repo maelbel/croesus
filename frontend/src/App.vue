@@ -115,6 +115,7 @@ const netWorth = computed(() =>
 )
 const netDelta = computed(() => netWorthStore.netWorthDelta30d)
 const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
+const shortcutHint = /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘B' : 'Ctrl+B'
 
 function onSidebarShortcut(event: KeyboardEvent) {
   if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'b') return
@@ -175,7 +176,7 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
               class="shrink-0"
               :icon="sidebarStore.open ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
               :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
-              :title="sidebarStore.open ? 'Hide sidebar (⌘B)' : 'Show sidebar (⌘B)'"
+              :title="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`"
               @click="sidebarStore.toggle()"
             />
             <div
