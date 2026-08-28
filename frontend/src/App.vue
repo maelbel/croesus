@@ -115,7 +115,6 @@ const netWorth = computed(() =>
 )
 const netDelta = computed(() => netWorthStore.netWorthDelta30d)
 const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
-const shortcutHint = /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘B' : 'Ctrl+B'
 
 function onSidebarShortcut(event: KeyboardEvent) {
   if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'b') return
@@ -168,12 +167,24 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
     >
       <aside class="app-sidebar sticky top-0 h-screen overflow-hidden border-r-2 border-default">
         <div class="flex h-full w-[248px] flex-col">
-          <div
-            class="neu-flat flex flex-col gap-2 border-b-2 border-default px-6 py-6 whitespace-nowrap transition-opacity duration-150"
-            :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
-          >
-            <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
-            <span class="text-sm text-muted">Every euro, accounted for.</span>
+          <div class="neu-flat flex items-center gap-3 border-b-2 border-default py-6 pr-6 pl-5">
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              class="shrink-0"
+              :icon="sidebarStore.open ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
+              :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
+              :title="sidebarStore.open ? 'Hide sidebar (⌘B)' : 'Show sidebar (⌘B)'"
+              @click="sidebarStore.toggle()"
+            />
+            <div
+              class="flex flex-col gap-2 whitespace-nowrap transition-opacity duration-150"
+              :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
+            >
+              <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
+              <span class="text-sm text-muted">Every euro, accounted for.</span>
+            </div>
           </div>
 
           <nav class="flex flex-col py-3">
@@ -213,40 +224,18 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
             </RouterLink>
           </nav>
 
-          <div class="mt-auto flex flex-col">
-            <Transition name="sidebar-fade">
-              <div
-                v-if="sidebarStore.open"
-                class="app-networth flex flex-col gap-1.5 border-t-2 border-default px-6 py-5 whitespace-nowrap"
-              >
-                <span class="text-sm text-muted">Net worth</span>
-                <span class="font-heading text-2xl leading-none font-extrabold tracking-tight">{{ netWorth }}</span>
-                <span class="text-sm" :class="deltaColorClass(netDelta)">
-                  {{ netDelta === null ? '—' : formatCurrency(netDelta) }} · 30 days
-                </span>
-              </div>
-            </Transition>
-
-            <button
-              type="button"
-              class="nav-link group flex items-center gap-3 border-t-2 border-default py-2.5 pr-6 text-sm"
-              :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
-              :title="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`"
-              @click="sidebarStore.toggle()"
+          <Transition name="sidebar-fade">
+            <div
+              v-if="sidebarStore.open"
+              class="app-networth mt-auto flex flex-col gap-1.5 border-t-2 border-default px-6 py-5 whitespace-nowrap"
             >
-              <span class="block w-[3px] self-stretch" />
-              <UIcon
-                :name="sidebarStore.open ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
-                class="size-5 shrink-0 text-muted group-hover:text-toned"
-              />
-              <span
-                class="flex-1 text-left whitespace-nowrap text-muted transition-opacity duration-150 group-hover:text-toned"
-                :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
-              >
-                {{ sidebarStore.open ? 'Hide sidebar' : 'Show sidebar' }}
+              <span class="text-sm text-muted">Net worth</span>
+              <span class="font-heading text-2xl leading-none font-extrabold tracking-tight">{{ netWorth }}</span>
+              <span class="text-sm" :class="deltaColorClass(netDelta)">
+                {{ netDelta === null ? '—' : formatCurrency(netDelta) }} · 30 days
               </span>
-            </button>
-          </div>
+            </div>
+          </Transition>
         </div>
       </aside>
 
