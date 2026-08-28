@@ -228,20 +228,22 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
       </aside>
 
       <div class="min-w-0">
-        <header class="app-header sticky top-0 z-10 flex items-end justify-between gap-6 border-b-2 border-default bg-default px-10 py-6">
-          <div class="flex flex-col gap-1.5">
-            <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
-            <h1 class="text-[37px] tracking-tight">{{ route.meta.title }}</h1>
-          </div>
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm text-muted">{{ asOf }}</span>
-            <UButton
-              v-if="pageActionStore.label"
-              color="primary"
-              size="sm"
-              :label="pageActionStore.label"
-              @click="pageActionStore.action?.()"
-            />
+        <header class="app-header sticky top-0 z-10 border-b-2 border-default bg-default">
+          <div class="mx-auto flex max-w-[1360px] items-end justify-between gap-6 px-10 py-6">
+            <div class="flex flex-col gap-1.5">
+              <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
+              <h1 class="text-[37px] tracking-tight">{{ route.meta.title }}</h1>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="text-sm text-muted">{{ asOf }}</span>
+              <UButton
+                v-if="pageActionStore.label"
+                color="primary"
+                size="sm"
+                :label="pageActionStore.label"
+                @click="pageActionStore.action?.()"
+              />
+            </div>
           </div>
         </header>
 
