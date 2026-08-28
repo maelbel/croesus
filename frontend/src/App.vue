@@ -178,7 +178,10 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
               :title="sidebarStore.open ? 'Hide sidebar (⌘B)' : 'Show sidebar (⌘B)'"
               @click="sidebarStore.toggle()"
             />
-            <div class="flex flex-col gap-2 whitespace-nowrap">
+            <div
+              class="flex flex-col gap-2 whitespace-nowrap transition-opacity duration-150"
+              :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
+            >
               <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
               <span class="text-sm text-muted">Every euro, accounted for.</span>
             </div>
@@ -203,12 +206,21 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
                 :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
               />
               <span
-                class="flex-1 text-left whitespace-nowrap"
-                :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
+                class="flex-1 text-left whitespace-nowrap transition-opacity duration-150"
+                :class="[
+                  route.path === link.to ? '' : 'text-muted group-hover:text-toned',
+                  sidebarStore.open ? 'opacity-100' : 'opacity-0',
+                ]"
               >
                 {{ link.label }}
               </span>
-              <span v-if="link.count !== null" class="text-[13.5px] text-muted">{{ link.count }}</span>
+              <span
+                v-if="link.count !== null"
+                class="text-[13.5px] text-muted transition-opacity duration-150"
+                :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
+              >
+                {{ link.count }}
+              </span>
             </RouterLink>
           </nav>
 
