@@ -103,11 +103,11 @@ watch(
 const showLogin = computed(() => backendReady.value && authStore.authEnabled && !authStore.token)
 
 const links = [
-  { label: 'Dashboard', to: '/', count: null },
-  { label: 'Accounts', to: '/accounts', count: computed(() => accountsStore.accounts.length) },
-  { label: 'Liabilities', to: '/liabilities', count: computed(() => liabilitiesStore.liabilities.length) },
-  { label: 'Envelopes', to: '/envelopes', count: computed(() => envelopesStore.envelopes.length) },
-  { label: 'Settings', to: '/settings', count: null },
+  { label: 'Dashboard', to: '/', icon: 'i-lucide-layout-dashboard', count: null },
+  { label: 'Accounts', to: '/accounts', icon: 'i-lucide-wallet', count: computed(() => accountsStore.accounts.length) },
+  { label: 'Liabilities', to: '/liabilities', icon: 'i-lucide-landmark', count: computed(() => liabilitiesStore.liabilities.length) },
+  { label: 'Envelopes', to: '/envelopes', icon: 'i-lucide-mail', count: computed(() => envelopesStore.envelopes.length) },
+  { label: 'Settings', to: '/settings', icon: 'i-lucide-settings', count: null },
 ]
 
 const netWorth = computed(() =>
@@ -151,12 +151,15 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
     </div>
     <div v-else class="grid min-h-screen grid-cols-[auto_minmax(0,1fr)] bg-default text-default">
       <aside
-        class="app-sidebar sticky top-0 h-screen overflow-hidden transition-[width] duration-200"
-        :class="sidebarStore.open ? 'w-[248px] border-r-2 border-default' : 'w-0 border-r-0'"
+        class="app-sidebar sticky top-0 h-screen overflow-hidden border-r-2 border-default transition-[width] duration-200"
+        :class="sidebarStore.open ? 'w-[248px]' : 'w-16'"
       >
-        <div class="flex h-full w-[248px] flex-col">
-          <div class="neu-flat flex items-center justify-between gap-2 border-b-2 border-default px-6 py-6">
-            <div class="flex flex-col gap-2">
+        <div class="flex h-full flex-col" :class="sidebarStore.open ? 'w-[248px]' : 'w-16'">
+          <div
+            class="neu-flat flex items-center gap-2 border-b-2 border-default py-6"
+            :class="sidebarStore.open ? 'justify-between px-6' : 'justify-center px-0'"
+          >
+            <div v-if="sidebarStore.open" class="flex flex-col gap-2">
               <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
               <span class="text-sm text-muted">Every euro, accounted for.</span>
             </div>
@@ -164,8 +167,8 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
               variant="ghost"
               color="neutral"
               size="sm"
-              icon="i-lucide-panel-left-close"
-              aria-label="Hide sidebar"
+              :icon="sidebarStore.open ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
+              :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
               @click="sidebarStore.toggle()"
             />
           </div>
@@ -175,21 +178,32 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
               v-for="link in links"
               :key="link.to"
               :to="link.to"
-              class="nav-link group flex items-center gap-3 py-2.5 pr-6 text-sm"
+              class="nav-link group flex items-center gap-3 py-2.5 text-sm"
+              :class="sidebarStore.open ? 'pr-6' : 'justify-center px-0'"
               active-class="nav-active font-semibold text-highlighted"
             >
               <span
+                v-if="sidebarStore.open"
                 class="nav-bar-indicator block w-[3px] self-stretch"
                 :class="route.path === link.to ? 'bg-primary' : 'bg-transparent'"
               />
-              <span class="flex-1 text-left" :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'">
+              <UIcon
+                :name="link.icon"
+                class="size-5 shrink-0"
+                :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
+              />
+              <span
+                v-if="sidebarStore.open"
+                class="flex-1 text-left"
+                :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
+              >
                 {{ link.label }}
               </span>
-              <span v-if="link.count !== null" class="text-[13.5px] text-muted">{{ link.count }}</span>
+              <span v-if="sidebarStore.open && link.count !== null" class="text-[13.5px] text-muted">{{ link.count }}</span>
             </RouterLink>
           </nav>
 
-          <div class="app-networth mt-auto flex flex-col gap-1.5 border-t-2 border-default px-6 py-5">
+          <div v-if="sidebarStore.open" class="app-networth mt-auto flex flex-col gap-1.5 border-t-2 border-default px-6 py-5">
             <span class="text-sm text-muted">Net worth</span>
             <span class="font-heading text-2xl leading-none font-extrabold tracking-tight">{{ netWorth }}</span>
             <span class="text-sm" :class="deltaColorClass(netDelta)">
@@ -201,20 +215,9 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
 
       <div class="min-w-0">
         <header class="app-header sticky top-0 z-10 flex items-end justify-between gap-6 border-b-2 border-default bg-default px-10 py-6">
-          <div class="flex items-end gap-4">
-            <UButton
-              v-if="!sidebarStore.open"
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              icon="i-lucide-panel-left-open"
-              aria-label="Show sidebar"
-              @click="sidebarStore.toggle()"
-            />
-            <div class="flex flex-col gap-1.5">
-              <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
-              <h1 class="text-[37px] tracking-tight">{{ route.meta.title }}</h1>
-            </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
+            <h1 class="text-[37px] tracking-tight">{{ route.meta.title }}</h1>
           </div>
           <div class="flex items-center gap-2.5">
             <span class="text-sm text-muted">{{ asOf }}</span>
