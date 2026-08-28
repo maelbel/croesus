@@ -160,11 +160,12 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
     >
       <LoginForm />
     </div>
-    <div v-else class="grid min-h-screen grid-cols-[auto_minmax(0,1fr)] bg-default text-default">
-      <aside
-        class="app-sidebar sticky top-0 h-screen overflow-hidden border-r-2 border-default transition-[width] duration-200"
-        :class="sidebarStore.open ? 'w-[248px]' : 'w-16'"
-      >
+    <div
+      v-else
+      class="grid min-h-screen bg-default text-default transition-[grid-template-columns] duration-200 ease-in-out"
+      :style="{ gridTemplateColumns: (sidebarStore.open ? '248px' : '64px') + ' minmax(0,1fr)' }"
+    >
+      <aside class="app-sidebar sticky top-0 h-screen overflow-hidden border-r-2 border-default">
         <div class="flex h-full w-[248px] flex-col">
           <div class="neu-flat flex items-center gap-3 border-b-2 border-default py-6 pr-6 pl-5">
             <UButton
