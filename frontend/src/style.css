@@ -383,3 +383,12 @@ h6 {
 [data-skin='neumorphic'] .nav-bar-indicator {
   background: transparent !important;
 }
+
+.sidebar-fade-enter-active,
+.sidebar-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.sidebar-fade-enter-from,
+.sidebar-fade-leave-to {
+  opacity: 0;
+}

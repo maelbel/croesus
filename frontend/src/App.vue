@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { isTauri, invoke } from '@tauri-apps/api/core'
 import { waitForBackend } from './api/client'
@@ -115,6 +115,17 @@ const netWorth = computed(() =>
 )
 const netDelta = computed(() => netWorthStore.netWorthDelta30d)
 const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
+
+function onSidebarShortcut(event: KeyboardEvent) {
+  if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'b') return
+  const target = event.target as HTMLElement
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+  event.preventDefault()
+  sidebarStore.toggle()
+}
+
+onMounted(() => window.addEventListener('keydown', onSidebarShortcut))
+onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
 </script>
 
 <template>
@@ -154,23 +165,22 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
         class="app-sidebar sticky top-0 h-screen overflow-hidden border-r-2 border-default transition-[width] duration-200"
         :class="sidebarStore.open ? 'w-[248px]' : 'w-16'"
       >
-        <div class="flex h-full flex-col" :class="sidebarStore.open ? 'w-[248px]' : 'w-16'">
-          <div
-            class="neu-flat flex items-center gap-2 border-b-2 border-default py-6"
-            :class="sidebarStore.open ? 'justify-between px-6' : 'justify-center px-0'"
-          >
-            <div v-if="sidebarStore.open" class="flex flex-col gap-2">
-              <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
-              <span class="text-sm text-muted">Every euro, accounted for.</span>
-            </div>
+        <div class="flex h-full w-[248px] flex-col">
+          <div class="neu-flat flex items-center gap-3 border-b-2 border-default py-6 pr-6 pl-5">
             <UButton
               variant="ghost"
               color="neutral"
               size="sm"
+              class="shrink-0"
               :icon="sidebarStore.open ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
               :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
+              :title="sidebarStore.open ? 'Hide sidebar (⌘B)' : 'Show sidebar (⌘B)'"
               @click="sidebarStore.toggle()"
             />
+            <div class="flex flex-col gap-2 whitespace-nowrap">
+              <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
+              <span class="text-sm text-muted">Every euro, accounted for.</span>
+            </div>
           </div>
 
           <nav class="flex flex-col py-3">
@@ -178,12 +188,11 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
               v-for="link in links"
               :key="link.to"
               :to="link.to"
-              class="nav-link group flex items-center gap-3 py-2.5 text-sm"
-              :class="sidebarStore.open ? 'pr-6' : 'justify-center px-0'"
+              :title="link.label"
+              class="nav-link group flex items-center gap-3 py-2.5 pr-6 text-sm"
               active-class="nav-active font-semibold text-highlighted"
             >
               <span
-                v-if="sidebarStore.open"
                 class="nav-bar-indicator block w-[3px] self-stretch"
                 :class="route.path === link.to ? 'bg-primary' : 'bg-transparent'"
               />
@@ -193,23 +202,27 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
                 :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
               />
               <span
-                v-if="sidebarStore.open"
-                class="flex-1 text-left"
+                class="flex-1 text-left whitespace-nowrap"
                 :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
               >
                 {{ link.label }}
               </span>
-              <span v-if="sidebarStore.open && link.count !== null" class="text-[13.5px] text-muted">{{ link.count }}</span>
+              <span v-if="link.count !== null" class="text-[13.5px] text-muted">{{ link.count }}</span>
             </RouterLink>
           </nav>
 
-          <div v-if="sidebarStore.open" class="app-networth mt-auto flex flex-col gap-1.5 border-t-2 border-default px-6 py-5">
-            <span class="text-sm text-muted">Net worth</span>
-            <span class="font-heading text-2xl leading-none font-extrabold tracking-tight">{{ netWorth }}</span>
-            <span class="text-sm" :class="deltaColorClass(netDelta)">
-              {{ netDelta === null ? '—' : formatCurrency(netDelta) }} · 30 days
-            </span>
-          </div>
+          <Transition name="sidebar-fade">
+            <div
+              v-if="sidebarStore.open"
+              class="app-networth mt-auto flex flex-col gap-1.5 border-t-2 border-default px-6 py-5 whitespace-nowrap"
+            >
+              <span class="text-sm text-muted">Net worth</span>
+              <span class="font-heading text-2xl leading-none font-extrabold tracking-tight">{{ netWorth }}</span>
+              <span class="text-sm" :class="deltaColorClass(netDelta)">
+                {{ netDelta === null ? '—' : formatCurrency(netDelta) }} · 30 days
+              </span>
+            </div>
+          </Transition>
         </div>
       </aside>
 
