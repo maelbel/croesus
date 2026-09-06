@@ -170,11 +170,7 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
         <div class="flex h-full w-[248px] flex-col">
           <div class="neu-flat flex items-end border-b-2 border-default py-6 pr-6">
             <span class="flex w-16 shrink-0 items-center justify-center">
-              <UTooltip
-                :text="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`"
-                side="right"
-                :delay-duration="150"
-              >
+              <UTooltip :text="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`">
                 <UButton
                   variant="ghost"
                   color="neutral"
@@ -200,8 +196,6 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
               :key="link.to"
               :text="link.label"
               :disabled="sidebarStore.open"
-              side="right"
-              :delay-duration="150"
             >
               <RouterLink
                 :to="link.to"
