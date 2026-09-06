@@ -117,6 +117,17 @@ const netDelta = computed(() => netWorthStore.netWorthDelta30d)
 const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
 const shortcutHint = /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘B' : 'Ctrl+B'
 
+// The sidebar's overflow-hidden aside (needed for the collapse animation)
+// is a clipping ancestor of these tooltips' triggers, so Floating UI's
+// collision detection under-reports available space even though the
+// tooltip content itself is portaled to <body>. Pin the boundary to the
+// body so it sizes/positions against the real viewport instead. The
+// tooltip's z-20 (below, via :ui) is needed for the same reason: it's a
+// body-level sibling of the app root, not a descendant of the sticky
+// z-10 content header, so it must out-rank that header explicitly to
+// paint above it.
+const tooltipBoundary = document.body
+
 function onSidebarShortcut(event: KeyboardEvent) {
   if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'b') return
   const target = event.target as HTMLElement
@@ -170,7 +181,11 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
         <div class="flex h-full w-[248px] flex-col">
           <div class="neu-flat flex items-end border-b-2 border-default py-6 pr-6">
             <span class="flex w-16 shrink-0 items-center justify-center">
-              <UTooltip :text="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`">
+              <UTooltip
+                :text="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`"
+                :content="{ collisionBoundary: tooltipBoundary }"
+                :ui="{ content: 'z-20' }"
+              >
                 <UButton
                   variant="ghost"
                   color="neutral"
@@ -196,6 +211,8 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
               :key="link.to"
               :text="link.label"
               :disabled="sidebarStore.open"
+              :content="{ collisionBoundary: tooltipBoundary }"
+              :ui="{ content: 'z-20' }"
             >
               <RouterLink
                 :to="link.to"
