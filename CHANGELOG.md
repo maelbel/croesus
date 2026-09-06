@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.0](https://github.com/maelbel/croesus/compare/v1.0.1...v1.1.0) (2026-09-06)
+
+
+### Features
+
+* add a logo ([#23](https://github.com/maelbel/croesus/issues/23)) ([f40f1b2](https://github.com/maelbel/croesus/commit/f40f1b2fb74d46b683c76388b2ff05068dc49ec2))
+* **frontend:** redesign navigation shell and close design-fidelity gaps ([#24](https://github.com/maelbel/croesus/issues/24)) ([b047261](https://github.com/maelbel/croesus/commit/b0472610399e21add0ba66a6679d7254f9876103))
+
+
+### Bug Fixes
+
+* **backend:** OIDC callback bugs + DRY up JWT handling ([#15](https://github.com/maelbel/croesus/issues/15)) ([3ad5081](https://github.com/maelbel/croesus/commit/3ad50814c8faa110805ed5bd06945bfa2f5cab47))
+* **backend:** security hardening + correctness fixes from full-codebase review ([#20](https://github.com/maelbel/croesus/issues/20)) ([545518e](https://github.com/maelbel/croesus/commit/545518e2560c3e879fd2579d8f46ed2000c02486))
+* **frontend:** correctness/efficiency fixes + DRY from full-codebase review ([#22](https://github.com/maelbel/croesus/issues/22)) ([c77a56a](https://github.com/maelbel/croesus/commit/c77a56a8b98bfc9cb947c6de906d6709bc118f1c))
+* **frontend:** surface OIDC callback errors + dedupe error handling ([#17](https://github.com/maelbel/croesus/issues/17)) ([76bc41b](https://github.com/maelbel/croesus/commit/76bc41bca281570fb69bb822f481d0b71734387e))
+* **tauri:** fix OIDC loopback panic + bind callback to its own attempt ([#18](https://github.com/maelbel/croesus/issues/18)) ([571562a](https://github.com/maelbel/croesus/commit/571562aeda2b714bb26438ac5dbaf9d1884a599b))
+* **tauri:** OIDC timeout-bypass regression + dedupe + typed mode ([#19](https://github.com/maelbel/croesus/issues/19)) ([dd5ad2c](https://github.com/maelbel/croesus/commit/dd5ad2c67592d336cf078eb3e30162746de6965e))
+
 ## [1.0.1](https://github.com/maelbel/croesus/compare/v1.0.0...v1.0.1) (2026-08-26)
 
 
