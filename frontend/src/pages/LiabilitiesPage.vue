@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useCrudForm } from '../composables/useCrudForm'
+import { usePageAction } from '../composables/usePageAction'
 import { LIABILITY_TYPE_LABELS, type Liability, type LiabilityCreate, type LiabilityType } from '../api/types'
 import { formatCurrency, formatRate, formatDate } from '../lib/format'
 import StatCard from '../components/StatCard.vue'
@@ -73,6 +74,8 @@ const liabilityForm = useCrudForm<Liability, LiabilityCreate>({
   update: (id, payload) => liabilitiesStore.update(id, payload),
 })
 
+usePageAction('Add a liability', () => liabilityForm.openCreate())
+
 async function removeLiability(liability: Liability) {
   if (!window.confirm(`Delete "${liability.name}"?`)) return
   await liabilitiesStore.remove(liability.id)
@@ -81,11 +84,6 @@ async function removeLiability(liability: Liability) {
 
 <template>
   <div class="flex flex-col gap-7">
-    <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold">Liabilities</h2>
-      <UButton icon="i-lucide-plus" label="Add a liability" @click="liabilityForm.openCreate()" />
-    </div>
-
     <EntityFormModal
       :open="liabilityForm.state.open"
       :title="liabilityForm.state.isEditing ? 'Edit liability' : 'Add a liability'"
@@ -165,7 +163,7 @@ async function removeLiability(liability: Liability) {
             <td class="py-3.5 pl-6">
               <span class="flex items-center gap-2.5">
                 <span class="stripe-track flex-1">
-                  <span class="stripe-fill" :style="{ width: `${paidRatio(liability) * 100}%` }" />
+                  <span class="stripe-fill paid-off-fill" :style="{ width: `${paidRatio(liability) * 100}%` }" />
                 </span>
                 <span class="min-w-[34px] text-right text-sm text-muted">{{ Math.round(paidRatio(liability) * 100) }}%</span>
               </span>
@@ -180,7 +178,7 @@ async function removeLiability(liability: Liability) {
                 @click="liabilityForm.openEdit(liability)"
               />
               <UButton
-                color="error"
+                color="rust"
                 variant="ghost"
                 icon="i-lucide-trash-2"
                 size="sm"

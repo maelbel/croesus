@@ -4,6 +4,7 @@ import { useValuationsStore } from '../stores/valuations'
 import { useAssetsStore } from '../stores/assets'
 import { useCrudForm } from '../composables/useCrudForm'
 import {
+  ACCOUNT_TYPE_LABELS,
   ASSET_CLASS_LABELS,
   type Account,
   type Asset,
@@ -14,7 +15,7 @@ import {
   type ValuationCreate,
   type ValuationUpdate,
 } from '../api/types'
-import { formatCurrency, formatDate } from '../lib/format'
+import { deltaColorClass, formatCurrency, formatDate, formatPercent, formatSignedCurrency } from '../lib/format'
 
 const props = defineProps<{
   open: boolean
@@ -34,6 +35,16 @@ const accountValuations = computed(() => {
 })
 
 const accountAssets = computed(() => (props.account ? assetsStore.forAccount(props.account.id) : []))
+
+const currentValue = computed(() => (props.account ? valuationsStore.currentValue(props.account.id) : 0))
+const change30d = computed(() => (props.account ? valuationsStore.changeOverDays(props.account.id, 30) : null))
+
+const emergencyRatio = computed(() => {
+  const target = Number(props.account?.emergency_fund_target ?? 0)
+  return target > 0 ? Math.min(1, currentValue.value / target) : 0
+})
+
+const totalCostBasis = computed(() => accountAssets.value.reduce((sum, asset) => sum + costBasis(asset), 0))
 
 function assetClassOptions() {
   return Object.entries(ASSET_CLASS_LABELS).map(([value, label]) => ({ label, value: value as AssetClass }))
@@ -103,9 +114,46 @@ async function removeAsset(asset: Asset) {
 </script>
 
 <template>
-  <USlideover :open="open" :title="account?.name ?? ''" side="right" @update:open="emit('update:open', $event)">
+  <USlideover
+    :open="open"
+    :title="account?.name ?? ''"
+    side="right"
+    :ui="{ content: 'sm:max-w-2xl' }"
+    @update:open="emit('update:open', $event)"
+  >
     <template #body>
       <div v-if="account" class="flex flex-col gap-8">
+        <section class="neu-surface flex flex-col gap-4 border-2 border-default p-5">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="flex flex-col gap-1">
+              <span class="font-heading text-[28px] leading-none font-extrabold">{{ formatCurrency(currentValue) }}</span>
+              <span v-if="change30d?.ratio != null" class="text-sm" :class="deltaColorClass(change30d.ratio)">
+                {{ formatSignedCurrency(change30d.delta) }} ({{ formatPercent(change30d.ratio) }}) · 30 d
+              </span>
+              <span v-else class="text-sm text-muted">No 30-day comparison yet</span>
+            </div>
+            <div class="flex flex-col items-end gap-1 text-right text-sm text-muted">
+              <span class="flex items-center gap-2">
+                {{ ACCOUNT_TYPE_LABELS[account.type] }}
+                <UBadge v-if="account.is_emergency_fund" variant="outline" size="sm">Emergency fund</UBadge>
+              </span>
+              <span v-if="account.institution">{{ account.institution }}</span>
+              <span v-if="account.opened_at">Opened {{ formatDate(account.opened_at) }}</span>
+            </div>
+          </div>
+
+          <div v-if="account.is_emergency_fund && account.emergency_fund_target" class="flex flex-col gap-1.5">
+            <span class="stripe-track">
+              <span class="stripe-fill" :style="{ width: `${emergencyRatio * 100}%` }" />
+            </span>
+            <span class="text-sm text-muted">
+              {{ formatCurrency(currentValue) }} of {{ formatCurrency(account.emergency_fund_target) }} target
+            </span>
+          </div>
+
+          <p v-if="account.notes" class="text-sm text-muted">{{ account.notes }}</p>
+        </section>
+
         <section class="flex flex-col gap-3.5">
           <h3 class="text-sm font-semibold text-muted">Valuation history</h3>
 
@@ -154,7 +202,7 @@ async function removeAsset(asset: Asset) {
                   />
                   <UButton
                     variant="ghost"
-                    color="error"
+                    color="rust"
                     icon="i-lucide-trash-2"
                     size="xs"
                     title="Delete valuation"
@@ -164,7 +212,13 @@ async function removeAsset(asset: Asset) {
               </tr>
             </tbody>
           </table>
-          <p v-else class="text-sm text-muted">No valuations recorded yet — add one above.</p>
+          <UEmpty
+            v-else
+            icon="i-lucide-line-chart"
+            title="No valuations yet"
+            description="Add one above to start tracking this account's value over time."
+            class="neu-inset"
+          />
         </section>
 
         <section class="flex flex-col gap-3.5">
@@ -228,7 +282,7 @@ async function removeAsset(asset: Asset) {
                   />
                   <UButton
                     variant="ghost"
-                    color="error"
+                    color="rust"
                     icon="i-lucide-trash-2"
                     size="xs"
                     title="Remove holding"
@@ -237,8 +291,22 @@ async function removeAsset(asset: Asset) {
                 </td>
               </tr>
             </tbody>
+            <tfoot>
+              <tr>
+                <td class="pt-2.5 text-sm text-muted">{{ accountAssets.length }} holding{{ accountAssets.length === 1 ? '' : 's' }}</td>
+                <td />
+                <td class="pt-2.5 text-right text-sm font-semibold whitespace-nowrap">{{ formatCurrency(totalCostBasis) }}</td>
+                <td />
+              </tr>
+            </tfoot>
           </table>
-          <p v-else class="text-sm text-muted">No holdings recorded yet — cost basis only, not a live market value.</p>
+          <UEmpty
+            v-else
+            icon="i-lucide-briefcase"
+            title="No holdings yet"
+            description="Add one above — cost basis only, not a live market value."
+            class="neu-inset"
+          />
         </section>
       </div>
     </template>

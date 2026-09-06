@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { isTauri, invoke } from '@tauri-apps/api/core'
 import { waitForBackend } from './api/client'
@@ -9,9 +9,10 @@ import { useEnvelopesStore } from './stores/envelopes'
 import { useNetWorthStore } from './stores/networth'
 import { useValuationsStore } from './stores/valuations'
 import { useAssetsStore } from './stores/assets'
-import { useThemeStore } from './stores/theme'
 import { useConnectionStore } from './stores/connection'
 import { useAuthStore } from './stores/auth'
+import { usePageActionStore } from './stores/pageActions'
+import { useSidebarStore } from './stores/sidebar'
 import { useOidcCallback } from './composables/useOidcCallback'
 import { formatCurrency, formatDate, deltaColorClass } from './lib/format'
 import LoginForm from './components/LoginForm.vue'
@@ -24,9 +25,10 @@ const envelopesStore = useEnvelopesStore()
 const netWorthStore = useNetWorthStore()
 const valuationsStore = useValuationsStore()
 const assetsStore = useAssetsStore()
-const themeStore = useThemeStore()
 const connectionStore = useConnectionStore()
 const authStore = useAuthStore()
+const pageActionStore = usePageActionStore()
+const sidebarStore = useSidebarStore()
 const oidcCallback = useOidcCallback()
 
 // In desktop mode the backend starts as a sidecar process and can take a
@@ -101,11 +103,11 @@ watch(
 const showLogin = computed(() => backendReady.value && authStore.authEnabled && !authStore.token)
 
 const links = [
-  { label: 'Dashboard', to: '/', count: null },
-  { label: 'Accounts', to: '/accounts', count: computed(() => accountsStore.accounts.length) },
-  { label: 'Liabilities', to: '/liabilities', count: computed(() => liabilitiesStore.liabilities.length) },
-  { label: 'Envelopes', to: '/envelopes', count: computed(() => envelopesStore.envelopes.length) },
-  { label: 'Settings', to: '/settings', count: null },
+  { label: 'Dashboard', to: '/', icon: 'i-lucide-layout-dashboard', count: null },
+  { label: 'Accounts', to: '/accounts', icon: 'i-lucide-wallet', count: computed(() => accountsStore.accounts.length) },
+  { label: 'Liabilities', to: '/liabilities', icon: 'i-lucide-landmark', count: computed(() => liabilitiesStore.liabilities.length) },
+  { label: 'Envelopes', to: '/envelopes', icon: 'i-lucide-mail', count: computed(() => envelopesStore.envelopes.length) },
+  { label: 'Settings', to: '/settings', icon: 'i-lucide-settings', count: null },
 ]
 
 const netWorth = computed(() =>
@@ -113,6 +115,29 @@ const netWorth = computed(() =>
 )
 const netDelta = computed(() => netWorthStore.netWorthDelta30d)
 const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
+const shortcutHint = /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘B' : 'Ctrl+B'
+
+// The sidebar's overflow-hidden aside (needed for the collapse animation)
+// is a clipping ancestor of these tooltips' triggers, so Floating UI's
+// collision detection under-reports available space even though the
+// tooltip content itself is portaled to <body>. Pin the boundary to the
+// body so it sizes/positions against the real viewport instead. The
+// tooltip's z-20 (below, via :ui) is needed for the same reason: it's a
+// body-level sibling of the app root, not a descendant of the sticky
+// z-10 content header, so it must out-rank that header explicitly to
+// paint above it.
+const tooltipBoundary = document.body
+
+function onSidebarShortcut(event: KeyboardEvent) {
+  if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'b') return
+  const target = event.target as HTMLElement
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+  event.preventDefault()
+  sidebarStore.toggle()
+}
+
+onMounted(() => window.addEventListener('keydown', onSidebarShortcut))
+onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
 </script>
 
 <template>
@@ -147,68 +172,118 @@ const asOf = computed(() => `As of ${formatDate(new Date().toISOString())}`)
     >
       <LoginForm />
     </div>
-    <div v-else class="grid min-h-screen grid-cols-[248px_minmax(0,1fr)] bg-default text-default">
-      <aside class="app-sidebar sticky top-0 flex h-screen flex-col border-r-2 border-default">
-        <div class="neu-flat flex flex-col gap-2 border-b-2 border-default px-6 py-6">
-          <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
-          <span class="text-sm text-muted">Every euro, accounted for.</span>
-        </div>
-
-        <nav class="flex flex-col py-3">
-          <RouterLink
-            v-for="link in links"
-            :key="link.to"
-            :to="link.to"
-            class="nav-link group flex items-center gap-3 py-2.5 pr-6 text-sm"
-            active-class="nav-active font-semibold text-highlighted"
-          >
-            <span
-              class="nav-bar-indicator block w-[3px] self-stretch"
-              :class="route.path === link.to ? 'bg-primary' : 'bg-transparent'"
-            />
-            <span class="flex-1 text-left" :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'">
-              {{ link.label }}
+    <div
+      v-else
+      class="grid min-h-screen bg-default text-default transition-[grid-template-columns] duration-200 ease-in-out"
+      :style="{ gridTemplateColumns: (sidebarStore.open ? '248px' : '64px') + ' minmax(0,1fr)' }"
+    >
+      <aside class="app-sidebar sticky top-0 h-screen overflow-hidden border-r-2 border-default">
+        <div class="flex h-full w-[248px] flex-col">
+          <div class="neu-flat flex items-end border-b-2 border-default py-6 pr-6">
+            <span class="flex w-16 shrink-0 items-center justify-center">
+              <UTooltip
+                :text="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`"
+                :content="{ collisionBoundary: tooltipBoundary }"
+                :ui="{ content: 'z-20' }"
+              >
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  :icon="sidebarStore.open ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
+                  :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
+                  @click="sidebarStore.toggle()"
+                />
+              </UTooltip>
             </span>
-            <span v-if="link.count !== null" class="text-[13.5px] text-muted">{{ link.count }}</span>
-          </RouterLink>
-        </nav>
+            <div
+              class="flex flex-1 flex-col gap-2 whitespace-nowrap transition-opacity duration-150"
+              :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
+            >
+              <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
+              <span class="text-sm text-muted">Every euro, accounted for.</span>
+            </div>
+          </div>
 
-        <div class="app-networth mt-auto flex flex-col gap-1.5 border-t-2 border-default px-6 py-5">
-          <span class="text-sm text-muted">Net worth</span>
-          <span class="font-heading text-2xl leading-none font-extrabold tracking-tight">{{ netWorth }}</span>
-          <span class="text-sm" :class="deltaColorClass(netDelta)">
-            {{ netDelta === null ? '—' : formatCurrency(netDelta) }} · 30 days
-          </span>
+          <nav class="flex flex-col py-3">
+            <UTooltip
+              v-for="link in links"
+              :key="link.to"
+              :text="link.label"
+              :disabled="sidebarStore.open"
+              :content="{ collisionBoundary: tooltipBoundary }"
+              :ui="{ content: 'z-20' }"
+            >
+              <RouterLink
+                :to="link.to"
+                class="nav-link group relative flex items-center py-2.5 pr-6 text-sm"
+                active-class="nav-active font-semibold text-highlighted"
+              >
+                <span
+                  class="nav-bar-indicator absolute inset-y-0 left-0 w-[3px]"
+                  :class="route.path === link.to ? 'bg-primary' : 'bg-transparent'"
+                />
+                <span class="flex w-16 shrink-0 items-center justify-center">
+                  <UIcon
+                    :name="link.icon"
+                    class="size-5"
+                    :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
+                  />
+                </span>
+                <span
+                  class="flex flex-1 items-center gap-3 whitespace-nowrap transition-opacity duration-150"
+                  :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
+                >
+                  <span
+                    class="flex-1 text-left"
+                    :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
+                  >
+                    {{ link.label }}
+                  </span>
+                  <span v-if="link.count !== null" class="text-[13.5px] text-muted">
+                    {{ link.count }}
+                  </span>
+                </span>
+              </RouterLink>
+            </UTooltip>
+          </nav>
+
+          <Transition name="sidebar-fade">
+            <div
+              v-if="sidebarStore.open"
+              class="app-networth mt-auto flex flex-col gap-1.5 border-t-2 border-default px-6 py-5 whitespace-nowrap"
+            >
+              <span class="text-sm text-muted">Net worth</span>
+              <span class="font-heading text-2xl leading-none font-extrabold tracking-tight">{{ netWorth }}</span>
+              <span class="text-sm" :class="deltaColorClass(netDelta)">
+                {{ netDelta === null ? '—' : formatCurrency(netDelta) }} · 30 days
+              </span>
+            </div>
+          </Transition>
         </div>
       </aside>
 
       <div class="min-w-0">
-        <header class="app-header flex items-end justify-between gap-6 border-b-2 border-default px-10 py-6">
-          <div class="flex flex-col gap-1.5">
-            <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
-            <h1 class="text-[37px] tracking-tight">{{ route.meta.title }}</h1>
-          </div>
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm text-muted">{{ asOf }}</span>
-            <UButton
-              variant="outline"
-              color="neutral"
-              size="sm"
-              :label="themeStore.mode === 'dark' ? 'Light' : 'Dark'"
-              @click="themeStore.toggle()"
-            />
-            <UButton
-              v-if="authStore.authEnabled"
-              variant="outline"
-              color="neutral"
-              size="sm"
-              label="Log out"
-              @click="authStore.logout()"
-            />
+        <header class="app-header sticky top-0 z-10 border-b-2 border-default bg-default">
+          <div class="mx-auto flex max-w-[1360px] items-end justify-between gap-6 px-10 py-6">
+            <div class="flex flex-col gap-1.5">
+              <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
+              <h1 class="text-[37px] tracking-tight">{{ route.meta.title }}</h1>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="text-sm text-muted">{{ asOf }}</span>
+              <UButton
+                v-if="pageActionStore.label"
+                color="primary"
+                size="sm"
+                :label="pageActionStore.label"
+                @click="pageActionStore.action?.()"
+              />
+            </div>
           </div>
         </header>
 
-        <main class="max-w-[1360px] px-10 py-8 pb-16">
+        <main class="mx-auto max-w-[1360px] px-10 py-8 pb-16">
           <RouterView />
         </main>
       </div>

@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useAccountsStore } from '../stores/accounts'
 import { useValuationsStore } from '../stores/valuations'
 import { useCrudForm } from '../composables/useCrudForm'
+import { usePageAction } from '../composables/usePageAction'
 import { ACCOUNT_TYPE_LABELS, type Account, type AccountCreate, type AccountType } from '../api/types'
 import { formatCurrency, formatPercent, formatDate, deltaColorClass } from '../lib/format'
 import EntityFormModal from '../components/EntityFormModal.vue'
@@ -86,6 +87,8 @@ const accountForm = useCrudForm<Account, AccountCreate>({
   update: (id, payload) => accountsStore.update(id, payload),
 })
 
+usePageAction('Add an account', () => accountForm.openCreate())
+
 async function removeAccount(account: Account) {
   if (!window.confirm(`Delete "${account.name}"? This also deletes its valuation history.`)) return
   await accountsStore.remove(account.id)
@@ -96,11 +99,6 @@ const detailAccount = ref<Account | null>(null)
 
 <template>
   <div class="flex flex-col gap-7">
-    <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold">Accounts</h2>
-      <UButton icon="i-lucide-plus" label="Add an account" @click="accountForm.openCreate()" />
-    </div>
-
     <EntityFormModal
       :open="accountForm.state.open"
       :title="accountForm.state.isEditing ? 'Edit account' : 'Add an account'"
@@ -202,7 +200,7 @@ const detailAccount = ref<Account | null>(null)
                 @click="accountForm.openEdit(account)"
               />
               <UButton
-                color="error"
+                color="rust"
                 variant="ghost"
                 icon="i-lucide-trash-2"
                 size="sm"
