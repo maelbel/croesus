@@ -34,5 +34,6 @@ declare module 'vue' {
     USelect: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Select.vue')['default']
     USlideover: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Slideover.vue')['default']
     UTextarea: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Textarea.vue')['default']
+    UTooltip: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Tooltip.vue')['default']
   }
 }

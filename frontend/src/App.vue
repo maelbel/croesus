@@ -168,19 +168,25 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
     >
       <aside class="app-sidebar sticky top-0 h-screen overflow-hidden border-r-2 border-default">
         <div class="flex h-full w-[248px] flex-col">
-          <div class="neu-flat flex items-center gap-3 border-b-2 border-default py-6 pr-6 pl-5">
-            <UButton
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              class="shrink-0"
-              :icon="sidebarStore.open ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
-              :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
-              :title="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`"
-              @click="sidebarStore.toggle()"
-            />
+          <div class="neu-flat flex items-end border-b-2 border-default py-6 pr-6">
+            <span class="flex w-16 shrink-0 items-center justify-center">
+              <UTooltip
+                :text="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`"
+                side="right"
+                :delay-duration="150"
+              >
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  :icon="sidebarStore.open ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
+                  :aria-label="sidebarStore.open ? 'Hide sidebar' : 'Show sidebar'"
+                  @click="sidebarStore.toggle()"
+                />
+              </UTooltip>
+            </span>
             <div
-              class="flex flex-col gap-2 whitespace-nowrap transition-opacity duration-150"
+              class="flex flex-1 flex-col gap-2 whitespace-nowrap transition-opacity duration-150"
               :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
             >
               <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
@@ -189,40 +195,46 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
           </div>
 
           <nav class="flex flex-col py-3">
-            <RouterLink
+            <UTooltip
               v-for="link in links"
               :key="link.to"
-              :to="link.to"
-              :title="link.label"
-              class="nav-link group flex items-center gap-3 py-2.5 pr-6 text-sm"
-              active-class="nav-active font-semibold text-highlighted"
+              :text="link.label"
+              :disabled="sidebarStore.open"
+              side="right"
+              :delay-duration="150"
             >
-              <span
-                class="nav-bar-indicator block w-[3px] self-stretch"
-                :class="route.path === link.to ? 'bg-primary' : 'bg-transparent'"
-              />
-              <UIcon
-                :name="link.icon"
-                class="size-5 shrink-0"
-                :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
-              />
-              <span
-                class="flex-1 text-left whitespace-nowrap transition-opacity duration-150"
-                :class="[
-                  route.path === link.to ? '' : 'text-muted group-hover:text-toned',
-                  sidebarStore.open ? 'opacity-100' : 'opacity-0',
-                ]"
+              <RouterLink
+                :to="link.to"
+                class="nav-link group relative flex items-center py-2.5 pr-6 text-sm"
+                active-class="nav-active font-semibold text-highlighted"
               >
-                {{ link.label }}
-              </span>
-              <span
-                v-if="link.count !== null"
-                class="text-[13.5px] text-muted transition-opacity duration-150"
-                :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
-              >
-                {{ link.count }}
-              </span>
-            </RouterLink>
+                <span
+                  class="nav-bar-indicator absolute inset-y-0 left-0 w-[3px]"
+                  :class="route.path === link.to ? 'bg-primary' : 'bg-transparent'"
+                />
+                <span class="flex w-16 shrink-0 items-center justify-center">
+                  <UIcon
+                    :name="link.icon"
+                    class="size-5"
+                    :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
+                  />
+                </span>
+                <span
+                  class="flex flex-1 items-center gap-3 whitespace-nowrap transition-opacity duration-150"
+                  :class="sidebarStore.open ? 'opacity-100' : 'opacity-0'"
+                >
+                  <span
+                    class="flex-1 text-left"
+                    :class="route.path === link.to ? '' : 'text-muted group-hover:text-toned'"
+                  >
+                    {{ link.label }}
+                  </span>
+                  <span v-if="link.count !== null" class="text-[13.5px] text-muted">
+                    {{ link.count }}
+                  </span>
+                </span>
+              </RouterLink>
+            </UTooltip>
           </nav>
 
           <Transition name="sidebar-fade">
