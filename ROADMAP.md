@@ -90,12 +90,20 @@ Two target usage modes:
 - [x] Docs: reverse proxy setup guide (Traefik, Caddy, nginx examples via
       `docker-compose.override.yml`)
 
-## Phase 2 — Automated pricing
+## Phase 2 — Automated pricing (done)
 
-- [ ] Automatic price fetching (stocks/ETFs/crypto) via an external API (to
-      evaluate: unofficial Yahoo Finance, Twelve Data, CoinGecko for crypto)
-- [ ] Automatic brokerage account valuation from positions + prices
-- [ ] Local price history cache (avoid hammering the external API)
+- [x] Automatic price fetching for assets with a symbol set: Yahoo Finance's
+      unofficial chart endpoint (stocks/ETFs/funds) + CoinGecko (crypto,
+      mapped ticker → CoinGecko id) — both keyless, no signup required.
+      Background refresh (APScheduler, configurable interval) plus a manual
+      "Refresh prices" action
+- [x] Automatic brokerage account valuation from positions + prices — any
+      account with at least one asset gets its current valuation derived
+      automatically (Σ quantity × current price, falling back to cost basis)
+      on every asset change or price refresh, instead of manual entry
+- [x] Local price history cache (avoid hammering the external API) — a
+      PriceCache table (source, symbol, price, fetched_at) dedupes external
+      calls across assets sharing a symbol and across refreshes close in time
 
 ## Phase 3 — Expense tracking extension (optional)
 
