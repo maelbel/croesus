@@ -71,6 +71,7 @@ export function useCrudForm<TEntity extends { id: number }, TCreate extends obje
 
   async function submit() {
     state.submitting = true
+    const wasEditing = state.editingId !== null
     try {
       if (state.editingId !== null) {
         const payload = toUpdatePayload ? toUpdatePayload(state.form) : (state.form as unknown as TUpdate)
@@ -79,6 +80,8 @@ export function useCrudForm<TEntity extends { id: number }, TCreate extends obje
         await create(state.form)
       }
       state.open = false
+      const label = entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)
+      toast.add({ title: `${label} ${wasEditing ? 'updated' : 'added'}`, color: 'primary' })
       return true
     } catch (error) {
       toast.add({
