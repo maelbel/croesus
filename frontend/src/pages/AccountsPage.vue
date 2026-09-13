@@ -178,51 +178,53 @@ const detailAccount = computed(
     <PageLoadingSkeleton v-if="initialLoading" />
 
     <template v-else-if="accountsStore.accounts.length > 0">
-      <table class="w-full border-collapse">
-        <thead>
-          <tr>
-            <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Account</th>
-            <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Value</th>
-            <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">30 d</th>
-            <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Updated</th>
-            <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted" />
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="{ account, change } in filteredAccountRows" :key="account.id" class="border-b border-default">
-            <td class="py-3.5 pr-3">
-              <div class="flex flex-col gap-0.5">
-                <span class="flex items-center gap-2">
-                  <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ account.name }}</span>
-                  <UBadge v-if="account.is_emergency_fund" variant="outline" size="sm">Emergency fund</UBadge>
-                </span>
-                <span class="text-sm text-muted">
-                  {{ ACCOUNT_TYPE_LABELS[account.type] }}
-                  <template v-if="account.institution"> · {{ account.institution }}</template>
-                </span>
-              </div>
-            </td>
-            <td class="py-3.5 pl-3 text-right font-heading text-[15.5px] font-extrabold whitespace-nowrap">
-              {{ formatCurrency(valuationsStore.currentValue(account.id)) }}
-            </td>
-            <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap" :class="deltaColorClass(change?.ratio ?? null)">
-              {{ change?.ratio == null ? '—' : formatPercent(change.ratio) }}
-            </td>
-            <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap text-muted">{{ updatedLabel(account) }}</td>
-            <td class="py-3.5 pl-3 text-right whitespace-nowrap">
-              <UButton
-                variant="ghost"
-                color="neutral"
-                icon="i-lucide-line-chart"
-                size="sm"
-                title="Valuation history & holdings"
-                @click="detailAccountId = account.id"
-              />
-              <EllipsisMenu :items="accountMenuItems(account)" />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr>
+              <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Account</th>
+              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Value</th>
+              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">30 d</th>
+              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Updated</th>
+              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted" />
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="{ account, change } in filteredAccountRows" :key="account.id" class="border-b border-default">
+              <td class="py-3.5 pr-3">
+                <div class="flex flex-col gap-0.5">
+                  <span class="flex items-center gap-2">
+                    <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ account.name }}</span>
+                    <UBadge v-if="account.is_emergency_fund" variant="outline" size="sm">Emergency fund</UBadge>
+                  </span>
+                  <span class="text-sm text-muted">
+                    {{ ACCOUNT_TYPE_LABELS[account.type] }}
+                    <template v-if="account.institution"> · {{ account.institution }}</template>
+                  </span>
+                </div>
+              </td>
+              <td class="py-3.5 pl-3 text-right font-heading text-[15.5px] font-extrabold whitespace-nowrap">
+                {{ formatCurrency(valuationsStore.currentValue(account.id)) }}
+              </td>
+              <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap" :class="deltaColorClass(change?.ratio ?? null)">
+                {{ change?.ratio == null ? '—' : formatPercent(change.ratio) }}
+              </td>
+              <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap text-muted">{{ updatedLabel(account) }}</td>
+              <td class="py-3.5 pl-3 text-right whitespace-nowrap">
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  icon="i-lucide-line-chart"
+                  size="sm"
+                  title="Valuation history & holdings"
+                  @click="detailAccountId = account.id"
+                />
+                <EllipsisMenu :items="accountMenuItems(account)" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div v-if="emergencyAccounts.length > 0" class="neu-surface bg-default flex max-w-[520px] flex-col gap-3.5 border-2 border-default p-6">
         <span class="text-sm text-muted">Emergency fund</span>

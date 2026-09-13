@@ -201,22 +201,24 @@ const recentHistory = computed(() =>
                 :style="{ flexGrow: c.flex, background: c.fill }"
               />
             </div>
-            <table class="w-full flex-1 border-collapse">
-              <tbody>
-                <tr v-for="c in assetsByClass" :key="c.label" class="border-b border-default">
-                  <td class="w-3.5 py-3 pr-2.5">
-                    <span class="block h-3 w-3" :style="{ background: c.fill }" />
-                  </td>
-                  <td class="py-3 pr-2.5 text-[15px]">{{ c.label }}</td>
-                  <td class="py-3 pr-3.5 text-right font-heading text-[15px] font-extrabold whitespace-nowrap">
-                    {{ formatCurrency(c.value) }}
-                  </td>
-                  <td class="py-3 text-right text-sm whitespace-nowrap text-muted">
-                    {{ (c.pct * 100).toFixed(1) }}%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="min-w-0 flex-1 overflow-x-auto">
+              <table class="w-full border-collapse">
+                <tbody>
+                  <tr v-for="c in assetsByClass" :key="c.label" class="border-b border-default">
+                    <td class="w-3.5 py-3 pr-2.5">
+                      <span class="block h-3 w-3" :style="{ background: c.fill }" />
+                    </td>
+                    <td class="py-3 pr-2.5 text-[15px]">{{ c.label }}</td>
+                    <td class="py-3 pr-3.5 text-right font-heading text-[15px] font-extrabold whitespace-nowrap">
+                      {{ formatCurrency(c.value) }}
+                    </td>
+                    <td class="py-3 text-right text-sm whitespace-nowrap text-muted">
+                      {{ (c.pct * 100).toFixed(1) }}%
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div class="flex flex-col gap-2.5 border-t-2 border-default pt-4.5">
@@ -239,32 +241,34 @@ const recentHistory = computed(() =>
             <span class="text-sm text-muted">Recent valuations</span>
             <h2 class="text-[22px]">Month by month</h2>
           </div>
-          <table class="w-full border-collapse">
-            <thead>
-              <tr>
-                <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Date</th>
-                <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Assets</th>
-                <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Liabilities</th>
-                <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Net worth</th>
-                <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Change</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in recentHistory" :key="row.date" class="border-b border-default">
-                <td class="py-3 pr-3 text-[15.5px] whitespace-nowrap">{{ formatDate(row.date) }}</td>
-                <td class="py-3 pl-3 text-right text-[15.5px] whitespace-nowrap">{{ formatCurrency(row.total_assets) }}</td>
-                <td class="py-3 pl-3 text-right text-[15.5px] whitespace-nowrap text-rust">
-                  {{ formatCurrency(row.total_liabilities) }}
-                </td>
-                <td class="py-3 pl-3 text-right font-heading text-[15.5px] font-extrabold whitespace-nowrap">
-                  {{ formatCurrency(row.net_worth) }}
-                </td>
-                <td class="py-3 pl-3 text-right text-[15.5px] whitespace-nowrap" :class="deltaColorClass(row.change)">
-                  {{ row.change === null ? '—' : formatSignedCurrency(row.change) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Date</th>
+                  <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Assets</th>
+                  <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Liabilities</th>
+                  <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Net worth</th>
+                  <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in recentHistory" :key="row.date" class="border-b border-default">
+                  <td class="py-3 pr-3 text-[15.5px] whitespace-nowrap">{{ formatDate(row.date) }}</td>
+                  <td class="py-3 pl-3 text-right text-[15.5px] whitespace-nowrap">{{ formatCurrency(row.total_assets) }}</td>
+                  <td class="py-3 pl-3 text-right text-[15.5px] whitespace-nowrap text-rust">
+                    {{ formatCurrency(row.total_liabilities) }}
+                  </td>
+                  <td class="py-3 pl-3 text-right font-heading text-[15.5px] font-extrabold whitespace-nowrap">
+                    {{ formatCurrency(row.net_worth) }}
+                  </td>
+                  <td class="py-3 pl-3 text-right text-[15.5px] whitespace-nowrap" :class="deltaColorClass(row.change)">
+                    {{ row.change === null ? '—' : formatSignedCurrency(row.change) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
       </template>
 
