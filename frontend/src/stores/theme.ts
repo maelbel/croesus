@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watchEffect } from 'vue'
+import { getCookie, setCookie } from '../lib/cookies'
 
 export type Mode = 'dark' | 'light'
 export type Skin = 'ledger' | 'neumorphic'
@@ -12,12 +13,24 @@ export const SKINS: { value: Skin; label: string; description: string }[] = [
   { value: 'neumorphic', label: 'Neumorphic', description: 'Soft extruded surfaces, no borders.' },
 ]
 
+// One-time upgrade path from the localStorage-based version of these
+// settings — a cookie lets index.html's pre-mount theme bootstrap script
+// (which must run synchronously, before any JS module/store exists) read the
+// same value a plain <script> tag would otherwise need localStorage for.
+function migrateFromLocalStorage(key: string): string | null {
+  const legacy = localStorage.getItem(key)
+  if (legacy !== null) localStorage.removeItem(key)
+  return legacy
+}
+
 function readStoredMode(): Mode {
-  return localStorage.getItem(MODE_KEY) === 'light' ? 'light' : 'dark'
+  const value = getCookie(MODE_KEY) ?? migrateFromLocalStorage(MODE_KEY)
+  return value === 'light' ? 'light' : 'dark'
 }
 
 function readStoredSkin(): Skin {
-  return localStorage.getItem(SKIN_KEY) === 'neumorphic' ? 'neumorphic' : 'ledger'
+  const value = getCookie(SKIN_KEY) ?? migrateFromLocalStorage(SKIN_KEY)
+  return value === 'neumorphic' ? 'neumorphic' : 'ledger'
 }
 
 export const useThemeStore = defineStore('theme', () => {
@@ -27,12 +40,12 @@ export const useThemeStore = defineStore('theme', () => {
   watchEffect(() => {
     document.documentElement.classList.toggle('dark', mode.value === 'dark')
     document.documentElement.classList.toggle('light', mode.value === 'light')
-    localStorage.setItem(MODE_KEY, mode.value)
+    setCookie(MODE_KEY, mode.value)
   })
 
   watchEffect(() => {
     document.documentElement.dataset.skin = skin.value
-    localStorage.setItem(SKIN_KEY, skin.value)
+    setCookie(SKIN_KEY, skin.value)
   })
 
   function setMode(value: Mode) {
