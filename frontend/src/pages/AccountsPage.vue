@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useAccountsStore } from '../stores/accounts'
 import { useValuationsStore } from '../stores/valuations'
 import { useCrudForm } from '../composables/useCrudForm'
+import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
 import { ACCOUNT_TYPE_LABELS, type Account, type AccountCreate, type AccountType } from '../api/types'
 import { formatCurrency, formatPercent, formatDate, deltaColorClass } from '../lib/format'
@@ -89,12 +90,23 @@ const accountForm = useCrudForm<Account, AccountCreate>({
 
 usePageAction('Add an account', () => accountForm.openCreate())
 
+const deleteAccount = useDeleteAction('account')
+
 async function removeAccount(account: Account) {
-  if (!window.confirm(`Delete "${account.name}"? This also deletes its valuation history.`)) return
-  await accountsStore.remove(account.id)
+  await deleteAccount(
+    `Delete "${account.name}"? This also deletes its valuation history.`,
+    () => accountsStore.remove(account.id),
+  )
 }
 
-const detailAccount = ref<Account | null>(null)
+// Store the id, not the account object — createCrudStore's update() replaces
+// the array element with a new object, so holding the object itself would go
+// stale (still showing pre-edit values) if this account is edited while its
+// detail panel is open.
+const detailAccountId = ref<number | null>(null)
+const detailAccount = computed(
+  () => accountsStore.accounts.find((account) => account.id === detailAccountId.value) ?? null,
+)
 </script>
 
 <template>
@@ -130,7 +142,7 @@ const detailAccount = ref<Account | null>(null)
     <AccountDetailPanel
       :open="detailAccount !== null"
       :account="detailAccount"
-      @update:open="(value) => { if (!value) detailAccount = null }"
+      @update:open="(value) => { if (!value) detailAccountId = null }"
     />
 
     <div class="flex flex-wrap items-end gap-4">
@@ -189,7 +201,7 @@ const detailAccount = ref<Account | null>(null)
                 icon="i-lucide-line-chart"
                 size="sm"
                 title="Valuation history & holdings"
-                @click="detailAccount = account"
+                @click="detailAccountId = account.id"
               />
               <UButton
                 variant="ghost"

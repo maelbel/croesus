@@ -4,6 +4,7 @@ import { useEnvelopesStore } from '../stores/envelopes'
 import { useAccountsStore } from '../stores/accounts'
 import { useValuationsStore } from '../stores/valuations'
 import { useCrudForm } from '../composables/useCrudForm'
+import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
 import { formatCurrency } from '../lib/format'
 import type { Envelope, EnvelopeCreate } from '../api/types'
@@ -83,9 +84,10 @@ const envelopeForm = useCrudForm<Envelope, EnvelopeCreate>({
 
 usePageAction('Add an envelope', () => envelopeForm.openCreate())
 
+const deleteEnvelope = useDeleteAction('envelope')
+
 async function removeEnvelope(envelope: Envelope) {
-  if (!window.confirm(`Delete "${envelope.name}"?`)) return
-  await envelopesStore.remove(envelope.id)
+  await deleteEnvelope(`Delete "${envelope.name}"?`, () => envelopesStore.remove(envelope.id))
 }
 </script>
 

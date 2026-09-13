@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useCrudForm } from '../composables/useCrudForm'
+import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
 import { LIABILITY_TYPE_LABELS, type Liability, type LiabilityCreate, type LiabilityType } from '../api/types'
 import { formatCurrency, formatRate, formatDate } from '../lib/format'
@@ -76,9 +77,10 @@ const liabilityForm = useCrudForm<Liability, LiabilityCreate>({
 
 usePageAction('Add a liability', () => liabilityForm.openCreate())
 
+const deleteLiability = useDeleteAction('liability')
+
 async function removeLiability(liability: Liability) {
-  if (!window.confirm(`Delete "${liability.name}"?`)) return
-  await liabilitiesStore.remove(liability.id)
+  await deleteLiability(`Delete "${liability.name}"?`, () => liabilitiesStore.remove(liability.id))
 }
 </script>
 

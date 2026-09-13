@@ -52,6 +52,18 @@ export const api = {
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }
 
+/** Unauthenticated reachability check against an arbitrary base URL — used both to poll the local
+ * sidecar below and to test-connect a candidate remote server before it's saved (see
+ * useConnectionForm.ts), neither of which goes through the authenticated request() above. */
+export async function checkServerReachable(baseUrl: string, path: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${baseUrl}${path}`)
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
 // Desktop mode starts the backend as a PyInstaller sidecar, which can take a
 // couple of seconds to unpack and boot — poll until it responds instead of
 // firing the dashboard's first requests against a backend that isn't up yet.
@@ -60,12 +72,7 @@ export async function waitForBackend(timeoutMs = 15000, intervalMs = 300): Promi
   const deadline = Date.now() + timeoutMs
 
   while (Date.now() < deadline) {
-    try {
-      const response = await fetch(`${resolveBaseUrl()}/health`)
-      if (response.ok) return true
-    } catch {
-      // backend not up yet, keep polling
-    }
+    if (await checkServerReachable(resolveBaseUrl(), '/health')) return true
     await new Promise((resolve) => setTimeout(resolve, intervalMs))
   }
 

@@ -34,14 +34,19 @@ const chart = computed(() => {
   const n = dates.length
   if (n < 2) return null
 
-  const typeOrder = [...new Set(accountsStore.accounts.map((a) => a.type))].sort(
-    (a, b) => accountsForType(b) - accountsForType(a),
-  )
   function accountsForType(type: string) {
     return accountsStore.accounts
       .filter((a) => a.type === type)
       .reduce((sum, a) => sum + valueAsOf(a.id, dates[n - 1]), 0)
   }
+  // Compute each type's total once and sort off that, rather than calling
+  // accountsForType() (an O(accounts) scan) from inside the comparator,
+  // where it'd rerun on every comparison.
+  const typesPresent = [...new Set(accountsStore.accounts.map((a) => a.type))]
+  const latestTotalByType = new Map(typesPresent.map((type) => [type, accountsForType(type)]))
+  const typeOrder = [...typesPresent].sort(
+    (a, b) => latestTotalByType.get(b)! - latestTotalByType.get(a)!,
+  )
 
   const totalsByDate = dates.map((date) =>
     typeOrder.reduce(
