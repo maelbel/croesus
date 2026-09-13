@@ -132,7 +132,9 @@ const shortcutHint = /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘B' : 
 // is a clipping ancestor of these tooltips' triggers, so Floating UI's
 // collision detection under-reports available space even though the
 // tooltip content itself is portaled to <body>. Pin the boundary to the
-// body so it sizes/positions against the real viewport instead.
+// body so it sizes/positions against the real viewport instead. (Tooltip
+// content out-ranking the sticky header is handled once, centrally, in
+// app.config.ts's z-index policy — not per usage here.)
 const tooltipBoundary = document.body
 
 function onSidebarShortcut(event: KeyboardEvent) {
@@ -269,7 +271,7 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
       </aside>
 
       <div class="min-w-0">
-        <header class="app-header sticky top-0 border-b-2 border-default bg-default">
+        <header class="app-header sticky top-0 z-10 border-b-2 border-default bg-default">
           <div class="mx-auto flex max-w-[1360px] items-end justify-between gap-6 px-10 py-6">
             <div class="flex flex-col gap-1.5">
               <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
