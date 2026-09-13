@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useToast } from '@nuxt/ui/composables'
 import { useValuationsStore } from '../stores/valuations'
 import { useAssetsStore } from '../stores/assets'
 import { useCrudForm } from '../composables/useCrudForm'
@@ -31,6 +32,7 @@ const emit = defineEmits<{
 
 const valuationsStore = useValuationsStore()
 const assetsStore = useAssetsStore()
+const toast = useToast()
 
 const accountValuations = computed(() => {
   if (!props.account) return []
@@ -150,7 +152,17 @@ function assetMenuItems(asset: Asset) {
 }
 
 async function refreshPrices() {
-  await assetsStore.refreshPrices()
+  const result = await assetsStore.refreshPrices()
+  if (result.failed.length > 0) {
+    toast.add({
+      title: `Couldn't fetch a price for ${result.failed.join(', ')}`,
+      description:
+        result.updated.length > 0 ? `${result.updated.length} other holding(s) updated.` : undefined,
+      color: 'rust',
+    })
+  } else if (result.updated.length > 0) {
+    toast.add({ title: `Refreshed ${result.updated.length} price(s)`, color: 'primary' })
+  }
 }
 
 const holdingsMenuItems = computed(() => [
