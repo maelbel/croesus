@@ -44,7 +44,7 @@ const emergencyRatio = computed(() => {
   return target > 0 ? Math.min(1, currentValue.value / target) : 0
 })
 
-const totalCostBasis = computed(() => accountAssets.value.reduce((sum, asset) => sum + costBasis(asset), 0))
+const totalMarketValue = computed(() => accountAssets.value.reduce((sum, asset) => sum + marketValue(asset), 0))
 
 function assetClassOptions() {
   return Object.entries(ASSET_CLASS_LABELS).map(([value, label]) => ({ label, value: value as AssetClass }))
@@ -71,6 +71,13 @@ const valuationForm = useCrudForm<Valuation, ValuationFormValues, ValuationUpdat
 async function removeValuation(valuation: Valuation) {
   if (!window.confirm(`Delete the valuation from ${formatDate(valuation.date)}?`)) return
   await valuationsStore.remove(valuation.id)
+}
+
+function valuationMenuItems(valuation: Valuation) {
+  return [
+    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => valuationForm.openEdit(valuation) },
+    { label: 'Delete', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeValuation(valuation) },
+  ]
 }
 
 type AssetFormValues = Omit<AssetCreate, 'account_id'>
@@ -107,10 +114,45 @@ function costBasis(asset: Asset) {
   return Number(asset.quantity) * Number(asset.unit_cost)
 }
 
+/** The live fetched price if one exists yet, otherwise the cost basis price (see ROADMAP.md — automatic
+ * price fetching only covers assets with a symbol; everything else always falls back to unit_cost). */
+function currentPrice(asset: Asset) {
+  return asset.current_price !== null ? Number(asset.current_price) : Number(asset.unit_cost)
+}
+
+function marketValue(asset: Asset) {
+  return Number(asset.quantity) * currentPrice(asset)
+}
+
+function unrealizedGain(asset: Asset): number | null {
+  return asset.current_price !== null ? marketValue(asset) - costBasis(asset) : null
+}
+
 async function removeAsset(asset: Asset) {
   if (!window.confirm(`Remove "${asset.name}" from this account?`)) return
   await assetsStore.remove(asset.id)
 }
+
+function assetMenuItems(asset: Asset) {
+  return [
+    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => assetForm.openEdit(asset) },
+    { label: 'Remove', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeAsset(asset) },
+  ]
+}
+
+async function refreshPrices() {
+  await assetsStore.refreshPrices()
+}
+
+const holdingsMenuItems = computed(() => [
+  {
+    label: assetsStore.refreshingPrices ? 'Refreshing prices…' : 'Refresh prices',
+    icon: 'i-lucide-refresh-cw',
+    loading: assetsStore.refreshingPrices,
+    disabled: assetsStore.refreshingPrices,
+    onSelect: () => refreshPrices(),
+  },
+])
 </script>
 
 <template>
@@ -192,22 +234,9 @@ async function removeAsset(asset: Asset) {
                 </td>
                 <td class="py-2.5 pr-3 text-sm text-muted">{{ valuation.note }}</td>
                 <td class="py-2.5 text-right whitespace-nowrap">
-                  <UButton
-                    variant="ghost"
-                    color="neutral"
-                    icon="i-lucide-pencil"
-                    size="xs"
-                    title="Edit valuation"
-                    @click="valuationForm.openEdit(valuation)"
-                  />
-                  <UButton
-                    variant="ghost"
-                    color="rust"
-                    icon="i-lucide-trash-2"
-                    size="xs"
-                    title="Delete valuation"
-                    @click="removeValuation(valuation)"
-                  />
+                  <UDropdownMenu :items="valuationMenuItems(valuation)">
+                    <UButton variant="ghost" color="neutral" icon="i-lucide-ellipsis-vertical" size="xs" />
+                  </UDropdownMenu>
                 </td>
               </tr>
             </tbody>
@@ -222,14 +251,19 @@ async function removeAsset(asset: Asset) {
         </section>
 
         <section class="flex flex-col gap-3.5">
-          <h3 class="text-sm font-semibold text-muted">Holdings</h3>
+          <div class="flex h-5 items-center justify-between">
+            <h3 class="text-sm font-semibold text-muted">Holdings</h3>
+            <UDropdownMenu v-if="accountAssets.some((asset) => asset.symbol)" :items="holdingsMenuItems">
+              <UButton variant="ghost" color="neutral" icon="i-lucide-ellipsis-vertical" size="xs" />
+            </UDropdownMenu>
+          </div>
 
           <form class="neu-inset flex flex-wrap items-end gap-3 p-4" @submit.prevent="assetForm.submit()">
             <UFormField label="Name">
               <UInput v-model="assetForm.state.form.name" placeholder="S&P 500 ETF" />
             </UFormField>
-            <UFormField label="Symbol">
-              <UInput v-model="assetForm.state.form.symbol" placeholder="CW8" class="w-24" />
+            <UFormField label="Symbol" description="Yahoo Finance ticker (e.g. AAPL, CW8.PA) or crypto symbol (BTC, ETH...) for automatic pricing">
+              <UInput v-model="assetForm.state.form.symbol" placeholder="AAPL / CW8.PA / BTC" class="w-32" />
             </UFormField>
             <UFormField label="Class">
               <USelect v-model="assetForm.state.form.asset_class" :items="assetClassOptions()" class="w-36" />
@@ -265,29 +299,23 @@ async function removeAsset(asset: Asset) {
                     </span>
                   </div>
                 </td>
-                <td class="py-2.5 pr-3 text-right text-sm whitespace-nowrap text-muted">
-                  {{ asset.quantity }} × {{ formatCurrency(asset.unit_cost) }}
+                <td
+                  class="py-2.5 pr-3 text-right text-sm whitespace-nowrap text-muted"
+                  :title="asset.price_updated_at ? `Live price as of ${formatDate(asset.price_updated_at)}` : 'No live price yet — showing cost basis'"
+                >
+                  {{ asset.quantity }} × {{ formatCurrency(currentPrice(asset)) }}
+                  <UIcon v-if="asset.current_price !== null" name="i-lucide-radio" class="text-primary" />
                 </td>
-                <td class="py-2.5 pr-3 text-right text-[15px] font-semibold whitespace-nowrap">
-                  {{ formatCurrency(costBasis(asset)) }}
+                <td class="py-2.5 pr-3 text-right whitespace-nowrap">
+                  <div class="text-[15px] font-semibold">{{ formatCurrency(marketValue(asset)) }}</div>
+                  <div v-if="unrealizedGain(asset) !== null" class="text-xs" :class="deltaColorClass(unrealizedGain(asset))">
+                    {{ formatSignedCurrency(unrealizedGain(asset)!) }}
+                  </div>
                 </td>
                 <td class="py-2.5 text-right whitespace-nowrap">
-                  <UButton
-                    variant="ghost"
-                    color="neutral"
-                    icon="i-lucide-pencil"
-                    size="xs"
-                    title="Edit holding"
-                    @click="assetForm.openEdit(asset)"
-                  />
-                  <UButton
-                    variant="ghost"
-                    color="rust"
-                    icon="i-lucide-trash-2"
-                    size="xs"
-                    title="Remove holding"
-                    @click="removeAsset(asset)"
-                  />
+                  <UDropdownMenu :items="assetMenuItems(asset)">
+                    <UButton variant="ghost" color="neutral" icon="i-lucide-ellipsis-vertical" size="xs" />
+                  </UDropdownMenu>
                 </td>
               </tr>
             </tbody>
@@ -295,7 +323,7 @@ async function removeAsset(asset: Asset) {
               <tr>
                 <td class="pt-2.5 text-sm text-muted">{{ accountAssets.length }} holding{{ accountAssets.length === 1 ? '' : 's' }}</td>
                 <td />
-                <td class="pt-2.5 text-right text-sm font-semibold whitespace-nowrap">{{ formatCurrency(totalCostBasis) }}</td>
+                <td class="pt-2.5 text-right text-sm font-semibold whitespace-nowrap">{{ formatCurrency(totalMarketValue) }}</td>
                 <td />
               </tr>
             </tfoot>
@@ -304,7 +332,7 @@ async function removeAsset(asset: Asset) {
             v-else
             icon="i-lucide-briefcase"
             title="No holdings yet"
-            description="Add one above — cost basis only, not a live market value."
+            description="Add one above — set a symbol to pick up a live market price automatically."
             class="neu-inset"
           />
         </section>

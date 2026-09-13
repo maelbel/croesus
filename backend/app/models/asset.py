@@ -30,6 +30,8 @@ class Asset(Base):
     asset_class: Mapped[AssetClass] = mapped_column(Enum(AssetClass))
     quantity: Mapped[Decimal] = mapped_column(Numeric(20, 8))
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(14, 4))
+    current_price: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), default=None)
+    price_updated_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow

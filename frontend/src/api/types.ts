@@ -67,12 +67,23 @@ export interface Asset {
   asset_class: AssetClass
   quantity: string
   unit_cost: string
+  current_price: string | null
+  price_updated_at: string | null
   created_at: string
   updated_at: string
 }
 
-export type AssetCreate = Omit<Asset, 'id' | 'created_at' | 'updated_at'>
+export type AssetCreate = Omit<
+  Asset,
+  'id' | 'current_price' | 'price_updated_at' | 'created_at' | 'updated_at'
+>
 export type AssetUpdate = Partial<Omit<AssetCreate, 'account_id'>>
+
+export interface PriceRefreshResult {
+  updated: string[]
+  failed: string[]
+  skipped_no_symbol: number
+}
 
 export type LiabilityType = 'mortgage' | 'consumer_loan' | 'other'
 

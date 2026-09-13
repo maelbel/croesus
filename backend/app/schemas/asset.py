@@ -31,5 +31,13 @@ class AssetRead(AssetBase):
 
     id: int
     account_id: int
+    current_price: Decimal | None
+    price_updated_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class PriceRefreshResult(BaseModel):
+    updated: list[str]
+    failed: list[str]
+    skipped_no_symbol: int
