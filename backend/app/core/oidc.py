@@ -69,7 +69,7 @@ def read_state_token(state: str) -> dict | None:
 
 def is_loopback(uri: str) -> bool:
     hostname = urlsplit(uri).hostname
-    return hostname in ("127.0.0.1", "localhost")
+    return hostname in ("127.0.0.1", "localhost", "::1")
 
 
 def is_allowed_redirect_uri(uri: str, cors_origins: list[str]) -> bool:

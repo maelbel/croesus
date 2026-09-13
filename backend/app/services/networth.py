@@ -46,7 +46,10 @@ def get_net_worth_history(db: Session) -> list[dict]:
     v1 limitation: liabilities are treated as a constant (current remaining
     balance), since there's no liability history over time yet.
     """
-    valuations = db.query(Valuation).all()
+    # Same date+account_id can happen (manual entry + auto-sync same day) — order so
+    # pivot_table's aggfunc="last" picks the highest id, matching get_current_net_worth's
+    # explicit id-desc tiebreak instead of resolving non-deterministically.
+    valuations = db.query(Valuation).order_by(Valuation.account_id, Valuation.date, Valuation.id).all()
     if not valuations:
         return []
 

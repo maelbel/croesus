@@ -11,8 +11,8 @@ class LiabilityBase(BaseModel):
     type: LiabilityType
     initial_amount: Decimal = Field(ge=0)
     remaining_amount: Decimal = Field(ge=0)
-    monthly_payment: Decimal | None = None
-    interest_rate: Decimal | None = None
+    monthly_payment: Decimal | None = Field(default=None, ge=0)
+    interest_rate: Decimal | None = Field(default=None, ge=0)
     start_date: date | None = None
     end_date: date | None = None
 
@@ -26,8 +26,8 @@ class LiabilityUpdate(BaseModel):
     type: LiabilityType | None = None
     initial_amount: Decimal | None = Field(default=None, ge=0)
     remaining_amount: Decimal | None = Field(default=None, ge=0)
-    monthly_payment: Decimal | None = None
-    interest_rate: Decimal | None = None
+    monthly_payment: Decimal | None = Field(default=None, ge=0)
+    interest_rate: Decimal | None = Field(default=None, ge=0)
     start_date: date | None = None
     end_date: date | None = None
 

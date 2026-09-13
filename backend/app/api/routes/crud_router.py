@@ -25,6 +25,7 @@ def make_crud_router(
     entity_name: str,
     order_by: Column,
     filter_column: Column | None = None,
+    filter_param_name: str = "account_id",
     validate_create: Callable[[Session, object], None] | None = None,
     include_get_by_id: bool = False,
     after_write: Callable[[Session, object, str], None] | None = None,
@@ -37,12 +38,14 @@ def make_crud_router(
 
     @router.get("", response_model=list[read_schema])
     def list_items(
-        account_id: int | None = Query(default=None, include_in_schema=filter_column is not None),
+        filter_value: int | None = Query(
+            default=None, alias=filter_param_name, include_in_schema=filter_column is not None
+        ),
         db: Session = Depends(get_db),
     ):
         query = db.query(model)
-        if filter_column is not None and account_id is not None:
-            query = query.filter(filter_column == account_id)
+        if filter_column is not None and filter_value is not None:
+            query = query.filter(filter_column == filter_value)
         return query.order_by(order_by).all()
 
     @router.post("", response_model=read_schema, status_code=201)
