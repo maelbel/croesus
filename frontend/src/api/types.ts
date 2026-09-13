@@ -49,6 +49,9 @@ export interface Valuation {
 export type ValuationCreate = Omit<Valuation, 'id' | 'created_at'>
 export type ValuationUpdate = Partial<Omit<ValuationCreate, 'account_id'>>
 
+/** Must match AUTO_VALUATION_NOTE in backend/app/services/holdings_valuation.py. */
+export const AUTO_VALUATION_NOTE = 'Auto-calculated from holdings'
+
 export type AssetClass = 'stock' | 'etf' | 'crypto' | 'fund' | 'other'
 
 export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {

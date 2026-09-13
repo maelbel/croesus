@@ -27,7 +27,12 @@ def make_crud_router(
     filter_column: Column | None = None,
     validate_create: Callable[[Session, object], None] | None = None,
     include_get_by_id: bool = False,
+    after_write: Callable[[Session, object, str], None] | None = None,
 ) -> APIRouter:
+    """`after_write(db, item, action)`, action being "create"/"update"/"delete", runs after the
+    mutation is flushed (so it sees the change) but before the commit that persists it — so any
+    writes it makes land in the same transaction. For "delete", `item` is still fully readable at
+    that point (flush, unlike commit, doesn't expire ORM objects)."""
     router = APIRouter(prefix=prefix, tags=[tag])
 
     @router.get("", response_model=list[read_schema])
@@ -46,6 +51,9 @@ def make_crud_router(
             validate_create(db, payload)
         item = model(**payload.model_dump())
         db.add(item)
+        db.flush()
+        if after_write is not None:
+            after_write(db, item, "create")
         db.commit()
         db.refresh(item)
         return item
@@ -61,6 +69,9 @@ def make_crud_router(
         item = get_or_404(db, model, item_id, entity_name)
         for field, value in payload.model_dump(exclude_unset=True).items():
             setattr(item, field, value)
+        db.flush()
+        if after_write is not None:
+            after_write(db, item, "update")
         db.commit()
         db.refresh(item)
         return item
@@ -69,6 +80,9 @@ def make_crud_router(
     def delete_item(item_id: int, db: Session = Depends(get_db)):
         item = get_or_404(db, model, item_id, entity_name)
         db.delete(item)
+        db.flush()
+        if after_write is not None:
+            after_write(db, item, "delete")
         db.commit()
 
     return router

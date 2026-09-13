@@ -16,6 +16,7 @@ import httpx
 from sqlalchemy.orm import Session
 
 from app.models.asset import Asset, AssetClass
+from app.services.holdings_valuation import sync_all_account_valuations_from_holdings
 
 logger = logging.getLogger(__name__)
 
@@ -134,5 +135,6 @@ def refresh_all_asset_prices(db: Session) -> PriceRefreshResult:
             asset.price_updated_at = now
             result.updated.append(asset.symbol)
 
+    sync_all_account_valuations_from_holdings(db)
     db.commit()
     return result
