@@ -10,3 +10,4 @@ backend/__pycache__/
 target/
 docker-compose.override.yml
 docker-compose.dev.yml
+CLAUDE.md
