@@ -5,20 +5,31 @@ CoinGecko's public simple-price endpoint. Both are used without an API key
 by design (see ROADMAP.md) — no signup required to get this working, at the
 cost of Yahoo's endpoint being unofficial/undocumented and CoinGecko only
 covering the handful of coins in COINGECKO_IDS below.
+
+A local PriceCache row per (source, symbol) means two assets sharing a
+symbol only ever trigger one external call, and a refresh that follows
+closely after another (scheduled + manual, or two manual clicks) reuses
+the still-fresh price instead of hitting the API again — see
+PRICE_CACHE_TTL_MINUTES.
 """
 
 import logging
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import httpx
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.asset import Asset, AssetClass
+from app.models.price_cache import PriceCache
 from app.services.holdings_valuation import sync_all_account_valuations_from_holdings
 
 logger = logging.getLogger(__name__)
+
+SOURCE_YAHOO = "yahoo"
+SOURCE_COINGECKO = "coingecko"
 
 YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 # A bare User-Agent isn't enough — Yahoo's unofficial endpoint 429s requests
@@ -100,40 +111,89 @@ def fetch_crypto_prices(client: httpx.Client, symbols: list[str]) -> dict[str, D
     return prices
 
 
-def refresh_all_asset_prices(db: Session) -> PriceRefreshResult:
-    """Wipes-and-refetches every priceable asset's current_price. Never raises —
-    a single bad/unknown symbol is recorded in the result and skipped, not
-    fatal to the rest of the batch."""
+def _cache_lookup(db: Session, source: str, symbol: str, ttl_minutes: int, now: datetime) -> Decimal | None:
+    entry = db.query(PriceCache).filter(PriceCache.source == source, PriceCache.symbol == symbol).first()
+    if entry is None or now - entry.fetched_at > timedelta(minutes=ttl_minutes):
+        return None
+    return entry.price
+
+
+def _cache_store(db: Session, source: str, symbol: str, price: Decimal, now: datetime) -> None:
+    entry = db.query(PriceCache).filter(PriceCache.source == source, PriceCache.symbol == symbol).first()
+    if entry is not None:
+        entry.price = price
+        entry.fetched_at = now
+    else:
+        db.add(PriceCache(source=source, symbol=symbol, price=price, fetched_at=now))
+
+
+def refresh_all_asset_prices(db: Session, cache_ttl_minutes: int | None = None) -> PriceRefreshResult:
+    """Refreshes every priceable asset's current_price. Never raises — a single
+    bad/unknown symbol is recorded in the result and skipped, not fatal to the
+    rest of the batch. Consults/populates PriceCache first, so a symbol
+    fetched within cache_ttl_minutes (default: settings.price_cache_ttl_minutes)
+    doesn't trigger another external call."""
     result = PriceRefreshResult()
     assets = db.query(Asset).all()
     now = datetime.now(UTC).replace(tzinfo=None)
+    ttl = cache_ttl_minutes if cache_ttl_minutes is not None else get_settings().price_cache_ttl_minutes
+
+    priced: dict[tuple[str, str], Decimal] = {}
 
     with httpx.Client() as client:
-        crypto_symbols = [a.symbol for a in assets if a.asset_class == AssetClass.CRYPTO and a.symbol]
-        crypto_prices = fetch_crypto_prices(client, crypto_symbols)
+        crypto_symbols = {a.symbol for a in assets if a.asset_class == AssetClass.CRYPTO and a.symbol}
+        crypto_to_fetch = []
+        for symbol in crypto_symbols:
+            cached = _cache_lookup(db, SOURCE_COINGECKO, symbol, ttl, now)
+            if cached is not None:
+                priced[(SOURCE_COINGECKO, symbol)] = cached
+            else:
+                crypto_to_fetch.append(symbol)
 
-        for asset in assets:
-            if not asset.symbol:
-                result.skipped_no_symbol += 1
+        if crypto_to_fetch:
+            try:
+                fetched = fetch_crypto_prices(client, crypto_to_fetch)
+            except Exception:
+                logger.warning("Crypto price batch fetch failed", exc_info=True)
+                fetched = {}
+            for symbol in crypto_to_fetch:
+                price = fetched.get(symbol)
+                if price is not None:
+                    priced[(SOURCE_COINGECKO, symbol)] = price
+                    _cache_store(db, SOURCE_COINGECKO, symbol, price, now)
+
+        stock_symbols = {a.symbol for a in assets if a.asset_class != AssetClass.CRYPTO and a.symbol}
+        for symbol in stock_symbols:
+            cached = _cache_lookup(db, SOURCE_YAHOO, symbol, ttl, now)
+            if cached is not None:
+                priced[(SOURCE_YAHOO, symbol)] = cached
                 continue
 
             try:
-                if asset.asset_class == AssetClass.CRYPTO:
-                    price = crypto_prices.get(asset.symbol)
-                    if price is None:
-                        raise ValueError(f"no CoinGecko id mapped for symbol {asset.symbol!r}")
-                else:
-                    price = fetch_stock_price(client, asset.symbol)
-                    if price is None:
-                        raise ValueError(f"Yahoo Finance returned no price for symbol {asset.symbol!r}")
+                price = fetch_stock_price(client, symbol)
+                if price is None:
+                    raise ValueError(f"Yahoo Finance returned no price for symbol {symbol!r}")
             except Exception:
-                logger.warning("Price refresh failed for asset %s (%s)", asset.id, asset.symbol, exc_info=True)
-                result.failed.append(asset.symbol)
+                logger.warning("Price refresh failed for symbol %s", symbol, exc_info=True)
                 continue
 
-            asset.current_price = price
-            asset.price_updated_at = now
-            result.updated.append(asset.symbol)
+            priced[(SOURCE_YAHOO, symbol)] = price
+            _cache_store(db, SOURCE_YAHOO, symbol, price, now)
+
+    for asset in assets:
+        if not asset.symbol:
+            result.skipped_no_symbol += 1
+            continue
+
+        source = SOURCE_COINGECKO if asset.asset_class == AssetClass.CRYPTO else SOURCE_YAHOO
+        price = priced.get((source, asset.symbol))
+        if price is None:
+            result.failed.append(asset.symbol)
+            continue
+
+        asset.current_price = price
+        asset.price_updated_at = now
+        result.updated.append(asset.symbol)
 
     sync_all_account_valuations_from_holdings(db)
     db.commit()

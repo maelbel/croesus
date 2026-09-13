@@ -31,6 +31,10 @@ class Settings(BaseSettings):
 
     price_refresh_enabled: bool = True
     price_refresh_interval_minutes: int = 360
+    # How long a fetched price is reused without hitting the external API
+    # again — protects against two assets sharing a symbol, or a manual
+    # refresh following closely after the scheduled one.
+    price_cache_ttl_minutes: int = 5
 
     @property
     def password_enabled(self) -> bool:
