@@ -3,6 +3,7 @@ import { computed, watch } from 'vue'
 import { useValuationsStore } from '../stores/valuations'
 import { useAssetsStore } from '../stores/assets'
 import { useCrudForm } from '../composables/useCrudForm'
+import { useDeleteAction } from '../composables/useDeleteAction'
 import {
   ACCOUNT_TYPE_LABELS,
   ASSET_CLASS_LABELS,
@@ -70,9 +71,13 @@ const valuationForm = useCrudForm<Valuation, ValuationFormValues, ValuationUpdat
   update: (id, payload) => valuationsStore.update(id, payload),
 })
 
+const deleteValuation = useDeleteAction('valuation')
+
 async function removeValuation(valuation: Valuation) {
-  if (!window.confirm(`Delete the valuation from ${formatDate(valuation.date)}?`)) return
-  await valuationsStore.remove(valuation.id)
+  await deleteValuation(
+    `Delete the valuation from ${formatDate(valuation.date)}?`,
+    () => valuationsStore.remove(valuation.id),
+  )
 }
 
 function valuationMenuItems(valuation: Valuation) {
@@ -130,9 +135,10 @@ function unrealizedGain(asset: Asset): number | null {
   return asset.current_price !== null ? marketValue(asset) - costBasis(asset) : null
 }
 
+const deleteAsset = useDeleteAction('holding')
+
 async function removeAsset(asset: Asset) {
-  if (!window.confirm(`Remove "${asset.name}" from this account?`)) return
-  await assetsStore.remove(asset.id)
+  await deleteAsset(`Remove "${asset.name}" from this account?`, () => assetsStore.remove(asset.id))
 }
 
 function assetMenuItems(asset: Asset) {

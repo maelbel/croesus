@@ -4,13 +4,19 @@ import { api } from '../api/client'
 export function createCrudStore<TEntity extends { id: number }, TCreate, TUpdate>(endpoint: string) {
   const items = ref([]) as Ref<TEntity[]>
   const loading = ref(false)
+  // Guards against two overlapping fetchAll() calls resolving out of order
+  // (e.g. two rapid edits each triggering a refetch) — only the response to
+  // the most recently started call is ever applied.
+  let fetchSeq = 0
 
   async function fetchAll() {
+    const seq = ++fetchSeq
     loading.value = true
     try {
-      items.value = await api.get<TEntity[]>(endpoint)
+      const result = await api.get<TEntity[]>(endpoint)
+      if (seq === fetchSeq) items.value = result
     } finally {
-      loading.value = false
+      if (seq === fetchSeq) loading.value = false
     }
   }
 

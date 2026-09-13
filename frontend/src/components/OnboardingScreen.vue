@@ -1,31 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { relaunch } from '@tauri-apps/plugin-process'
-import { useConnectionStore } from '../stores/connection'
-import { normalizeUrl, useConnectionForm } from '../composables/useConnectionForm'
+import { useConnectionForm, useApplyConnection } from '../composables/useConnectionForm'
 import ConnectionModeFields from './ConnectionModeFields.vue'
 
 const emit = defineEmits<{ continueLocal: [] }>()
 
-const connectionStore = useConnectionStore()
 const { mode, serverUrl, testing, testError, testOk, testConnection, resetTest } = useConnectionForm()
-const applying = ref(false)
+const { applying, apply: applyConnection } = useApplyConnection({
+  onLocalWithoutRelaunch: () => emit('continueLocal'),
+})
 
-async function apply() {
-  if (mode.value === 'remote' && !testOk.value) return
-
-  applying.value = true
-  try {
-    await connectionStore.save(mode.value, mode.value === 'remote' ? normalizeUrl(serverUrl.value) : null)
-    if (mode.value === 'remote') {
-      // New server URL only takes effect from a clean process start.
-      await relaunch()
-    } else {
-      emit('continueLocal')
-    }
-  } finally {
-    applying.value = false
-  }
+function apply() {
+  return applyConnection(mode.value, serverUrl.value, testOk.value)
 }
 </script>
 

@@ -72,7 +72,15 @@ async function bootAfterConnectionDecided() {
   }
   backendReady.value = true
 
-  await authStore.checkStatus()
+  try {
+    await authStore.checkStatus()
+  } catch {
+    // A transient failure right after /health succeeded still leaves us
+    // unable to tell whether auth is required — treat it the same as an
+    // unreachable backend instead of silently rendering an empty dashboard.
+    backendUnreachable.value = true
+    return
+  }
   if (!authStore.authEnabled || authStore.token) loadData()
 }
 

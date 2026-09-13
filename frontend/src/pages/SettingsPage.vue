@@ -1,24 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { isTauri } from '@tauri-apps/api/core'
-import { relaunch } from '@tauri-apps/plugin-process'
 import { useToast } from '@nuxt/ui/composables'
 import { SKINS, useThemeStore } from '../stores/theme'
 import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
-import { useConnectionStore } from '../stores/connection'
 import { useAuthStore } from '../stores/auth'
-import { normalizeUrl, useConnectionForm } from '../composables/useConnectionForm'
+import { useConnectionForm, useApplyConnection } from '../composables/useConnectionForm'
+import { useConfirm } from '../composables/useConfirm'
 import ConnectionModeFields from '../components/ConnectionModeFields.vue'
 
 const toast = useToast()
+const confirm = useConfirm()
 
 const themeStore = useThemeStore()
 const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
-const connectionStore = useConnectionStore()
 const authStore = useAuthStore()
 
 // Only the desktop shell can choose between a local sidecar and a remote
@@ -34,29 +32,19 @@ const {
   testConnection,
   resetTest,
 } = useConnectionForm()
-const applying = ref(false)
+const { applying, apply: applyConnectionMode } = useApplyConnection()
 
-async function applyConnection() {
-  if (pendingMode.value === 'remote' && !testOk.value) return
-
-  applying.value = true
-  try {
-    await connectionStore.save(
-      pendingMode.value,
-      pendingMode.value === 'remote' ? normalizeUrl(pendingServerUrl.value) : null,
-    )
-    await relaunch()
-  } finally {
-    applying.value = false
-  }
+function applyConnection() {
+  return applyConnectionMode(pendingMode.value, pendingServerUrl.value, testOk.value)
 }
 
 async function deleteAllData() {
   const total =
     accountsStore.accounts.length + liabilitiesStore.liabilities.length + envelopesStore.envelopes.length
   if (total === 0) return
-  const confirmed = window.confirm(
+  const confirmed = await confirm(
     `Delete ${accountsStore.accounts.length} accounts, ${liabilitiesStore.liabilities.length} liabilities and ${envelopesStore.envelopes.length} envelopes? This cannot be undone.`,
+    { confirmLabel: 'Delete all', confirmColor: 'rust' },
   )
   if (!confirmed) return
 
