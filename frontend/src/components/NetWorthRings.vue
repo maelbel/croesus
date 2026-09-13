@@ -83,25 +83,27 @@ const rings = computed(() => {
       </div>
     </div>
 
-    <table class="w-full border-collapse">
-      <thead>
-        <tr>
-          <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Year</th>
-          <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Net worth</th>
-          <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Growth</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="row in rings.rows" :key="row.year" class="border-b border-default">
-          <td class="py-2.5 pr-3 text-[15px]">{{ row.year }}</td>
-          <td class="py-2.5 pl-3 text-right font-heading text-[16.5px] font-extrabold whitespace-nowrap">
-            {{ formatCurrency(row.netWorth) }}
-          </td>
-          <td class="py-2.5 pl-3 text-right text-[15px] whitespace-nowrap" :class="deltaColorClass(row.growth)">
-            {{ formatSignedCurrency(row.growth) }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr>
+            <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Year</th>
+            <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Net worth</th>
+            <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Growth</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in rings.rows" :key="row.year" class="border-b border-default">
+            <td class="py-2.5 pr-3 text-[15px]">{{ row.year }}</td>
+            <td class="py-2.5 pl-3 text-right font-heading text-[16.5px] font-extrabold whitespace-nowrap">
+              {{ formatCurrency(row.netWorth) }}
+            </td>
+            <td class="py-2.5 pl-3 text-right text-[15px] whitespace-nowrap" :class="deltaColorClass(row.growth)">
+              {{ formatSignedCurrency(row.growth) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>

@@ -272,7 +272,7 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
 
       <div class="min-w-0">
         <header class="app-header sticky top-0 z-10 border-b-2 border-default bg-default">
-          <div class="mx-auto flex max-w-[1360px] items-end justify-between gap-6 px-10 py-6">
+          <div class="mx-auto flex max-w-[1360px] flex-wrap items-end justify-between gap-4 px-4 py-6 sm:gap-6 sm:px-10">
             <div class="flex flex-col gap-1.5">
               <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
               <h1 class="text-[37px] tracking-tight">{{ route.meta.title }}</h1>
@@ -290,7 +290,7 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
           </div>
         </header>
 
-        <main class="mx-auto max-w-[1360px] px-10 py-8 pb-16">
+        <main class="mx-auto max-w-[1360px] px-4 py-8 pb-16 sm:px-10">
           <RouterView />
         </main>
       </div>

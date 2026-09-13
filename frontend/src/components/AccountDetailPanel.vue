@@ -251,25 +251,27 @@ const holdingsMenuItems = computed(() => [
             </UButton>
           </form>
 
-          <table v-if="accountValuations.length > 0" class="w-full border-collapse">
-            <tbody>
-              <tr v-for="valuation in accountValuations" :key="valuation.id" class="border-b border-default">
-                <td class="py-2.5 pr-3 text-sm whitespace-nowrap text-muted">{{ formatDate(valuation.date) }}</td>
-                <td class="py-2.5 pr-3 text-right text-[15px] font-semibold whitespace-nowrap">
-                  {{ formatCurrency(valuation.value) }}
-                </td>
-                <td class="py-2.5 pr-3 text-sm text-muted">
-                  <UBadge v-if="valuation.note === AUTO_VALUATION_NOTE" variant="outline" size="sm" icon="i-lucide-refresh-cw">
-                    Auto (holdings)
-                  </UBadge>
-                  <template v-else>{{ valuation.note }}</template>
-                </td>
-                <td class="py-2.5 text-right whitespace-nowrap">
-                  <EllipsisMenu :items="valuationMenuItems(valuation)" size="xs" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div v-if="accountValuations.length > 0" class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <tbody>
+                <tr v-for="valuation in accountValuations" :key="valuation.id" class="border-b border-default">
+                  <td class="py-2.5 pr-3 text-sm whitespace-nowrap text-muted">{{ formatDate(valuation.date) }}</td>
+                  <td class="py-2.5 pr-3 text-right text-[15px] font-semibold whitespace-nowrap">
+                    {{ formatCurrency(valuation.value) }}
+                  </td>
+                  <td class="py-2.5 pr-3 text-sm text-muted">
+                    <UBadge v-if="valuation.note === AUTO_VALUATION_NOTE" variant="outline" size="sm" icon="i-lucide-refresh-cw">
+                      Auto (holdings)
+                    </UBadge>
+                    <template v-else>{{ valuation.note }}</template>
+                  </td>
+                  <td class="py-2.5 text-right whitespace-nowrap">
+                    <EllipsisMenu :items="valuationMenuItems(valuation)" size="xs" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <UEmpty
             v-else
             icon="i-lucide-line-chart"
@@ -314,45 +316,47 @@ const holdingsMenuItems = computed(() => [
             </UButton>
           </form>
 
-          <table v-if="accountAssets.length > 0" class="w-full border-collapse">
-            <tbody>
-              <tr v-for="asset in accountAssets" :key="asset.id" class="border-b border-default">
-                <td class="py-2.5 pr-3">
-                  <div class="flex flex-col gap-0.5">
-                    <span class="text-[15px] font-semibold whitespace-nowrap">{{ asset.name }}</span>
-                    <span class="text-sm text-muted">
-                      {{ ASSET_CLASS_LABELS[asset.asset_class] }}
-                      <template v-if="asset.symbol"> · {{ asset.symbol }}</template>
-                    </span>
-                  </div>
-                </td>
-                <td
-                  class="py-2.5 pr-3 text-right text-sm whitespace-nowrap text-muted"
-                  :title="asset.price_updated_at ? `Live price as of ${formatDate(asset.price_updated_at)}` : 'No live price yet — showing cost basis'"
-                >
-                  {{ asset.quantity }} × {{ formatCurrency(currentPrice(asset)) }}
-                  <UIcon v-if="asset.current_price !== null" name="i-lucide-radio" class="text-primary" />
-                </td>
-                <td class="py-2.5 pr-3 text-right whitespace-nowrap">
-                  <div class="text-[15px] font-semibold">{{ formatCurrency(marketValue(asset)) }}</div>
-                  <div v-if="unrealizedGain(asset) !== null" class="text-xs" :class="deltaColorClass(unrealizedGain(asset))">
-                    {{ formatSignedCurrency(unrealizedGain(asset)!) }}
-                  </div>
-                </td>
-                <td class="py-2.5 text-right whitespace-nowrap">
-                  <EllipsisMenu :items="assetMenuItems(asset)" size="xs" />
-                </td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr>
-                <td class="pt-2.5 text-sm text-muted">{{ accountAssets.length }} holding{{ accountAssets.length === 1 ? '' : 's' }}</td>
-                <td />
-                <td class="pt-2.5 text-right text-sm font-semibold whitespace-nowrap">{{ formatCurrency(totalMarketValue) }}</td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
+          <div v-if="accountAssets.length > 0" class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <tbody>
+                <tr v-for="asset in accountAssets" :key="asset.id" class="border-b border-default">
+                  <td class="py-2.5 pr-3">
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-[15px] font-semibold whitespace-nowrap">{{ asset.name }}</span>
+                      <span class="text-sm text-muted">
+                        {{ ASSET_CLASS_LABELS[asset.asset_class] }}
+                        <template v-if="asset.symbol"> · {{ asset.symbol }}</template>
+                      </span>
+                    </div>
+                  </td>
+                  <td
+                    class="py-2.5 pr-3 text-right text-sm whitespace-nowrap text-muted"
+                    :title="asset.price_updated_at ? `Live price as of ${formatDate(asset.price_updated_at)}` : 'No live price yet — showing cost basis'"
+                  >
+                    {{ asset.quantity }} × {{ formatCurrency(currentPrice(asset)) }}
+                    <UIcon v-if="asset.current_price !== null" name="i-lucide-radio" class="text-primary" />
+                  </td>
+                  <td class="py-2.5 pr-3 text-right whitespace-nowrap">
+                    <div class="text-[15px] font-semibold">{{ formatCurrency(marketValue(asset)) }}</div>
+                    <div v-if="unrealizedGain(asset) !== null" class="text-xs" :class="deltaColorClass(unrealizedGain(asset))">
+                      {{ formatSignedCurrency(unrealizedGain(asset)!) }}
+                    </div>
+                  </td>
+                  <td class="py-2.5 text-right whitespace-nowrap">
+                    <EllipsisMenu :items="assetMenuItems(asset)" size="xs" />
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td class="pt-2.5 text-sm text-muted">{{ accountAssets.length }} holding{{ accountAssets.length === 1 ? '' : 's' }}</td>
+                  <td />
+                  <td class="pt-2.5 text-right text-sm font-semibold whitespace-nowrap">{{ formatCurrency(totalMarketValue) }}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
           <UEmpty
             v-else
             icon="i-lucide-briefcase"
