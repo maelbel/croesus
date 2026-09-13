@@ -6,5 +6,7 @@ backend/.venv/
 backend/*.db
 backend/__pycache__/
 .env
+.env.dev
 target/
 docker-compose.override.yml
+docker-compose.dev.yml
