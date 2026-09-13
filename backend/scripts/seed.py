@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Fill the database with realistic sample data for local/dev use.
 
 Wipes existing accounts/assets/valuations/liabilities/envelopes and replaces
@@ -15,7 +14,7 @@ piped through `docker compose exec -T`.
 
 import random
 import sys
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -54,7 +53,7 @@ def seed() -> None:
         db.query(Liability).delete()
         db.query(Envelope).delete()
 
-        today = date.today()
+        today = datetime.now(UTC).date()
         history_start = today - relativedelta(months=11)
         history_start = history_start.replace(day=1)
 
@@ -117,14 +116,14 @@ def seed() -> None:
 
         # (account, starting value, monthly drift, monthly noise)
         valuation_plan = [
-            (by_name["Compte courant"], Decimal("2200"), 0.005, 0.15),
-            (by_name["Livret A"], Decimal("8500"), 0.0025, 0.01),
-            (by_name["PEA"], Decimal("14000"), 0.012, 0.04),
-            (by_name["Assurance-vie"], Decimal("22000"), 0.006, 0.02),
-            (by_name["Compte-titres"], Decimal("6000"), 0.015, 0.06),
-            (by_name["Portefeuille crypto"], Decimal("3000"), 0.02, 0.18),
-            (by_name["Résidence principale"], Decimal("310000"), 0.002, 0.0),
-            (by_name["SCPI Corum"], Decimal("9000"), 0.004, 0.01),
+            (by_name["Compte courant"], Decimal(2200), 0.005, 0.15),
+            (by_name["Livret A"], Decimal(8500), 0.0025, 0.01),
+            (by_name["PEA"], Decimal(14000), 0.012, 0.04),
+            (by_name["Assurance-vie"], Decimal(22000), 0.006, 0.02),
+            (by_name["Compte-titres"], Decimal(6000), 0.015, 0.06),
+            (by_name["Portefeuille crypto"], Decimal(3000), 0.02, 0.18),
+            (by_name["Résidence principale"], Decimal(310000), 0.002, 0.0),
+            (by_name["SCPI Corum"], Decimal(9000), 0.004, 0.01),
         ]
         for account, start_value, drift, noise in valuation_plan:
             for d, value in monthly_valuations(history_start, 12, start_value, drift, noise):
@@ -145,7 +144,7 @@ def seed() -> None:
                     name="BNP Paribas",
                     symbol="BNP",
                     asset_class=AssetClass.STOCK,
-                    quantity=Decimal("15"),
+                    quantity=Decimal(15),
                     unit_cost=Decimal("58.30"),
                 ),
                 Asset(
