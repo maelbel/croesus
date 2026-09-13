@@ -54,6 +54,11 @@ export default {
     dropdownMenu: {
       slots: {
         content: 'z-30',
+        // Default "group" padding (p-1) leaves a gap around the item list
+        // before the hover background starts — drop it so items span the
+        // content edge to edge.
+        group: 'p-0',
+        item: 'cursor-pointer',
       },
     },
     modal: {

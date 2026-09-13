@@ -11,6 +11,7 @@ import type { Envelope, EnvelopeCreate } from '../api/types'
 import StatCard from '../components/StatCard.vue'
 import StatCardRow from '../components/StatCardRow.vue'
 import EntityFormModal from '../components/EntityFormModal.vue'
+import EllipsisMenu from '../components/EllipsisMenu.vue'
 import { useThemeStore } from '../stores/theme'
 
 const envelopesStore = useEnvelopesStore()
@@ -89,6 +90,13 @@ const deleteEnvelope = useDeleteAction('envelope')
 async function removeEnvelope(envelope: Envelope) {
   await deleteEnvelope(`Delete "${envelope.name}"?`, () => envelopesStore.remove(envelope.id))
 }
+
+function envelopeMenuItems(envelope: Envelope) {
+  return [
+    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => envelopeForm.openEdit(envelope) },
+    { label: 'Delete', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeEnvelope(envelope) },
+  ]
+}
 </script>
 
 <template>
@@ -162,24 +170,7 @@ async function removeEnvelope(envelope: Envelope) {
             </span>
             <span class="flex items-center justify-between text-sm text-muted">
               <span>{{ Math.round(ratio(envelope.target_amount, envelope.current_amount) * 100) }}% funded</span>
-              <span class="flex items-center">
-                <UButton
-                  variant="ghost"
-                  color="neutral"
-                  icon="i-lucide-pencil"
-                  size="xs"
-                  title="Edit envelope"
-                  @click="envelopeForm.openEdit(envelope)"
-                />
-                <UButton
-                  color="rust"
-                  variant="ghost"
-                  icon="i-lucide-trash-2"
-                  size="xs"
-                  title="Delete envelope"
-                  @click="removeEnvelope(envelope)"
-                />
-              </span>
+              <EllipsisMenu :items="envelopeMenuItems(envelope)" size="xs" />
             </span>
           </div>
         </div>

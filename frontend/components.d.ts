@@ -15,6 +15,7 @@ declare module 'vue' {
     CompositionChart: typeof import('./src/components/CompositionChart.vue')['default']
     ConfirmDialog: typeof import('./src/components/ConfirmDialog.vue')['default']
     ConnectionModeFields: typeof import('./src/components/ConnectionModeFields.vue')['default']
+    EllipsisMenu: typeof import('./src/components/EllipsisMenu.vue')['default']
     EntityFormModal: typeof import('./src/components/EntityFormModal.vue')['default']
     LoginForm: typeof import('./src/components/LoginForm.vue')['default']
     NetWorthRings: typeof import('./src/components/NetWorthRings.vue')['default']

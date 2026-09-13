@@ -9,6 +9,7 @@ import { ACCOUNT_TYPE_LABELS, type Account, type AccountCreate, type AccountType
 import { formatCurrency, formatPercent, formatDate, deltaColorClass } from '../lib/format'
 import EntityFormModal from '../components/EntityFormModal.vue'
 import AccountDetailPanel from '../components/AccountDetailPanel.vue'
+import EllipsisMenu from '../components/EllipsisMenu.vue'
 
 const accountsStore = useAccountsStore()
 const valuationsStore = useValuationsStore()
@@ -97,6 +98,13 @@ async function removeAccount(account: Account) {
     `Delete "${account.name}"? This also deletes its valuation history.`,
     () => accountsStore.remove(account.id),
   )
+}
+
+function accountMenuItems(account: Account) {
+  return [
+    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => accountForm.openEdit(account) },
+    { label: 'Delete', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeAccount(account) },
+  ]
 }
 
 // Store the id, not the account object — createCrudStore's update() replaces
@@ -203,22 +211,7 @@ const detailAccount = computed(
                 title="Valuation history & holdings"
                 @click="detailAccountId = account.id"
               />
-              <UButton
-                variant="ghost"
-                color="neutral"
-                icon="i-lucide-pencil"
-                size="sm"
-                title="Edit account"
-                @click="accountForm.openEdit(account)"
-              />
-              <UButton
-                color="rust"
-                variant="ghost"
-                icon="i-lucide-trash-2"
-                size="sm"
-                title="Delete account"
-                @click="removeAccount(account)"
-              />
+              <EllipsisMenu :items="accountMenuItems(account)" />
             </td>
           </tr>
         </tbody>
