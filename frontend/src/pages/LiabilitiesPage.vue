@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive } from 'vue'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useCrudForm } from '../composables/useCrudForm'
 import { useDeleteAction } from '../composables/useDeleteAction'
@@ -17,6 +17,20 @@ const liabilityTypeOptions = Object.entries(LIABILITY_TYPE_LABELS).map(([value, 
   label,
   value: value as LiabilityType,
 }))
+
+const filters = reactive({
+  search: '',
+  type: null as LiabilityType | null,
+})
+
+const filteredLiabilities = computed(() => {
+  const search = filters.search.trim().toLowerCase()
+  return liabilitiesStore.liabilities.filter((liability) => {
+    if (filters.type && liability.type !== filters.type) return false
+    if (!search) return true
+    return liability.name.toLowerCase().includes(search)
+  })
+})
 
 const totalRemaining = computed(() =>
   liabilitiesStore.liabilities.reduce((sum, l) => sum + Number(l.remaining_amount), 0),
@@ -142,6 +156,19 @@ function liabilityMenuItems(liability: Liability) {
         />
       </StatCardRow>
 
+      <div class="flex flex-wrap items-end gap-4">
+        <UFormField label="Search" class="w-64">
+          <UInput v-model="filters.search" placeholder="Liability name" />
+        </UFormField>
+        <UFormField label="Type" class="w-48">
+          <USelect
+            v-model="filters.type"
+            :items="[{ label: 'All types', value: null }, ...liabilityTypeOptions]"
+            placeholder="All types"
+          />
+        </UFormField>
+      </div>
+
       <table class="w-full border-collapse">
         <thead>
           <tr>
@@ -153,7 +180,7 @@ function liabilityMenuItems(liability: Liability) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="liability in liabilitiesStore.liabilities" :key="liability.id" class="border-b border-default">
+          <tr v-for="liability in filteredLiabilities" :key="liability.id" class="border-b border-default">
             <td class="py-3.5 pr-3">
               <div class="flex flex-col gap-0.5">
                 <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ liability.name }}</span>
