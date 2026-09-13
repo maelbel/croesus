@@ -134,7 +134,7 @@ def seed() -> None:
                 Asset(
                     account_id=by_name["PEA"].id,
                     name="Amundi MSCI World",
-                    symbol="CW8",
+                    symbol="CW8.PA",
                     asset_class=AssetClass.ETF,
                     quantity=Decimal("42.5"),
                     unit_cost=Decimal("410.20"),
@@ -142,7 +142,7 @@ def seed() -> None:
                 Asset(
                     account_id=by_name["PEA"].id,
                     name="BNP Paribas",
-                    symbol="BNP",
+                    symbol="BNP.PA",
                     asset_class=AssetClass.STOCK,
                     quantity=Decimal(15),
                     unit_cost=Decimal("58.30"),
@@ -150,7 +150,7 @@ def seed() -> None:
                 Asset(
                     account_id=by_name["Compte-titres"].id,
                     name="S&P 500 UCITS ETF",
-                    symbol="500",
+                    symbol="500.PA",
                     asset_class=AssetClass.ETF,
                     quantity=Decimal("8.2"),
                     unit_cost=Decimal("520.00"),

@@ -1,6 +1,8 @@
 import logging
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -20,6 +22,7 @@ from app.core.config import DEFAULT_JWT_SECRET, get_settings
 from app.core.database import SessionLocal
 from app.core.security import decode_access_token, hash_password
 from app.models.user import User
+from app.services.pricing import refresh_all_asset_prices
 
 logger = logging.getLogger(__name__)
 
@@ -74,11 +77,40 @@ def _seed_admin_user() -> None:
         db.close()
 
 
+def _refresh_asset_prices_job() -> None:
+    db = SessionLocal()
+    try:
+        result = refresh_all_asset_prices(db)
+        logger.info(
+            "Price refresh: %d updated, %d failed, %d with no symbol",
+            len(result.updated),
+            len(result.failed),
+            result.skipped_no_symbol,
+        )
+    except Exception:
+        logger.exception("Scheduled price refresh failed")
+    finally:
+        db.close()
+
+
+scheduler = BackgroundScheduler()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _check_jwt_secret()
     _seed_admin_user()
+    if settings.price_refresh_enabled:
+        scheduler.add_job(
+            _refresh_asset_prices_job,
+            "interval",
+            minutes=settings.price_refresh_interval_minutes,
+            next_run_time=datetime.now(UTC),
+        )
+        scheduler.start()
     yield
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
     await oidc.aclose_http_client()
 
 

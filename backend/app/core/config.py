@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     oidc_display_name: str = "SSO"
     oidc_scopes: str = "openid email profile"
 
+    price_refresh_enabled: bool = True
+    price_refresh_interval_minutes: int = 360
+
     @property
     def password_enabled(self) -> bool:
         return bool(self.admin_username and self.admin_password)

@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { api } from '../api/client'
 import { createCrudStore } from '../composables/useCrudStore'
-import type { Asset, AssetCreate, AssetUpdate } from '../api/types'
+import type { Asset, AssetCreate, AssetUpdate, PriceRefreshResult } from '../api/types'
 
 export const useAssetsStore = defineStore('assets', () => {
   const { items: assets, loading, fetchAll, create, update, remove } = createCrudStore<
@@ -9,6 +10,8 @@ export const useAssetsStore = defineStore('assets', () => {
     AssetCreate,
     AssetUpdate
   >('/assets')
+
+  const refreshingPrices = ref(false)
 
   const byAccount = computed(() => {
     const map = new Map<number, Asset[]>()
@@ -24,5 +27,27 @@ export const useAssetsStore = defineStore('assets', () => {
     return byAccount.value.get(accountId) ?? []
   }
 
-  return { assets, loading, fetchAll, byAccount, forAccount, create, update, remove }
+  async function refreshPrices(): Promise<PriceRefreshResult> {
+    refreshingPrices.value = true
+    try {
+      const result = await api.post<PriceRefreshResult>('/assets/refresh-prices', {})
+      await fetchAll()
+      return result
+    } finally {
+      refreshingPrices.value = false
+    }
+  }
+
+  return {
+    assets,
+    loading,
+    refreshingPrices,
+    fetchAll,
+    byAccount,
+    forAccount,
+    create,
+    update,
+    remove,
+    refreshPrices,
+  }
 })
