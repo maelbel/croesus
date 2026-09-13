@@ -124,11 +124,7 @@ const shortcutHint = /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘B' : 
 // is a clipping ancestor of these tooltips' triggers, so Floating UI's
 // collision detection under-reports available space even though the
 // tooltip content itself is portaled to <body>. Pin the boundary to the
-// body so it sizes/positions against the real viewport instead. The
-// tooltip's z-20 (below, via :ui) is needed for the same reason: it's a
-// body-level sibling of the app root, not a descendant of the sticky
-// z-10 content header, so it must out-rank that header explicitly to
-// paint above it.
+// body so it sizes/positions against the real viewport instead.
 const tooltipBoundary = document.body
 
 function onSidebarShortcut(event: KeyboardEvent) {
@@ -187,7 +183,6 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
               <UTooltip
                 :text="sidebarStore.open ? `Hide sidebar (${shortcutHint})` : `Show sidebar (${shortcutHint})`"
                 :content="{ collisionBoundary: tooltipBoundary }"
-                :ui="{ content: 'z-20' }"
               >
                 <UButton
                   variant="ghost"
@@ -215,7 +210,6 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
               :text="link.label"
               :disabled="sidebarStore.open"
               :content="{ collisionBoundary: tooltipBoundary }"
-              :ui="{ content: 'z-20' }"
             >
               <RouterLink
                 :to="link.to"
@@ -267,7 +261,7 @@ onUnmounted(() => window.removeEventListener('keydown', onSidebarShortcut))
       </aside>
 
       <div class="min-w-0">
-        <header class="app-header sticky top-0 z-10 border-b-2 border-default bg-default">
+        <header class="app-header sticky top-0 border-b-2 border-default bg-default">
           <div class="mx-auto flex max-w-[1360px] items-end justify-between gap-6 px-10 py-6">
             <div class="flex flex-col gap-1.5">
               <span class="text-sm text-muted">{{ route.meta.kicker }}</span>
