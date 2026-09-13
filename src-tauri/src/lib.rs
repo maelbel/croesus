@@ -90,7 +90,13 @@ fn get_connection_config(app: AppHandle) -> ConnectionConfig {
 fn save_connection_config(app: AppHandle, config: ConnectionConfig) -> Result<(), String> {
   let path = connection_config_path(&app)?;
   let contents = serde_json::to_string(&config).map_err(|e| e.to_string())?;
-  fs::write(path, contents).map_err(|e| e.to_string())
+  // Write-then-rename instead of a direct write: a crash/power loss mid-write
+  // would otherwise leave a truncated file that fails to parse, silently
+  // reverting the user's connection choice back to the default. rename() is
+  // atomic on the same filesystem, on both POSIX and Windows.
+  let tmp_path = path.with_extension("json.tmp");
+  fs::write(&tmp_path, contents).map_err(|e| e.to_string())?;
+  fs::rename(&tmp_path, &path).map_err(|e| e.to_string())
 }
 
 const QUERY_ENCODE_SET: &AsciiSet = &NON_ALPHANUMERIC.remove(b'-').remove(b'_').remove(b'.').remove(b'~');
@@ -221,7 +227,12 @@ fn wait_for_callback(
     if stream.set_nonblocking(false).is_err() {
       continue;
     }
-    stream.set_read_timeout(Some(Duration::from_secs(10))).ok();
+    // Not just best-effort: without a read timeout, a connection that never
+    // sends a request line would block read_line below forever, hanging this
+    // whole listener past the outer deadline — drop the connection instead.
+    if stream.set_read_timeout(Some(Duration::from_secs(10))).is_err() {
+      continue;
+    }
 
     let mut request_line = String::new();
     let read_ok = stream
@@ -248,13 +259,18 @@ fn wait_for_callback(
 // the backend).
 #[tauri::command]
 async fn start_oidc_login(app: AppHandle, server_url: String) -> Result<String, String> {
+  let server_url = server_url.trim_end_matches('/');
+  if !(server_url.starts_with("http://") || server_url.starts_with("https://")) {
+    return Err("Server URL must start with http:// or https://".into());
+  }
+
   let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
   let port = listener.local_addr().map_err(|e| e.to_string())?.port();
   listener.set_nonblocking(true).map_err(|e| e.to_string())?;
 
   let attempt_token = Uuid::new_v4().to_string();
   let redirect_uri = percent_encode(&format!("http://127.0.0.1:{port}/callback?attempt={attempt_token}"));
-  let login_url = format!("{}/auth/oidc/login?redirect_uri={}", server_url.trim_end_matches('/'), redirect_uri);
+  let login_url = format!("{server_url}/auth/oidc/login?redirect_uri={redirect_uri}");
 
   app
     .opener()
@@ -295,20 +311,45 @@ pub fn run() {
       // instead — skip spawning the local backend/SQLite entirely.
       let config = read_connection_config(app.handle());
       if config.mode == ConnectionMode::Local {
-        let (mut rx, child) = app.shell().sidecar("croesus-backend")?.spawn()?;
-        app.manage(SidecarProcess(Mutex::new(Some(child))));
         app.manage(SidecarLog(Mutex::new(Vec::new())));
 
-        let log_handle = app.handle().clone();
-        tauri::async_runtime::spawn(async move {
-          while let Some(event) = rx.recv().await {
-            match event {
-              CommandEvent::Stdout(line) => handle_sidecar_line(&log_handle, log::Level::Info, line),
-              CommandEvent::Stderr(line) => handle_sidecar_line(&log_handle, log::Level::Error, line),
-              _ => {}
+        // A spawn failure here (binary missing/not executable/quarantined by
+        // AV) must not take the whole app down with it via `?` — it should
+        // still boot, so waitForBackend()'s timeout on the frontend side
+        // surfaces the diagnostics screen (get_sidecar_log) instead of a raw
+        // crash before any window opens.
+        match app.shell().sidecar("croesus-backend").and_then(|cmd| cmd.spawn()) {
+          Ok((mut rx, child)) => {
+            app.manage(SidecarProcess(Mutex::new(Some(child))));
+
+            let log_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+              while let Some(event) = rx.recv().await {
+                match event {
+                  CommandEvent::Stdout(line) => handle_sidecar_line(&log_handle, log::Level::Info, line),
+                  CommandEvent::Stderr(line) => handle_sidecar_line(&log_handle, log::Level::Error, line),
+                  CommandEvent::Error(message) => {
+                    handle_sidecar_line(&log_handle, log::Level::Error, message.into_bytes());
+                  }
+                  CommandEvent::Terminated(payload) => {
+                    handle_sidecar_line(
+                      &log_handle,
+                      log::Level::Error,
+                      format!("sidecar exited (code={:?}, signal={:?})", payload.code, payload.signal).into_bytes(),
+                    );
+                  }
+                  _ => {}
+                }
+              }
+            });
+          }
+          Err(e) => {
+            log::error!("Failed to spawn backend sidecar: {e}");
+            if let Some(state) = app.try_state::<SidecarLog>() {
+              push_sidecar_log(&state, format!("Failed to spawn backend sidecar: {e}"));
             }
           }
-        });
+        }
       }
 
       Ok(())
@@ -317,7 +358,13 @@ pub fn run() {
     .expect("error while building tauri application");
 
   app.run(|app_handle, event| {
-    if let RunEvent::ExitRequested { .. } = event {
+    // Both handled — ExitRequested alone misses shutdown paths that go
+    // straight to Exit (the event loop's final "about to stop"), such as an
+    // app_handle.exit() call elsewhere. Taking the child out of the Mutex
+    // makes a second kill() here a harmless no-op. This can't do anything
+    // about a hard OS-level kill (SIGKILL, a crash) — nothing running in the
+    // process being killed can intercept that, in any application.
+    if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
       if let Some(state) = app_handle.try_state::<SidecarProcess>() {
         if let Some(child) = state.0.lock().unwrap().take() {
           let _ = child.kill();
