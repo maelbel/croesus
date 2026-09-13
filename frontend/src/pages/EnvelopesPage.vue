@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive } from 'vue'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useAccountsStore } from '../stores/accounts'
 import { useValuationsStore } from '../stores/valuations'
@@ -47,6 +47,30 @@ function status(target: string | null, current: string) {
   if (Number(current) === 0) return { label: 'Empty', color: 'neutral' as const }
   return { label: 'Filling', color: 'neutral' as const }
 }
+
+type EnvelopeStatus = ReturnType<typeof status>['label']
+
+const statusOptions: { label: string; value: EnvelopeStatus | null }[] = [
+  { label: 'All statuses', value: null },
+  { label: 'Funded', value: 'Funded' },
+  { label: 'Filling', value: 'Filling' },
+  { label: 'Empty', value: 'Empty' },
+  { label: 'Unfunded', value: 'Unfunded' },
+]
+
+const filters = reactive({
+  search: '',
+  status: null as EnvelopeStatus | null,
+})
+
+const filteredEnvelopes = computed(() => {
+  const search = filters.search.trim().toLowerCase()
+  return envelopesStore.envelopes.filter((envelope) => {
+    if (filters.status && status(envelope.target_amount, envelope.current_amount).label !== filters.status) return false
+    if (!search) return true
+    return envelope.name.toLowerCase().includes(search)
+  })
+})
 
 function barColor(target: string | null, current: string) {
   return status(target, current).label === 'Funded'
@@ -136,6 +160,15 @@ function envelopeMenuItems(envelope: Envelope) {
         <StatCard label="Unallocated" value-color="positive" :value="formatCurrency(unallocated)" note="Sitting in checking" />
       </StatCardRow>
 
+      <div class="flex flex-wrap items-end gap-4">
+        <UFormField label="Search" class="w-64">
+          <UInput v-model="filters.search" placeholder="Envelope name" />
+        </UFormField>
+        <UFormField label="Status" class="w-48">
+          <USelect v-model="filters.status" :items="statusOptions" placeholder="All statuses" />
+        </UFormField>
+      </div>
+
       <div
         :class="
           themeStore.skin === 'neumorphic'
@@ -144,7 +177,7 @@ function envelopeMenuItems(envelope: Envelope) {
         "
       >
         <div
-          v-for="envelope in envelopesStore.envelopes"
+          v-for="envelope in filteredEnvelopes"
           :key="envelope.id"
           class="neu-surface flex gap-4.5 bg-default p-5"
         >
