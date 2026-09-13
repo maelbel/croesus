@@ -6,6 +6,7 @@ import { useCrudForm } from '../composables/useCrudForm'
 import {
   ACCOUNT_TYPE_LABELS,
   ASSET_CLASS_LABELS,
+  AUTO_VALUATION_NOTE,
   type Account,
   type Asset,
   type AssetClass,
@@ -35,6 +36,7 @@ const accountValuations = computed(() => {
 })
 
 const accountAssets = computed(() => (props.account ? assetsStore.forAccount(props.account.id) : []))
+const hasHoldings = computed(() => accountAssets.value.length > 0)
 
 const currentValue = computed(() => (props.account ? valuationsStore.currentValue(props.account.id) : 0))
 const change30d = computed(() => (props.account ? valuationsStore.changeOverDays(props.account.id, 30) : null))
@@ -199,6 +201,11 @@ const holdingsMenuItems = computed(() => [
         <section class="flex flex-col gap-3.5">
           <h3 class="text-sm font-semibold text-muted">Valuation history</h3>
 
+          <p v-if="hasHoldings" class="text-sm text-muted">
+            This account's value is calculated automatically from its holdings below. A manual
+            entry for today will be overwritten next time prices refresh.
+          </p>
+
           <form
             class="neu-inset flex flex-wrap items-end gap-3 p-4"
             @submit.prevent="valuationForm.submit()"
@@ -232,7 +239,12 @@ const holdingsMenuItems = computed(() => [
                 <td class="py-2.5 pr-3 text-right text-[15px] font-semibold whitespace-nowrap">
                   {{ formatCurrency(valuation.value) }}
                 </td>
-                <td class="py-2.5 pr-3 text-sm text-muted">{{ valuation.note }}</td>
+                <td class="py-2.5 pr-3 text-sm text-muted">
+                  <UBadge v-if="valuation.note === AUTO_VALUATION_NOTE" variant="outline" size="sm" icon="i-lucide-refresh-cw">
+                    Auto (holdings)
+                  </UBadge>
+                  <template v-else>{{ valuation.note }}</template>
+                </td>
                 <td class="py-2.5 text-right whitespace-nowrap">
                   <UDropdownMenu :items="valuationMenuItems(valuation)">
                     <UButton variant="ghost" color="neutral" icon="i-lucide-ellipsis-vertical" size="xs" />

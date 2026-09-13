@@ -6,12 +6,17 @@ from app.core.database import get_db
 from app.models.account import Account
 from app.models.asset import Asset
 from app.schemas.asset import AssetCreate, AssetRead, AssetUpdate, PriceRefreshResult
+from app.services.holdings_valuation import sync_account_valuation_from_holdings
 from app.services.pricing import refresh_all_asset_prices
 
 
 def _require_account(db: Session, payload: AssetCreate) -> None:
     if db.get(Account, payload.account_id) is None:
         raise HTTPException(status_code=404, detail="Account not found")
+
+
+def _sync_valuation(db: Session, item: Asset, _action: str) -> None:
+    sync_account_valuation_from_holdings(db, item.account_id)
 
 
 router = make_crud_router(
@@ -25,6 +30,7 @@ router = make_crud_router(
     order_by=Asset.name,
     filter_column=Asset.account_id,
     validate_create=_require_account,
+    after_write=_sync_valuation,
 )
 
 
