@@ -5,9 +5,10 @@ after_write hook) and after every price refresh (app/services/pricing.py),
 so an account's value stays current whenever either its positions or their
 prices change.
 
-Accounts with no assets are left alone entirely — this only ever touches
-today's valuation for an account that currently has at least one holding,
-never invents one from nothing.
+Only ever touches a today's-dated Valuation this module itself created
+(tagged with AUTO_VALUATION_NOTE) — a manual entry for today is left
+alone, and dropping an account to zero holdings retracts our own stale
+auto-entry rather than leaving it in place.
 """
 
 from datetime import UTC, datetime
@@ -32,19 +33,26 @@ def _holdings_value(db: Session, account_id: int) -> Decimal | None:
 
 
 def sync_account_valuation_from_holdings(db: Session, account_id: int) -> None:
-    total = _holdings_value(db, account_id)
-    if total is None:
-        return
-
     today = datetime.now(UTC).date()
     existing = (
         db.query(Valuation)
         .filter(Valuation.account_id == account_id, Valuation.date == today)
         .first()
     )
+    # A today's-dated row we didn't create ourselves is a manual entry —
+    # never touch it, whether that's overwriting it with a new total or
+    # deleting it because holdings dropped to zero.
+    if existing is not None and existing.note != AUTO_VALUATION_NOTE:
+        return
+
+    total = _holdings_value(db, account_id)
+    if total is None:
+        if existing is not None:
+            db.delete(existing)
+        return
+
     if existing is not None:
         existing.value = total
-        existing.note = AUTO_VALUATION_NOTE
     else:
         db.add(Valuation(account_id=account_id, date=today, value=total, note=AUTO_VALUATION_NOTE))
 
