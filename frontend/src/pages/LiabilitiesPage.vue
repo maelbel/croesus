@@ -9,6 +9,7 @@ import { formatCurrency, formatRate, formatDate } from '../lib/format'
 import StatCard from '../components/StatCard.vue'
 import StatCardRow from '../components/StatCardRow.vue'
 import EntityFormModal from '../components/EntityFormModal.vue'
+import EllipsisMenu from '../components/EllipsisMenu.vue'
 
 const liabilitiesStore = useLiabilitiesStore()
 
@@ -81,6 +82,13 @@ const deleteLiability = useDeleteAction('liability')
 
 async function removeLiability(liability: Liability) {
   await deleteLiability(`Delete "${liability.name}"?`, () => liabilitiesStore.remove(liability.id))
+}
+
+function liabilityMenuItems(liability: Liability) {
+  return [
+    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => liabilityForm.openEdit(liability) },
+    { label: 'Delete', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeLiability(liability) },
+  ]
 }
 </script>
 
@@ -171,22 +179,7 @@ async function removeLiability(liability: Liability) {
               </span>
             </td>
             <td class="py-3.5 pl-3 text-right whitespace-nowrap">
-              <UButton
-                variant="ghost"
-                color="neutral"
-                icon="i-lucide-pencil"
-                size="sm"
-                title="Edit liability"
-                @click="liabilityForm.openEdit(liability)"
-              />
-              <UButton
-                color="rust"
-                variant="ghost"
-                icon="i-lucide-trash-2"
-                size="sm"
-                title="Delete liability"
-                @click="removeLiability(liability)"
-              />
+              <EllipsisMenu :items="liabilityMenuItems(liability)" />
             </td>
           </tr>
         </tbody>

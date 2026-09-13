@@ -18,6 +18,7 @@ import {
   type ValuationUpdate,
 } from '../api/types'
 import { deltaColorClass, formatCurrency, formatDate, formatPercent, formatSignedCurrency } from '../lib/format'
+import EllipsisMenu from './EllipsisMenu.vue'
 
 const props = defineProps<{
   open: boolean
@@ -252,9 +253,7 @@ const holdingsMenuItems = computed(() => [
                   <template v-else>{{ valuation.note }}</template>
                 </td>
                 <td class="py-2.5 text-right whitespace-nowrap">
-                  <UDropdownMenu :items="valuationMenuItems(valuation)">
-                    <UButton variant="ghost" color="neutral" icon="i-lucide-ellipsis-vertical" size="xs" />
-                  </UDropdownMenu>
+                  <EllipsisMenu :items="valuationMenuItems(valuation)" size="xs" />
                 </td>
               </tr>
             </tbody>
@@ -271,9 +270,7 @@ const holdingsMenuItems = computed(() => [
         <section class="flex flex-col gap-3.5">
           <div class="flex h-5 items-center justify-between">
             <h3 class="text-sm font-semibold text-muted">Holdings</h3>
-            <UDropdownMenu v-if="accountAssets.some((asset) => asset.symbol)" :items="holdingsMenuItems">
-              <UButton variant="ghost" color="neutral" icon="i-lucide-ellipsis-vertical" size="xs" />
-            </UDropdownMenu>
+            <EllipsisMenu v-if="accountAssets.some((asset) => asset.symbol)" :items="holdingsMenuItems" size="xs" />
           </div>
 
           <form class="neu-inset flex flex-wrap items-end gap-3 p-4" @submit.prevent="assetForm.submit()">
@@ -331,9 +328,7 @@ const holdingsMenuItems = computed(() => [
                   </div>
                 </td>
                 <td class="py-2.5 text-right whitespace-nowrap">
-                  <UDropdownMenu :items="assetMenuItems(asset)">
-                    <UButton variant="ghost" color="neutral" icon="i-lucide-ellipsis-vertical" size="xs" />
-                  </UDropdownMenu>
+                  <EllipsisMenu :items="assetMenuItems(asset)" size="xs" />
                 </td>
               </tr>
             </tbody>
