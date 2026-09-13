@@ -46,7 +46,10 @@ const sidecarLog = ref<string[]>([])
 // picking local just needs to fall through to the usual boot sequence below.
 const showOnboarding = ref(false)
 
-const loadedForToken = ref<string | null>(null)
+// undefined (never loaded) is distinct from the token's own null (no auth/no
+// token yet) so the guard below doesn't mistake "not loaded" for "loaded for
+// no token" on an auth-disabled deployment.
+const loadedForToken = ref<string | null | undefined>(undefined)
 
 function loadData() {
   if (loadedForToken.value === authStore.token) return
