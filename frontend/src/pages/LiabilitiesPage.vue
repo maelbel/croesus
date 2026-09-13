@@ -10,8 +10,13 @@ import StatCard from '../components/StatCard.vue'
 import StatCardRow from '../components/StatCardRow.vue'
 import EntityFormModal from '../components/EntityFormModal.vue'
 import EllipsisMenu from '../components/EllipsisMenu.vue'
+import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 
 const liabilitiesStore = useLiabilitiesStore()
+
+// Only while the very first fetch is still in flight — once any liabilities
+// exist, later refetches (after a create/update/remove) don't re-show this.
+const initialLoading = computed(() => liabilitiesStore.loading && liabilitiesStore.liabilities.length === 0)
 
 const liabilityTypeOptions = Object.entries(LIABILITY_TYPE_LABELS).map(([value, label]) => ({
   label,
@@ -141,7 +146,9 @@ function liabilityMenuItems(liability: Liability) {
       </UFormField>
     </EntityFormModal>
 
-    <template v-if="liabilitiesStore.liabilities.length > 0">
+    <PageLoadingSkeleton v-if="initialLoading" />
+
+    <template v-else-if="liabilitiesStore.liabilities.length > 0">
       <StatCardRow>
         <StatCard label="Remaining debt" :value="formatCurrency(totalRemaining)" value-color="negative" />
         <StatCard

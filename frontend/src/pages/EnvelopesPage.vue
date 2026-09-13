@@ -12,9 +12,14 @@ import StatCard from '../components/StatCard.vue'
 import StatCardRow from '../components/StatCardRow.vue'
 import EntityFormModal from '../components/EntityFormModal.vue'
 import EllipsisMenu from '../components/EllipsisMenu.vue'
+import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 import { useThemeStore } from '../stores/theme'
 
 const envelopesStore = useEnvelopesStore()
+
+// Only while the very first fetch is still in flight — once any envelopes
+// exist, later refetches (after a create/update/remove) don't re-show this.
+const initialLoading = computed(() => envelopesStore.loading && envelopesStore.envelopes.length === 0)
 const accountsStore = useAccountsStore()
 const valuationsStore = useValuationsStore()
 const themeStore = useThemeStore()
@@ -149,7 +154,9 @@ function envelopeMenuItems(envelope: Envelope) {
       </UFormField>
     </EntityFormModal>
 
-    <template v-if="envelopesStore.envelopes.length > 0">
+    <PageLoadingSkeleton v-if="initialLoading" />
+
+    <template v-else-if="envelopesStore.envelopes.length > 0">
       <StatCardRow>
         <StatCard
           label="Allocated"
