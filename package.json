@@ -8,7 +8,8 @@
   "scripts": {
     "tauri": "tauri",
     "setup": "node scripts/prod-setup.mjs",
-    "setup:dev": "node scripts/dev-setup.mjs"
+    "setup:dev": "node scripts/dev-setup.mjs",
+    "seed:dev": "node scripts/seed-dev.mjs"
   },
   "devDependencies": {
     "@clack/prompts": "^1.7.0",
