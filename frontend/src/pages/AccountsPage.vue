@@ -10,9 +10,14 @@ import { formatCurrency, formatPercent, formatDate, deltaColorClass } from '../l
 import EntityFormModal from '../components/EntityFormModal.vue'
 import AccountDetailPanel from '../components/AccountDetailPanel.vue'
 import EllipsisMenu from '../components/EllipsisMenu.vue'
+import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 
 const accountsStore = useAccountsStore()
 const valuationsStore = useValuationsStore()
+
+// Only while the very first fetch is still in flight — once any accounts
+// exist, later refetches (after a create/update/remove) don't re-show this.
+const initialLoading = computed(() => accountsStore.loading && accountsStore.accounts.length === 0)
 
 const accountTypeOptions = Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => ({
   label,
@@ -170,7 +175,9 @@ const detailAccount = computed(
       </span>
     </div>
 
-    <template v-if="accountsStore.accounts.length > 0">
+    <PageLoadingSkeleton v-if="initialLoading" />
+
+    <template v-else-if="accountsStore.accounts.length > 0">
       <table class="w-full border-collapse">
         <thead>
           <tr>

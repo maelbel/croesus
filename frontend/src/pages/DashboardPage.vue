@@ -13,6 +13,7 @@ import StatCard from '../components/StatCard.vue'
 import StatCardRow from '../components/StatCardRow.vue'
 import NetWorthRings from '../components/NetWorthRings.vue'
 import CompositionChart from '../components/CompositionChart.vue'
+import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 
 const router = useRouter()
 
@@ -22,6 +23,18 @@ const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
 const netWorthStore = useNetWorthStore()
 const valuationsStore = useValuationsStore()
+
+// Only while the first fetch across all four stores is still in flight —
+// without this, a returning user with real data would flash the onboarding
+// state below for a moment, since accounts/liabilities/envelopes all start
+// out empty before their fetchAll() resolves.
+const initialLoading = computed(
+  () =>
+    (accountsStore.loading || liabilitiesStore.loading || envelopesStore.loading || netWorthStore.loading) &&
+    accountsStore.accounts.length === 0 &&
+    liabilitiesStore.liabilities.length === 0 &&
+    envelopesStore.envelopes.length === 0,
+)
 
 const showOnboarding = computed(
   () =>
@@ -70,7 +83,9 @@ const recentHistory = computed(() =>
 
 <template>
   <div class="flex flex-col gap-9">
-    <StatCardRow v-if="showOnboarding">
+    <PageLoadingSkeleton v-if="initialLoading" :rows="6" />
+
+    <StatCardRow v-else-if="showOnboarding">
       <div class="neu-surface bg-default flex flex-col gap-2.5 p-7">
         <span class="font-heading text-[37px] leading-none font-extrabold text-primary">01</span>
         <span class="font-heading text-lg font-extrabold">Add your accounts</span>
