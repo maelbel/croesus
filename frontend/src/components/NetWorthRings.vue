@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useNetWorthStore } from '../stores/networth'
 import { formatCurrency, formatSignedCurrency, deltaColorClass } from '../lib/format'
 
@@ -47,6 +48,14 @@ const rings = computed(() => {
 
   return { items, rows, gain: values[n - 1] - values[0] }
 })
+
+type RingRow = { year: string; netWorth: number; growth: number; isLatest: boolean }
+
+const ringsColumns: TableColumn<RingRow>[] = [
+  { accessorKey: 'year', header: 'Year' },
+  { accessorKey: 'netWorth', header: 'Net worth', meta: { class: { th: 'text-right', td: 'text-right' } } },
+  { accessorKey: 'growth', header: 'Growth', meta: { class: { th: 'text-right', td: 'text-right' } } },
+]
 </script>
 
 <template>
@@ -83,27 +92,13 @@ const rings = computed(() => {
       </div>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="w-full border-collapse">
-        <thead>
-          <tr>
-            <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Year</th>
-            <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Net worth</th>
-            <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Growth</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in rings.rows" :key="row.year" class="border-b border-default">
-            <td class="py-2.5 pr-3 text-[15px]">{{ row.year }}</td>
-            <td class="py-2.5 pl-3 text-right font-heading text-[16.5px] font-extrabold whitespace-nowrap">
-              {{ formatCurrency(row.netWorth) }}
-            </td>
-            <td class="py-2.5 pl-3 text-right text-[15px] whitespace-nowrap" :class="deltaColorClass(row.growth)">
-              {{ formatSignedCurrency(row.growth) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <UTable :data="rings.rows" :columns="ringsColumns">
+      <template #netWorth-cell="{ row }: { row: TableRow<RingRow> }">
+        <span class="font-heading text-[16.5px] font-extrabold whitespace-nowrap">{{ formatCurrency(row.original.netWorth) }}</span>
+      </template>
+      <template #growth-cell="{ row }: { row: TableRow<RingRow> }">
+        <span class="whitespace-nowrap" :class="deltaColorClass(row.original.growth)">{{ formatSignedCurrency(row.original.growth) }}</span>
+      </template>
+    </UTable>
   </div>
 </template>

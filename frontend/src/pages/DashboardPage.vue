@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useNetWorthStore } from '../stores/networth'
 import { useValuationsStore } from '../stores/valuations'
-import { ACCOUNT_TYPE_LABELS } from '../api/types'
+import { ACCOUNT_TYPE_LABELS, type NetWorthHistoryPoint } from '../api/types'
 import { formatCurrency, formatSignedCurrency, formatDate, deltaColorClass } from '../lib/format'
 import { usePageAction } from '../composables/usePageAction'
 import StatCard from '../components/StatCard.vue'
@@ -79,6 +80,25 @@ const recentHistory = computed(() =>
       }
     }),
 )
+
+type AssetClassRow = { label: string; value: number; pct: number; fill: string; flex: number }
+
+const assetClassColumns: TableColumn<AssetClassRow>[] = [
+  { accessorKey: 'fill', header: '', meta: { class: { td: 'w-3.5' } } },
+  { accessorKey: 'label', header: '' },
+  { accessorKey: 'value', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
+  { accessorKey: 'pct', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
+]
+
+type HistoryRow = NetWorthHistoryPoint & { change: number | null }
+
+const historyColumns: TableColumn<HistoryRow>[] = [
+  { accessorKey: 'date', header: 'Date' },
+  { accessorKey: 'total_assets', header: 'Assets', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { accessorKey: 'total_liabilities', header: 'Liabilities', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { accessorKey: 'net_worth', header: 'Net worth', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { accessorKey: 'change', header: 'Change', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+]
 </script>
 
 <template>
@@ -201,23 +221,21 @@ const recentHistory = computed(() =>
                 :style="{ flexGrow: c.flex, background: c.fill }"
               />
             </div>
-            <div class="min-w-0 flex-1 overflow-x-auto">
-              <table class="w-full border-collapse">
-                <tbody>
-                  <tr v-for="c in assetsByClass" :key="c.label" class="border-b border-default">
-                    <td class="w-3.5 py-3 pr-2.5">
-                      <span class="block h-3 w-3" :style="{ background: c.fill }" />
-                    </td>
-                    <td class="py-3 pr-2.5 text-[15px]">{{ c.label }}</td>
-                    <td class="py-3 pr-3.5 text-right font-heading text-[15px] font-extrabold whitespace-nowrap">
-                      {{ formatCurrency(c.value) }}
-                    </td>
-                    <td class="py-3 text-right text-sm whitespace-nowrap text-muted">
-                      {{ (c.pct * 100).toFixed(1) }}%
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="min-w-0 flex-1">
+              <UTable :data="assetsByClass" :columns="assetClassColumns" :ui="{ thead: 'hidden' }">
+                <template #fill-cell="{ row }: { row: TableRow<AssetClassRow> }">
+                  <span class="block h-3 w-3" :style="{ background: row.original.fill }" />
+                </template>
+                <template #label-cell="{ row }: { row: TableRow<AssetClassRow> }">
+                  <span class="text-[15px]">{{ row.original.label }}</span>
+                </template>
+                <template #value-cell="{ row }: { row: TableRow<AssetClassRow> }">
+                  <span class="font-heading text-[15px] font-extrabold">{{ formatCurrency(row.original.value) }}</span>
+                </template>
+                <template #pct-cell="{ row }: { row: TableRow<AssetClassRow> }">
+                  <span class="text-sm text-muted">{{ (row.original.pct * 100).toFixed(1) }}%</span>
+                </template>
+              </UTable>
             </div>
           </div>
 
@@ -241,34 +259,25 @@ const recentHistory = computed(() =>
             <span class="text-sm text-muted">Recent valuations</span>
             <h2 class="text-[22px]">Month by month</h2>
           </div>
-          <div class="overflow-x-auto">
-            <table class="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Date</th>
-                  <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Assets</th>
-                  <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Liabilities</th>
-                  <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Net worth</th>
-                  <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Change</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in recentHistory" :key="row.date" class="border-b border-default">
-                  <td class="py-3 pr-3 text-[15.5px] whitespace-nowrap">{{ formatDate(row.date) }}</td>
-                  <td class="py-3 pl-3 text-right text-[15.5px] whitespace-nowrap">{{ formatCurrency(row.total_assets) }}</td>
-                  <td class="py-3 pl-3 text-right text-[15.5px] whitespace-nowrap text-rust">
-                    {{ formatCurrency(row.total_liabilities) }}
-                  </td>
-                  <td class="py-3 pl-3 text-right font-heading text-[15.5px] font-extrabold whitespace-nowrap">
-                    {{ formatCurrency(row.net_worth) }}
-                  </td>
-                  <td class="py-3 pl-3 text-right text-[15.5px] whitespace-nowrap" :class="deltaColorClass(row.change)">
-                    {{ row.change === null ? '—' : formatSignedCurrency(row.change) }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <UTable :data="recentHistory" :columns="historyColumns">
+            <template #date-cell="{ row }: { row: TableRow<HistoryRow> }">
+              <span class="text-[15.5px] whitespace-nowrap">{{ formatDate(row.original.date) }}</span>
+            </template>
+            <template #total_assets-cell="{ row }: { row: TableRow<HistoryRow> }">
+              <span class="text-[15.5px] whitespace-nowrap">{{ formatCurrency(row.original.total_assets) }}</span>
+            </template>
+            <template #total_liabilities-cell="{ row }: { row: TableRow<HistoryRow> }">
+              <span class="text-[15.5px] whitespace-nowrap text-rust">{{ formatCurrency(row.original.total_liabilities) }}</span>
+            </template>
+            <template #net_worth-cell="{ row }: { row: TableRow<HistoryRow> }">
+              <span class="font-heading text-[15.5px] font-extrabold whitespace-nowrap">{{ formatCurrency(row.original.net_worth) }}</span>
+            </template>
+            <template #change-cell="{ row }: { row: TableRow<HistoryRow> }">
+              <span class="text-[15.5px] whitespace-nowrap" :class="deltaColorClass(row.original.change)">
+                {{ row.original.change === null ? '—' : formatSignedCurrency(row.original.change) }}
+              </span>
+            </template>
+          </UTable>
         </section>
       </template>
 

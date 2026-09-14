@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useAccountsStore } from '../stores/accounts'
-import { useValuationsStore } from '../stores/valuations'
+import { useValuationsStore, type ValuationChange } from '../stores/valuations'
 import { useCrudForm } from '../composables/useCrudForm'
 import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
 import { ACCOUNT_TYPE_LABELS, type Account, type AccountCreate, type AccountType } from '../api/types'
-import { formatCurrency, formatPercent, formatDate, deltaColorClass } from '../lib/format'
+import { formatCurrency, formatPercent, formatDate, formatSignedCurrency, deltaColorClass } from '../lib/format'
 import EntityFormModal from '../components/EntityFormModal.vue'
 import AccountDetailPanel from '../components/AccountDetailPanel.vue'
 import EllipsisMenu from '../components/EllipsisMenu.vue'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
+import StatCard from '../components/StatCard.vue'
+import StatCardRow from '../components/StatCardRow.vue'
 
 const accountsStore = useAccountsStore()
 const valuationsStore = useValuationsStore()
@@ -45,11 +48,28 @@ const totalValue = computed(() =>
   accountsStore.accounts.reduce((sum, a) => sum + valuationsStore.currentValue(a.id), 0),
 )
 
+// Aggregated the same way as each row's own 30 d column (delta vs. the value
+// ~30 days ago), just summed across every account rather than one at a time.
+const totalChange30d = computed(() => {
+  let deltaSum = 0
+  let referenceSum = 0
+  for (const account of accountsStore.accounts) {
+    const change = valuationsStore.changeOverDays(account.id, 30)
+    if (!change) continue
+    deltaSum += change.delta
+    referenceSum += valuationsStore.currentValue(account.id) - change.delta
+  }
+  if (referenceSum === 0) return null
+  return { delta: deltaSum, ratio: deltaSum / referenceSum }
+})
+
 const filteredAccountRows = computed(() =>
-  filteredAccounts.value.map((account) => ({
-    account,
-    change: valuationsStore.changeOverDays(account.id, 30),
-  })),
+  filteredAccounts.value
+    .map((account) => ({
+      account,
+      change: valuationsStore.changeOverDays(account.id, 30),
+    }))
+    .sort((a, b) => a.account.name.localeCompare(b.account.name)),
 )
 
 function updatedLabel(account: Account) {
@@ -120,6 +140,16 @@ const detailAccountId = ref<number | null>(null)
 const detailAccount = computed(
   () => accountsStore.accounts.find((account) => account.id === detailAccountId.value) ?? null,
 )
+
+type AccountRow = { account: Account; change: ValuationChange | null }
+
+const accountColumns: TableColumn<AccountRow>[] = [
+  { id: 'name', header: 'Account' },
+  { id: 'value', header: 'Value', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'change', header: '30 d', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'updated', header: 'Updated', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
+]
 </script>
 
 <template>
@@ -158,84 +188,72 @@ const detailAccount = computed(
       @update:open="(value) => { if (!value) detailAccountId = null }"
     />
 
-    <div class="flex flex-wrap items-end gap-4">
-      <UFormField label="Search" class="w-64">
-        <UInput v-model="filters.search" placeholder="Account or institution" />
-      </UFormField>
-      <UFormField label="Type" class="w-48">
-        <USelect
-          v-model="filters.type"
-          :items="[{ label: 'All types', value: null }, ...accountTypeOptions]"
-          placeholder="All types"
-        />
-      </UFormField>
-      <span class="flex-1" />
-      <span class="pb-2 text-sm text-muted">
-        {{ accountsStore.accounts.length }} accounts · {{ formatCurrency(totalValue) }}
-      </span>
-    </div>
-
     <PageLoadingSkeleton v-if="initialLoading" />
 
     <template v-else-if="accountsStore.accounts.length > 0">
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse">
-          <thead>
-            <tr>
-              <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Account</th>
-              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Value</th>
-              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">30 d</th>
-              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Updated</th>
-              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted" />
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="{ account, change } in filteredAccountRows" :key="account.id" class="border-b border-default">
-              <td class="py-3.5 pr-3">
-                <div class="flex flex-col gap-0.5">
-                  <span class="flex items-center gap-2">
-                    <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ account.name }}</span>
-                    <UBadge v-if="account.is_emergency_fund" variant="outline" size="sm">Emergency fund</UBadge>
-                  </span>
-                  <span class="text-sm text-muted">
-                    {{ ACCOUNT_TYPE_LABELS[account.type] }}
-                    <template v-if="account.institution"> · {{ account.institution }}</template>
-                  </span>
-                </div>
-              </td>
-              <td class="py-3.5 pl-3 text-right font-heading text-[15.5px] font-extrabold whitespace-nowrap">
-                {{ formatCurrency(valuationsStore.currentValue(account.id)) }}
-              </td>
-              <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap" :class="deltaColorClass(change?.ratio ?? null)">
-                {{ change?.ratio == null ? '—' : formatPercent(change.ratio) }}
-              </td>
-              <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap text-muted">{{ updatedLabel(account) }}</td>
-              <td class="py-3.5 pl-3 text-right whitespace-nowrap">
-                <UButton
-                  variant="ghost"
-                  color="neutral"
-                  icon="i-lucide-line-chart"
-                  size="sm"
-                  title="Valuation history & holdings"
-                  @click="detailAccountId = account.id"
-                />
-                <EllipsisMenu :items="accountMenuItems(account)" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <StatCardRow>
+        <StatCard label="Total value" :value="formatCurrency(totalValue)" :note="`Across ${accountsStore.accounts.length} accounts`" />
+        <StatCard
+          label="30-day change"
+          :value="totalChange30d?.ratio == null ? '—' : formatPercent(totalChange30d.ratio)"
+          :value-color="totalChange30d?.delta == null ? 'default' : totalChange30d.delta >= 0 ? 'positive' : 'negative'"
+          :note="totalChange30d ? formatSignedCurrency(totalChange30d.delta) : undefined"
+          :note-color="totalChange30d?.delta == null ? 'muted' : totalChange30d.delta >= 0 ? 'positive' : 'negative'"
+        />
+        <StatCard
+          label="Emergency fund"
+          :value="emergencyAccounts.length > 0 ? formatCurrency(efCurrent) : '—'"
+          :note="emergencyAccounts.length > 0 ? `${Math.round(efRatio * 100)}% of ${formatCurrency(efTarget)}` : 'None set up'"
+        />
+      </StatCardRow>
+
+      <div class="flex flex-wrap items-end gap-4">
+        <UFormField label="Search" class="w-64">
+          <UInput v-model="filters.search" placeholder="Account or institution" />
+        </UFormField>
+        <UFormField label="Type" class="w-48">
+          <USelect
+            v-model="filters.type"
+            :items="[{ label: 'All types', value: null }, ...accountTypeOptions]"
+            placeholder="All types"
+          />
+        </UFormField>
       </div>
 
-      <div v-if="emergencyAccounts.length > 0" class="neu-surface bg-default flex max-w-[520px] flex-col gap-3.5 border-2 border-default p-6">
-        <span class="text-sm text-muted">Emergency fund</span>
-        <div class="flex items-baseline gap-2.5">
-          <span class="font-heading text-[30px] leading-none font-extrabold">{{ formatCurrency(efCurrent) }}</span>
-          <span class="text-[15.5px] text-muted">of {{ formatCurrency(efTarget) }}</span>
-        </div>
-        <span class="stripe-track">
-          <span class="stripe-fill" :style="{ width: `${efRatio * 100}%` }" />
-        </span>
-      </div>
+      <UTable
+        :data="filteredAccountRows"
+        :columns="accountColumns"
+        @select="(_e: Event, row: TableRow<AccountRow>) => (detailAccountId = row.original.account.id)"
+      >
+        <template #name-cell="{ row }: { row: TableRow<AccountRow> }">
+          <div class="flex flex-col gap-0.5">
+            <span class="flex items-center gap-2">
+              <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ row.original.account.name }}</span>
+              <UBadge v-if="row.original.account.is_emergency_fund" variant="outline" size="sm">Emergency fund</UBadge>
+            </span>
+            <span class="text-sm text-muted">
+              {{ ACCOUNT_TYPE_LABELS[row.original.account.type] }}
+              <template v-if="row.original.account.institution"> · {{ row.original.account.institution }}</template>
+            </span>
+          </div>
+        </template>
+        <template #value-cell="{ row }: { row: TableRow<AccountRow> }">
+          <span class="font-heading text-[15.5px] font-extrabold whitespace-nowrap">
+            {{ formatCurrency(valuationsStore.currentValue(row.original.account.id)) }}
+          </span>
+        </template>
+        <template #change-cell="{ row }: { row: TableRow<AccountRow> }">
+          <span class="whitespace-nowrap" :class="deltaColorClass(row.original.change?.ratio ?? null)">
+            {{ row.original.change?.ratio == null ? '—' : formatPercent(row.original.change.ratio) }}
+          </span>
+        </template>
+        <template #updated-cell="{ row }: { row: TableRow<AccountRow> }">
+          <span class="whitespace-nowrap text-muted">{{ updatedLabel(row.original.account) }}</span>
+        </template>
+        <template #actions-cell="{ row }: { row: TableRow<AccountRow> }">
+          <EllipsisMenu :items="accountMenuItems(row.original.account)" />
+        </template>
+      </UTable>
     </template>
 
     <UEmpty
