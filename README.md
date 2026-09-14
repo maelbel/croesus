@@ -48,6 +48,9 @@ means exactly one thing: **wealth, tracked over the long run.**
   and friends aren't shoehorned into generic "brokerage" or "savings" buckets.
 - 🏠 **Beyond the stock market** — real estate and SCPI sit alongside your
   brokerage accounts, not bolted on as an afterthought.
+- 💹 **Automatic price tracking** — give a stock, ETF, fund, or crypto
+  holding a symbol and its market value (and the account it's in) updates
+  itself from Yahoo Finance/CoinGecko, on a schedule or on demand.
 - 🆘 **Emergency fund tracking** — a target goal with a progress bar, not
   just another line in a spreadsheet.
 - ✉️ **Budget envelopes** — YNAB-style allocation buckets, kept distinct from

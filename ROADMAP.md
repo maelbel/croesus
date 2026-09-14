@@ -105,15 +105,7 @@ Two target usage modes:
       PriceCache table (source, symbol, price, fetched_at) dedupes external
       calls across assets sharing a symbol and across refreshes close in time
 
-## Phase 3 — Expense tracking extension (optional)
-
-- [ ] Decision to make when the time comes: a module integrated into
-      Croesus, or a separate app (likely cleaner given the difference
-      between daily-use tracking and wealth tracking)
-- [ ] If integrated: categorized expense tracking, linked to budget envelopes
-      (e.g. a "Vacation" expense decrements the matching envelope)
-
-## Phase 4 — Internationalization
+## Phase 3 — Internationalization
 
 - [ ] UI language support (i18n) — externalize frontend strings, start with
       French + English
@@ -121,7 +113,7 @@ Two target usage modes:
       currency for the consolidated net worth view (supersedes the earlier
       "EUR only" non-goal)
 
-## Phase 5 — Advanced analytics
+## Phase 4 — Advanced analytics
 
 - [ ] Performance against market — compare portfolio return (XIRR) against a
       benchmark index (CAC 40, S&P 500, MSCI World...) over the same period
@@ -133,13 +125,13 @@ Two target usage modes:
 - [ ] Tax-wrapper limit tracking — flag accounts approaching contribution
       ceilings (PEA €150k, Livret A cap, etc.)
 
-## Phase 6 — Household sharing (optional)
+## Phase 5 — Household sharing (optional)
 
 - [ ] Shared/household net worth — multiple users on one instance, with
       some accounts shared and others kept private (supersedes the earlier
       single-user non-goal)
 
-## Phase 7 — Data portability & reliability
+## Phase 6 — Data portability & reliability
 
 - [ ] Import from spreadsheet/CSV (bootstrapping from an existing manual
       tracker)
@@ -149,7 +141,7 @@ Two target usage modes:
 - [ ] Valuation staleness reminders (e.g. "account X hasn't been updated in
       60 days")
 
-## Phase 8 — Bank aggregation
+## Phase 7 — Bank aggregation
 
 - [ ] Powens (formerly Budget Insight) or Bridge API integration for
       automatic sync of French bank accounts
@@ -159,7 +151,7 @@ Two target usage modes:
 
 ## Non-goals (for now)
 
-- Automated financial advice (projections stay simple — see Phase 6)
+- Automated financial advice (projections stay simple — see Phase 4)
 - Automated cross-platform builds (will come via CI/CD — GitHub Actions —
   rather than locally from the Pi, which can't natively compile Windows/macOS
   binaries)
