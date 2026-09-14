@@ -183,9 +183,9 @@ async function refreshPrices() {
 }
 
 const valuationColumns: TableColumn<Valuation>[] = [
-  { accessorKey: 'date', header: '' },
-  { accessorKey: 'value', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
-  { id: 'note', header: '' },
+  { accessorKey: 'date', header: 'Date' },
+  { accessorKey: 'value', header: 'Value', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'note', header: 'Note' },
   { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
 ]
 
@@ -278,7 +278,7 @@ const detailTabs = [
                 </UButton>
               </UForm>
 
-              <UTable v-if="accountValuations.length > 0" :data="accountValuations" :columns="valuationColumns" :ui="{ thead: 'hidden' }">
+              <UTable v-if="accountValuations.length > 0" :data="accountValuations" :columns="valuationColumns">
                 <template #date-cell="{ row }: { row: TableRow<Valuation> }">
                   <span class="text-sm whitespace-nowrap text-muted">{{ formatDate(row.original.date) }}</span>
                 </template>
