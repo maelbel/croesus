@@ -15,11 +15,20 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      # A release created with the default GITHUB_TOKEN can't trigger other
+      # workflows (GitHub's anti-recursion rule), so publish.yml would never
+      # fire on the resulting release — a GitHub App token escapes that rule
+      # the same way a PAT would. Unlike a PAT, GitHub also auto-signs
+      # commits made by an authenticated App using its own identity, which
+      # satisfies this repo's required-signatures rule without a manual
+      # bypass on every release PR.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          # A release created with the default GITHUB_TOKEN can't trigger other
-          # workflows (GitHub's anti-recursion rule), so publish.yml would never
-          # fire on the resulting release. RELEASE_PAT is a fine-grained PAT
-          # scoped to just this repo (contents + pull requests, read & write).
-          token: ${{ secrets.RELEASE_PAT }}
+          token: ${{ steps.app-token.outputs.token }}
