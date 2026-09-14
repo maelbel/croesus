@@ -107,7 +107,7 @@ Two target usage modes:
 
 ## Phase 3 — Internationalization
 
-- [ ] UI language support (i18n) — externalize frontend strings, start with
+- [x] UI language support (i18n) — externalize frontend strings, start with
       French + English
 - [ ] Multi-currency — per-account currency, conversion to a reference
       currency for the consolidated net worth view (supersedes the earlier
