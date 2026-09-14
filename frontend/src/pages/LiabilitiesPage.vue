@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
+import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useCrudForm } from '../composables/useCrudForm'
 import { useDeleteAction } from '../composables/useDeleteAction'
@@ -109,6 +110,14 @@ function liabilityMenuItems(liability: Liability) {
     { label: 'Delete', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeLiability(liability) },
   ]
 }
+
+const liabilityColumns: TableColumn<Liability>[] = [
+  { accessorKey: 'name', header: 'Liability' },
+  { accessorKey: 'remaining_amount', header: 'Remaining', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { accessorKey: 'monthly_payment', header: 'Monthly', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'paidOff', header: 'Paid off', meta: { class: { th: 'w-[150px] pl-6' } } },
+  { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
+]
 </script>
 
 <template>
@@ -176,50 +185,35 @@ function liabilityMenuItems(liability: Liability) {
         </UFormField>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse">
-          <thead>
-            <tr>
-              <th class="border-b-2 border-default pb-2.5 text-left text-xs font-semibold text-muted">Liability</th>
-              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Remaining</th>
-              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted">Monthly</th>
-              <th class="w-[150px] border-b-2 border-default pb-2.5 pl-6 text-left text-xs font-semibold text-muted">Paid off</th>
-              <th class="border-b-2 border-default pb-2.5 pl-3 text-right text-xs font-semibold text-muted" />
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="liability in filteredLiabilities" :key="liability.id" class="border-b border-default">
-              <td class="py-3.5 pr-3">
-                <div class="flex flex-col gap-0.5">
-                  <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ liability.name }}</span>
-                  <span class="text-sm whitespace-nowrap text-muted">
-                    {{ LIABILITY_TYPE_LABELS[liability.type] }}
-                    <template v-if="liability.interest_rate"> · {{ formatRate(Number(liability.interest_rate)) }}</template>
-                    <template v-if="liability.end_date"> · ends {{ formatDate(liability.end_date) }}</template>
-                  </span>
-                </div>
-              </td>
-              <td class="py-3.5 pl-3 text-right font-heading text-[15.5px] font-extrabold whitespace-nowrap text-rust">
-                {{ formatCurrency(liability.remaining_amount) }}
-              </td>
-              <td class="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap">
-                {{ liability.monthly_payment ? formatCurrency(liability.monthly_payment) : '—' }}
-              </td>
-              <td class="py-3.5 pl-6">
-                <span class="flex items-center gap-2.5">
-                  <span class="stripe-track flex-1">
-                    <span class="stripe-fill paid-off-fill" :style="{ width: `${paidRatio(liability) * 100}%` }" />
-                  </span>
-                  <span class="min-w-[34px] text-right text-sm text-muted">{{ Math.round(paidRatio(liability) * 100) }}%</span>
-                </span>
-              </td>
-              <td class="py-3.5 pl-3 text-right whitespace-nowrap">
-                <EllipsisMenu :items="liabilityMenuItems(liability)" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <UTable :data="filteredLiabilities" :columns="liabilityColumns">
+        <template #name-cell="{ row }: { row: TableRow<Liability> }">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ row.original.name }}</span>
+            <span class="text-sm whitespace-nowrap text-muted">
+              {{ LIABILITY_TYPE_LABELS[row.original.type] }}
+              <template v-if="row.original.interest_rate"> · {{ formatRate(Number(row.original.interest_rate)) }}</template>
+              <template v-if="row.original.end_date"> · ends {{ formatDate(row.original.end_date) }}</template>
+            </span>
+          </div>
+        </template>
+        <template #remaining_amount-cell="{ row }: { row: TableRow<Liability> }">
+          <span class="font-heading text-[15.5px] font-extrabold whitespace-nowrap text-rust">{{ formatCurrency(row.original.remaining_amount) }}</span>
+        </template>
+        <template #monthly_payment-cell="{ row }: { row: TableRow<Liability> }">
+          <span class="text-[15px]">{{ row.original.monthly_payment ? formatCurrency(row.original.monthly_payment) : '—' }}</span>
+        </template>
+        <template #paidOff-cell="{ row }: { row: TableRow<Liability> }">
+          <span class="flex items-center gap-2.5">
+            <span class="stripe-track flex-1">
+              <span class="stripe-fill paid-off-fill" :style="{ width: `${paidRatio(row.original) * 100}%` }" />
+            </span>
+            <span class="min-w-[34px] text-right text-sm text-muted">{{ Math.round(paidRatio(row.original) * 100) }}%</span>
+          </span>
+        </template>
+        <template #actions-cell="{ row }: { row: TableRow<Liability> }">
+          <EllipsisMenu :items="liabilityMenuItems(row.original)" />
+        </template>
+      </UTable>
     </template>
 
     <UEmpty

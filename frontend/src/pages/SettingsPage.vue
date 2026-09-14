@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { isTauri } from '@tauri-apps/api/core'
 import { useToast } from '@nuxt/ui/composables'
-import { SKINS, useThemeStore } from '../stores/theme'
+import { SKINS, useThemeStore, type Skin } from '../stores/theme'
 import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
@@ -105,23 +105,15 @@ async function deleteAllData() {
         <span class="font-heading text-[16.5px] font-extrabold">Theme</span>
         <span class="text-sm text-muted">Same data, different visual language.</span>
       </div>
-      <div class="flex flex-wrap gap-3">
-        <button
-          v-for="s in SKINS"
-          :key="s.value"
-          type="button"
-          class="flex w-48 cursor-pointer flex-col gap-1.5 rounded-md border p-4 text-left"
-          :class="
-            themeStore.skin === s.value
-              ? 'neu-inset border-primary bg-elevated'
-              : 'neu-surface border-default hover:bg-elevated'
-          "
-          @click="themeStore.setSkin(s.value)"
-        >
-          <span class="font-heading text-[15px] font-extrabold">{{ s.label }}</span>
-          <span class="text-sm text-muted">{{ s.description }}</span>
-        </button>
-      </div>
+      <URadioGroup
+        :model-value="themeStore.skin"
+        :items="SKINS"
+        variant="card"
+        indicator="hidden"
+        orientation="horizontal"
+        :ui="{ fieldset: 'flex-wrap gap-3', item: 'w-48 rounded-md', label: 'font-heading font-extrabold', description: 'text-sm' }"
+        @update:model-value="(value: Skin) => themeStore.setSkin(value)"
+      />
     </div>
 
     <div class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6">

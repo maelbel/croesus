@@ -51,7 +51,7 @@ async function signInWithSso() {
       <span class="text-sm text-muted">Sign in to this server.</span>
     </div>
 
-    <form v-if="authStore.passwordEnabled" class="flex flex-col gap-4" @submit.prevent="submit">
+    <UForm v-if="authStore.passwordEnabled" class="flex flex-col gap-4" @submit="submit">
       <UFormField label="Username">
         <UInput v-model="username" autocomplete="username" autofocus class="w-full" />
       </UFormField>
@@ -59,7 +59,7 @@ async function signInWithSso() {
         <UInput v-model="password" type="password" autocomplete="current-password" class="w-full" />
       </UFormField>
       <UButton type="submit" block :loading="submitting">Sign in</UButton>
-    </form>
+    </UForm>
 
     <div v-if="authStore.passwordEnabled && authStore.oidcEnabled" class="flex items-center gap-3">
       <div class="h-px flex-1 bg-default" />

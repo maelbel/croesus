@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useToast } from '@nuxt/ui/composables'
+import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useValuationsStore } from '../stores/valuations'
 import { useAssetsStore } from '../stores/assets'
 import { useCrudForm } from '../composables/useCrudForm'
@@ -112,11 +113,14 @@ const assetForm = useCrudForm<Asset, AssetFormValues, AssetUpdate>({
   update: (id, payload) => assetsStore.update(id, payload),
 })
 
+const activeTab = ref<'history' | 'holdings'>('history')
+
 watch(
   () => [props.open, props.account?.id],
   () => {
     valuationForm.openCreate()
     assetForm.openCreate()
+    activeTab.value = 'history'
   },
 )
 
@@ -137,6 +141,19 @@ function marketValue(asset: Asset) {
 function unrealizedGain(asset: Asset): number | null {
   return asset.current_price !== null ? marketValue(asset) - costBasis(asset) : null
 }
+
+function weightPct(asset: Asset): number {
+  return totalMarketValue.value > 0 ? marketValue(asset) / totalMarketValue.value : 0
+}
+
+const totalUnrealizedGain = computed(() => {
+  const withPrice = accountAssets.value.filter((asset) => asset.current_price !== null)
+  if (withPrice.length === 0) return null
+  return withPrice.reduce((sum, asset) => sum + (unrealizedGain(asset) ?? 0), 0)
+})
+
+// Biggest holdings first by default — more useful than API/creation order.
+const sortedAssets = computed(() => [...accountAssets.value].sort((a, b) => marketValue(b) - marketValue(a)))
 
 const deleteAsset = useDeleteAction('holding')
 
@@ -165,15 +182,25 @@ async function refreshPrices() {
   }
 }
 
-const holdingsMenuItems = computed(() => [
-  {
-    label: assetsStore.refreshingPrices ? 'Refreshing prices…' : 'Refresh prices',
-    icon: 'i-lucide-refresh-cw',
-    loading: assetsStore.refreshingPrices,
-    disabled: assetsStore.refreshingPrices,
-    onSelect: () => refreshPrices(),
-  },
-])
+const valuationColumns: TableColumn<Valuation>[] = [
+  { accessorKey: 'date', header: '' },
+  { accessorKey: 'value', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
+  { id: 'note', header: '' },
+  { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
+]
+
+const holdingsColumns: TableColumn<Asset>[] = [
+  { accessorKey: 'name', header: 'Holding', footer: '' },
+  { accessorKey: 'quantity', header: 'Qty', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'price', header: 'Price', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'marketValue', header: 'Value', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } }, footer: '' },
+  { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
+]
+
+const detailTabs = [
+  { label: 'History', value: 'history', slot: 'history' as const },
+  { label: 'Holdings', value: 'holdings', slot: 'holdings' as const },
+]
 </script>
 
 <template>
@@ -217,154 +244,182 @@ const holdingsMenuItems = computed(() => [
           <p v-if="account.notes" class="text-sm text-muted">{{ account.notes }}</p>
         </section>
 
-        <section class="flex flex-col gap-3.5">
-          <h3 class="text-sm font-semibold text-muted">Valuation history</h3>
+        <UTabs v-model="activeTab" :items="detailTabs" class="w-full">
+          <template #history>
+            <div class="flex flex-col gap-3.5 pt-4">
+              <p v-if="hasHoldings" class="text-sm text-muted">
+                This account's value is calculated automatically from its holdings below. A manual
+                entry for today will be overwritten next time prices refresh.
+              </p>
 
-          <p v-if="hasHoldings" class="text-sm text-muted">
-            This account's value is calculated automatically from its holdings below. A manual
-            entry for today will be overwritten next time prices refresh.
-          </p>
+              <UForm
+                class="neu-inset flex flex-wrap items-end gap-3 p-4"
+                @submit="valuationForm.submit()"
+              >
+                <UFormField label="Date">
+                  <UInput v-model="valuationForm.state.form.date" type="date" />
+                </UFormField>
+                <UFormField label="Value">
+                  <UInput v-model="valuationForm.state.form.value" type="number" placeholder="12500" />
+                </UFormField>
+                <UFormField label="Note" class="min-w-[140px] flex-1">
+                  <UInput v-model="valuationForm.state.form.note" placeholder="Optional" />
+                </UFormField>
+                <UButton type="submit" :loading="valuationForm.state.submitting">
+                  {{ valuationForm.state.isEditing ? 'Save' : 'Add' }}
+                </UButton>
+                <UButton
+                  v-if="valuationForm.state.isEditing"
+                  variant="ghost"
+                  color="neutral"
+                  @click="valuationForm.openCreate()"
+                >
+                  Cancel
+                </UButton>
+              </UForm>
 
-          <form
-            class="neu-inset flex flex-wrap items-end gap-3 p-4"
-            @submit.prevent="valuationForm.submit()"
-          >
-            <UFormField label="Date">
-              <UInput v-model="valuationForm.state.form.date" type="date" />
-            </UFormField>
-            <UFormField label="Value">
-              <UInput v-model="valuationForm.state.form.value" type="number" placeholder="12500" />
-            </UFormField>
-            <UFormField label="Note" class="min-w-[140px] flex-1">
-              <UInput v-model="valuationForm.state.form.note" placeholder="Optional" />
-            </UFormField>
-            <UButton type="submit" :loading="valuationForm.state.submitting">
-              {{ valuationForm.state.isEditing ? 'Save' : 'Add' }}
-            </UButton>
-            <UButton
-              v-if="valuationForm.state.isEditing"
-              variant="ghost"
-              color="neutral"
-              @click="valuationForm.openCreate()"
-            >
-              Cancel
-            </UButton>
-          </form>
-
-          <div v-if="accountValuations.length > 0" class="overflow-x-auto">
-            <table class="w-full border-collapse">
-              <tbody>
-                <tr v-for="valuation in accountValuations" :key="valuation.id" class="border-b border-default">
-                  <td class="py-2.5 pr-3 text-sm whitespace-nowrap text-muted">{{ formatDate(valuation.date) }}</td>
-                  <td class="py-2.5 pr-3 text-right text-[15px] font-semibold whitespace-nowrap">
-                    {{ formatCurrency(valuation.value) }}
-                  </td>
-                  <td class="py-2.5 pr-3 text-sm text-muted">
-                    <UBadge v-if="valuation.note === AUTO_VALUATION_NOTE" variant="outline" size="sm" icon="i-lucide-refresh-cw">
+              <UTable v-if="accountValuations.length > 0" :data="accountValuations" :columns="valuationColumns" :ui="{ thead: 'hidden' }">
+                <template #date-cell="{ row }: { row: TableRow<Valuation> }">
+                  <span class="text-sm whitespace-nowrap text-muted">{{ formatDate(row.original.date) }}</span>
+                </template>
+                <template #value-cell="{ row }: { row: TableRow<Valuation> }">
+                  <span class="text-[15px] font-semibold whitespace-nowrap">{{ formatCurrency(row.original.value) }}</span>
+                </template>
+                <template #note-cell="{ row }: { row: TableRow<Valuation> }">
+                  <span class="text-sm text-muted">
+                    <UBadge v-if="row.original.note === AUTO_VALUATION_NOTE" variant="outline" size="sm" icon="i-lucide-refresh-cw">
                       Auto (holdings)
                     </UBadge>
-                    <template v-else>{{ valuation.note }}</template>
-                  </td>
-                  <td class="py-2.5 text-right whitespace-nowrap">
-                    <EllipsisMenu :items="valuationMenuItems(valuation)" size="xs" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <UEmpty
-            v-else
-            icon="i-lucide-line-chart"
-            title="No valuations yet"
-            description="Add one above to start tracking this account's value over time."
-            class="neu-inset"
-          />
-        </section>
+                    <template v-else>{{ row.original.note }}</template>
+                  </span>
+                </template>
+                <template #actions-cell="{ row }: { row: TableRow<Valuation> }">
+                  <EllipsisMenu :items="valuationMenuItems(row.original)" size="xs" />
+                </template>
+              </UTable>
+              <UEmpty
+                v-else
+                icon="i-lucide-line-chart"
+                title="No valuations yet"
+                description="Add one above to start tracking this account's value over time."
+                class="neu-inset"
+              />
+            </div>
+          </template>
 
-        <section class="flex flex-col gap-3.5">
-          <div class="flex h-5 items-center justify-between">
-            <h3 class="text-sm font-semibold text-muted">Holdings</h3>
-            <EllipsisMenu v-if="accountAssets.some((asset) => asset.symbol)" :items="holdingsMenuItems" size="xs" />
-          </div>
+          <template #holdings>
+            <div class="flex flex-col gap-3.5 pt-4">
+              <UForm class="neu-inset flex flex-wrap items-end gap-3 p-4" @submit="assetForm.submit()">
+                <UFormField label="Name">
+                  <UInput v-model="assetForm.state.form.name" placeholder="S&P 500 ETF" />
+                </UFormField>
+                <UFormField class="w-32">
+                  <template #label>
+                    <span class="inline-flex items-center gap-1">
+                      Symbol
+                      <UTooltip text="Yahoo Finance ticker (e.g. AAPL, CW8.PA) or crypto symbol (BTC, ETH...) for automatic pricing">
+                        <UIcon name="i-lucide-info" class="text-muted" />
+                      </UTooltip>
+                    </span>
+                  </template>
+                  <UInput v-model="assetForm.state.form.symbol" placeholder="AAPL / CW8.PA / BTC" class="w-full" />
+                </UFormField>
+                <UFormField label="Class">
+                  <USelect v-model="assetForm.state.form.asset_class" :items="assetClassOptions()" class="w-36" />
+                </UFormField>
+                <div class="flex items-end gap-3">
+                  <UFormField label="Quantity">
+                    <UInput v-model="assetForm.state.form.quantity" type="number" placeholder="10" class="w-24" />
+                  </UFormField>
+                  <UFormField label="Unit cost">
+                    <UInput v-model="assetForm.state.form.unit_cost" type="number" placeholder="420.50" class="w-28" />
+                  </UFormField>
+                </div>
+                <UButton type="submit" :loading="assetForm.state.submitting">
+                  {{ assetForm.state.isEditing ? 'Save' : 'Add' }}
+                </UButton>
+                <UButton
+                  v-if="assetForm.state.isEditing"
+                  variant="ghost"
+                  color="neutral"
+                  @click="assetForm.openCreate()"
+                >
+                  Cancel
+                </UButton>
+              </UForm>
 
-          <form class="neu-inset flex flex-wrap items-end gap-3 p-4" @submit.prevent="assetForm.submit()">
-            <UFormField label="Name">
-              <UInput v-model="assetForm.state.form.name" placeholder="S&P 500 ETF" />
-            </UFormField>
-            <UFormField label="Symbol" description="Yahoo Finance ticker (e.g. AAPL, CW8.PA) or crypto symbol (BTC, ETH...) for automatic pricing">
-              <UInput v-model="assetForm.state.form.symbol" placeholder="AAPL / CW8.PA / BTC" class="w-32" />
-            </UFormField>
-            <UFormField label="Class">
-              <USelect v-model="assetForm.state.form.asset_class" :items="assetClassOptions()" class="w-36" />
-            </UFormField>
-            <UFormField label="Quantity">
-              <UInput v-model="assetForm.state.form.quantity" type="number" placeholder="10" class="w-24" />
-            </UFormField>
-            <UFormField label="Unit cost">
-              <UInput v-model="assetForm.state.form.unit_cost" type="number" placeholder="420.50" class="w-28" />
-            </UFormField>
-            <UButton type="submit" :loading="assetForm.state.submitting">
-              {{ assetForm.state.isEditing ? 'Save' : 'Add' }}
-            </UButton>
-            <UButton
-              v-if="assetForm.state.isEditing"
-              variant="ghost"
-              color="neutral"
-              @click="assetForm.openCreate()"
-            >
-              Cancel
-            </UButton>
-          </form>
-
-          <div v-if="accountAssets.length > 0" class="overflow-x-auto">
-            <table class="w-full border-collapse">
-              <tbody>
-                <tr v-for="asset in accountAssets" :key="asset.id" class="border-b border-default">
-                  <td class="py-2.5 pr-3">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-[15px] font-semibold whitespace-nowrap">{{ asset.name }}</span>
-                      <span class="text-sm text-muted">
-                        {{ ASSET_CLASS_LABELS[asset.asset_class] }}
-                        <template v-if="asset.symbol"> · {{ asset.symbol }}</template>
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    class="py-2.5 pr-3 text-right text-sm whitespace-nowrap text-muted"
-                    :title="asset.price_updated_at ? `Live price as of ${formatDate(asset.price_updated_at)}` : 'No live price yet — showing cost basis'"
-                  >
-                    {{ asset.quantity }} × {{ formatCurrency(currentPrice(asset)) }}
-                    <UIcon v-if="asset.current_price !== null" name="i-lucide-radio" class="text-primary" />
-                  </td>
-                  <td class="py-2.5 pr-3 text-right whitespace-nowrap">
-                    <div class="text-[15px] font-semibold">{{ formatCurrency(marketValue(asset)) }}</div>
-                    <div v-if="unrealizedGain(asset) !== null" class="text-xs" :class="deltaColorClass(unrealizedGain(asset))">
-                      {{ formatSignedCurrency(unrealizedGain(asset)!) }}
-                    </div>
-                  </td>
-                  <td class="py-2.5 text-right whitespace-nowrap">
-                    <EllipsisMenu :items="assetMenuItems(asset)" size="xs" />
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td class="pt-2.5 text-sm text-muted">{{ accountAssets.length }} holding{{ accountAssets.length === 1 ? '' : 's' }}</td>
-                  <td />
-                  <td class="pt-2.5 text-right text-sm font-semibold whitespace-nowrap">{{ formatCurrency(totalMarketValue) }}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          <UEmpty
-            v-else
-            icon="i-lucide-briefcase"
-            title="No holdings yet"
-            description="Add one above — set a symbol to pick up a live market price automatically."
-            class="neu-inset"
-          />
-        </section>
+              <UTable v-if="accountAssets.length > 0" :data="sortedAssets" :columns="holdingsColumns">
+                <template #name-cell="{ row }: { row: TableRow<Asset> }">
+                  <div class="flex flex-col gap-0.5">
+                    <span class="text-[15px] font-semibold whitespace-nowrap">{{ row.original.name }}</span>
+                    <span class="text-sm text-muted">
+                      {{ ASSET_CLASS_LABELS[row.original.asset_class] }}
+                      <template v-if="row.original.symbol"> · {{ row.original.symbol }}</template>
+                    </span>
+                    <span v-if="accountAssets.length > 1" class="text-xs text-muted">
+                      {{ Math.round(weightPct(row.original) * 100) }}% of holdings
+                    </span>
+                  </div>
+                </template>
+                <template #name-footer>
+                  <span class="text-sm text-muted">
+                    {{ accountAssets.length }} holding{{ accountAssets.length === 1 ? '' : 's' }}
+                    <template v-if="totalUnrealizedGain !== null">
+                      ·
+                      <span :class="deltaColorClass(totalUnrealizedGain)">{{ formatSignedCurrency(totalUnrealizedGain) }}</span>
+                      unrealized
+                    </template>
+                  </span>
+                </template>
+                <template #quantity-cell="{ row }: { row: TableRow<Asset> }">
+                  <span class="whitespace-nowrap text-sm text-muted">{{ row.original.quantity }}</span>
+                </template>
+                <template #price-cell="{ row }: { row: TableRow<Asset> }">
+                  <UTooltip :text="row.original.price_updated_at ? `Live price as of ${formatDate(row.original.price_updated_at)}` : 'No live price yet — showing cost basis'">
+                    <span class="inline-flex items-center gap-1 whitespace-nowrap text-sm text-muted">
+                      {{ formatCurrency(currentPrice(row.original)) }}
+                      <UIcon v-if="row.original.current_price !== null" name="i-lucide-radio" class="text-primary" />
+                    </span>
+                  </UTooltip>
+                </template>
+                <template #marketValue-cell="{ row }: { row: TableRow<Asset> }">
+                  <div class="text-[15px] font-semibold">{{ formatCurrency(marketValue(row.original)) }}</div>
+                  <div v-if="unrealizedGain(row.original) !== null" class="text-xs" :class="deltaColorClass(unrealizedGain(row.original))">
+                    {{ formatSignedCurrency(unrealizedGain(row.original)!) }}
+                  </div>
+                </template>
+                <template #marketValue-footer>
+                  <span class="text-sm font-semibold whitespace-nowrap">{{ formatCurrency(totalMarketValue) }}</span>
+                </template>
+                <template #actions-header>
+                  <div v-if="accountAssets.some((asset) => asset.symbol)" class="flex justify-end">
+                    <UButton
+                      variant="ghost"
+                      color="neutral"
+                      size="xs"
+                      icon="i-lucide-refresh-cw"
+                      :loading="assetsStore.refreshingPrices"
+                      :disabled="assetsStore.refreshingPrices"
+                      @click="refreshPrices"
+                    >
+                      {{ assetsStore.refreshingPrices ? 'Refreshing…' : 'Refresh' }}
+                    </UButton>
+                  </div>
+                </template>
+                <template #actions-cell="{ row }: { row: TableRow<Asset> }">
+                  <EllipsisMenu :items="assetMenuItems(row.original)" size="xs" />
+                </template>
+              </UTable>
+              <UEmpty
+                v-else
+                icon="i-lucide-briefcase"
+                title="No holdings yet"
+                description="Add one above — set a symbol to pick up a live market price automatically."
+                class="neu-inset"
+              />
+            </div>
+          </template>
+        </UTabs>
       </div>
     </template>
   </USlideover>

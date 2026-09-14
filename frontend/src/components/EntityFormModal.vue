@@ -25,9 +25,9 @@ const formId = useId()
 <template>
   <UModal :open="open" :title="title" @update:open="emit('update:open', $event)">
     <template #body>
-      <form :id="formId" class="flex flex-col gap-3.5" @submit.prevent="emit('submit')">
+      <UForm :id="formId" class="flex flex-col gap-3.5" @submit="emit('submit')">
         <slot />
-      </form>
+      </UForm>
     </template>
     <template #footer>
       <div class="flex flex-1 justify-end gap-2.5">
