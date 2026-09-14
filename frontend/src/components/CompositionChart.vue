@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAccountsStore } from '../stores/accounts'
 import { useValuationsStore } from '../stores/valuations'
 import { useNetWorthStore } from '../stores/networth'
-import { ACCOUNT_TYPE_LABELS } from '../api/types'
+import { accountTypeLabel, type AccountType } from '../api/types'
 import { formatCurrency, formatDate } from '../lib/format'
 
+const { t } = useI18n()
 const accountsStore = useAccountsStore()
 const valuationsStore = useValuationsStore()
 const netWorthStore = useNetWorthStore()
@@ -76,7 +78,7 @@ const chart = computed(() => {
     const backward = lower.map((v, i) => `${x(i)},${y(v)}`).reverse()
     const points = forward.concat(backward).join(' ')
     const fill = `var(--band-${(idx % 6) + 1})`
-    const polygon = { label: ACCOUNT_TYPE_LABELS[type as keyof typeof ACCOUNT_TYPE_LABELS], points, fill }
+    const polygon = { label: accountTypeLabel(type as AccountType), points, fill }
     lower = upper
     return polygon
   })
@@ -137,7 +139,7 @@ const chart = computed(() => {
       </span>
       <span class="flex items-center gap-1.5">
         <span class="block h-[2.5px] w-4.5" style="background: var(--ui-rust)" />
-        Liabilities
+        {{ t('compositionChart.liabilitiesLegend') }}
       </span>
     </div>
   </div>

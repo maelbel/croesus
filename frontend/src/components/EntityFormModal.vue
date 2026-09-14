@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { useId } from 'vue'
+import { useId, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     open: boolean
     title: string
@@ -9,7 +10,7 @@ withDefaults(
     loading?: boolean
   }>(),
   {
-    submitLabel: 'Save',
+    submitLabel: undefined,
     loading: false,
   },
 )
@@ -19,7 +20,9 @@ const emit = defineEmits<{
   submit: []
 }>()
 
+const { t } = useI18n()
 const formId = useId()
+const resolvedSubmitLabel = computed(() => props.submitLabel ?? t('common.save'))
 </script>
 
 <template>
@@ -31,8 +34,8 @@ const formId = useId()
     </template>
     <template #footer>
       <div class="flex flex-1 justify-end gap-2.5">
-        <UButton variant="ghost" color="neutral" label="Cancel" @click="emit('update:open', false)" />
-        <UButton :form="formId" type="submit" :label="submitLabel" :loading="loading" />
+        <UButton variant="ghost" color="neutral" :label="t('common.cancel')" @click="emit('update:open', false)" />
+        <UButton :form="formId" type="submit" :label="resolvedSubmitLabel" :loading="loading" />
       </div>
     </template>
   </UModal>

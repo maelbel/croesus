@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { isTauri, invoke } from '@tauri-apps/api/core'
 import { useAuthStore } from '../stores/auth'
 import { resolveBaseUrl } from '../api/client'
 import { errorMessage } from '../lib/errors'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const username = ref('')
 const password = ref('')
@@ -33,7 +35,7 @@ async function signInWithSso() {
       const token = await invoke<string>('start_oidc_login', { serverUrl: resolveBaseUrl() })
       authStore.setToken(token)
     } catch (e) {
-      authStore.setError(errorMessage(e, 'SSO sign-in failed'))
+      authStore.setError(errorMessage(e, t('login.ssoFailed')))
     } finally {
       ssoSubmitting.value = false
     }
@@ -48,22 +50,22 @@ async function signInWithSso() {
   <div class="neu-surface flex w-80 flex-col gap-4 border border-default p-8">
     <div class="flex flex-col gap-1">
       <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
-      <span class="text-sm text-muted">Sign in to this server.</span>
+      <span class="text-sm text-muted">{{ t('login.tagline') }}</span>
     </div>
 
     <UForm v-if="authStore.passwordEnabled" class="flex flex-col gap-4" @submit="submit">
-      <UFormField label="Username">
+      <UFormField :label="t('login.username')">
         <UInput v-model="username" autocomplete="username" autofocus class="w-full" />
       </UFormField>
-      <UFormField label="Password">
+      <UFormField :label="t('login.password')">
         <UInput v-model="password" type="password" autocomplete="current-password" class="w-full" />
       </UFormField>
-      <UButton type="submit" block :loading="submitting">Sign in</UButton>
+      <UButton type="submit" block :loading="submitting">{{ t('login.signIn') }}</UButton>
     </UForm>
 
     <div v-if="authStore.passwordEnabled && authStore.oidcEnabled" class="flex items-center gap-3">
       <div class="h-px flex-1 bg-default" />
-      <span class="text-xs text-muted">or</span>
+      <span class="text-xs text-muted">{{ t('login.or') }}</span>
       <div class="h-px flex-1 bg-default" />
     </div>
 
@@ -75,7 +77,7 @@ async function signInWithSso() {
       :loading="ssoSubmitting"
       @click="signInWithSso"
     >
-      Sign in with {{ authStore.oidcDisplayName }}
+      {{ t('login.signInWith', { provider: authStore.oidcDisplayName }) }}
     </UButton>
 
     <p v-if="authStore.error" class="text-sm text-error">{{ authStore.error }}</p>

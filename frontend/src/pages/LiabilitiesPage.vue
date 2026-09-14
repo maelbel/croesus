@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useCrudForm } from '../composables/useCrudForm'
 import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
-import { LIABILITY_TYPE_LABELS, type Liability, type LiabilityCreate, type LiabilityType } from '../api/types'
+import { LIABILITY_TYPES, liabilityTypeLabel, type Liability, type LiabilityCreate, type LiabilityType } from '../api/types'
 import { formatCurrency, formatRate, formatDate } from '../lib/format'
 import StatCard from '../components/StatCard.vue'
 import StatCardRow from '../components/StatCardRow.vue'
@@ -13,16 +14,16 @@ import EntityFormModal from '../components/EntityFormModal.vue'
 import EllipsisMenu from '../components/EllipsisMenu.vue'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 
+const { t } = useI18n()
 const liabilitiesStore = useLiabilitiesStore()
 
 // Only while the very first fetch is still in flight — once any liabilities
 // exist, later refetches (after a create/update/remove) don't re-show this.
 const initialLoading = computed(() => liabilitiesStore.loading && liabilitiesStore.liabilities.length === 0)
 
-const liabilityTypeOptions = Object.entries(LIABILITY_TYPE_LABELS).map(([value, label]) => ({
-  label,
-  value: value as LiabilityType,
-}))
+const liabilityTypeOptions = computed(() =>
+  LIABILITY_TYPES.map((value) => ({ label: liabilityTypeLabel(value), value })),
+)
 
 const filters = reactive({
   search: '',
@@ -80,7 +81,7 @@ function liabilityFormDefaults(): LiabilityCreate {
 }
 
 const liabilityForm = useCrudForm<Liability, LiabilityCreate>({
-  entityLabel: 'liability',
+  entityKey: 'liability',
   createDefaults: liabilityFormDefaults,
   toFormValues: (liability) => ({
     name: liability.name,
@@ -96,61 +97,61 @@ const liabilityForm = useCrudForm<Liability, LiabilityCreate>({
   update: (id, payload) => liabilitiesStore.update(id, payload),
 })
 
-usePageAction('Add a liability', () => liabilityForm.openCreate())
+usePageAction(() => t('liabilities.addTitle'), () => liabilityForm.openCreate())
 
 const deleteLiability = useDeleteAction('liability')
 
 async function removeLiability(liability: Liability) {
-  await deleteLiability(`Delete "${liability.name}"?`, () => liabilitiesStore.remove(liability.id))
+  await deleteLiability(t('liabilities.deleteConfirm', { name: liability.name }), () => liabilitiesStore.remove(liability.id))
 }
 
 function liabilityMenuItems(liability: Liability) {
   return [
-    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => liabilityForm.openEdit(liability) },
-    { label: 'Delete', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeLiability(liability) },
+    { label: t('common.edit'), icon: 'i-lucide-pencil', onSelect: () => liabilityForm.openEdit(liability) },
+    { label: t('common.delete'), icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeLiability(liability) },
   ]
 }
 
-const liabilityColumns: TableColumn<Liability>[] = [
-  { accessorKey: 'name', header: 'Liability' },
-  { accessorKey: 'remaining_amount', header: 'Remaining', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { accessorKey: 'monthly_payment', header: 'Monthly', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { id: 'paidOff', header: 'Paid off', meta: { class: { th: 'w-[150px] pl-6' } } },
+const liabilityColumns = computed<TableColumn<Liability>[]>(() => [
+  { accessorKey: 'name', header: t('liabilities.columnLiability') },
+  { accessorKey: 'remaining_amount', header: t('liabilities.columnRemaining'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { accessorKey: 'monthly_payment', header: t('liabilities.columnMonthly'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'paidOff', header: t('liabilities.columnPaidOff'), meta: { class: { th: 'w-[150px] pl-6' } } },
   { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
-]
+])
 </script>
 
 <template>
   <div class="flex flex-col gap-7">
     <EntityFormModal
       :open="liabilityForm.state.open"
-      :title="liabilityForm.state.isEditing ? 'Edit liability' : 'Add a liability'"
+      :title="liabilityForm.state.isEditing ? t('liabilities.editTitle') : t('liabilities.addTitle')"
       :loading="liabilityForm.state.submitting"
       @update:open="liabilityForm.state.open = $event"
       @submit="liabilityForm.submit()"
     >
-      <UFormField label="Name">
-        <UInput v-model="liabilityForm.state.form.name" placeholder="Mortgage" />
+      <UFormField :label="t('liabilities.fieldName')">
+        <UInput v-model="liabilityForm.state.form.name" :placeholder="t('liabilities.fieldNamePlaceholder')" />
       </UFormField>
-      <UFormField label="Type">
+      <UFormField :label="t('liabilities.fieldType')">
         <USelect v-model="liabilityForm.state.form.type" :items="liabilityTypeOptions" class="w-full" />
       </UFormField>
-      <UFormField label="Initial amount">
-        <UInput v-model="liabilityForm.state.form.initial_amount" type="number" placeholder="200000" />
+      <UFormField :label="t('liabilities.fieldInitialAmount')">
+        <UInput v-model="liabilityForm.state.form.initial_amount" type="number" :placeholder="t('liabilities.fieldInitialAmountPlaceholder')" />
       </UFormField>
-      <UFormField label="Remaining balance">
-        <UInput v-model="liabilityForm.state.form.remaining_amount" type="number" placeholder="180000" />
+      <UFormField :label="t('liabilities.fieldRemainingBalance')">
+        <UInput v-model="liabilityForm.state.form.remaining_amount" type="number" :placeholder="t('liabilities.fieldRemainingBalancePlaceholder')" />
       </UFormField>
-      <UFormField label="Monthly payment">
-        <UInput v-model="liabilityForm.state.form.monthly_payment" type="number" placeholder="950" />
+      <UFormField :label="t('liabilities.fieldMonthlyPayment')">
+        <UInput v-model="liabilityForm.state.form.monthly_payment" type="number" :placeholder="t('liabilities.fieldMonthlyPaymentPlaceholder')" />
       </UFormField>
-      <UFormField label="Interest rate (%)">
-        <UInput v-model="liabilityForm.state.form.interest_rate" type="number" step="0.01" placeholder="3.45" />
+      <UFormField :label="t('liabilities.fieldInterestRate')">
+        <UInput v-model="liabilityForm.state.form.interest_rate" type="number" step="0.01" :placeholder="t('liabilities.fieldInterestRatePlaceholder')" />
       </UFormField>
-      <UFormField label="Start date">
+      <UFormField :label="t('liabilities.fieldStartDate')">
         <UInput v-model="liabilityForm.state.form.start_date" type="date" />
       </UFormField>
-      <UFormField label="End date">
+      <UFormField :label="t('liabilities.fieldEndDate')">
         <UInput v-model="liabilityForm.state.form.end_date" type="date" />
       </UFormField>
     </EntityFormModal>
@@ -159,28 +160,28 @@ const liabilityColumns: TableColumn<Liability>[] = [
 
     <template v-else-if="liabilitiesStore.liabilities.length > 0">
       <StatCardRow>
-        <StatCard label="Remaining debt" :value="formatCurrency(totalRemaining)" value-color="negative" />
+        <StatCard :label="t('liabilities.remainingDebt')" :value="formatCurrency(totalRemaining)" value-color="negative" />
         <StatCard
-          label="Monthly payments"
+          :label="t('liabilities.monthlyPayments')"
           :value="formatCurrency(totalMonthly)"
-          :note="`Across ${liabilitiesStore.liabilities.length} liabilities`"
+          :note="t('liabilities.monthlyPaymentsNote', liabilitiesStore.liabilities.length)"
         />
         <StatCard
-          label="Weighted rate"
+          :label="t('liabilities.weightedRate')"
           :value="weightedRate === null ? '—' : formatRate(weightedRate)"
-          :note="lastPayoff ? `Last payoff ${formatDate(lastPayoff)}` : undefined"
+          :note="lastPayoff ? t('liabilities.lastPayoffNote', { date: formatDate(lastPayoff) }) : undefined"
         />
       </StatCardRow>
 
       <div class="flex flex-wrap items-end gap-4">
-        <UFormField label="Search" class="w-64">
-          <UInput v-model="filters.search" placeholder="Liability name" />
+        <UFormField :label="t('liabilities.searchLabel')" class="w-64">
+          <UInput v-model="filters.search" :placeholder="t('liabilities.searchPlaceholder')" />
         </UFormField>
-        <UFormField label="Type" class="w-48">
+        <UFormField :label="t('liabilities.fieldType')" class="w-48">
           <USelect
             v-model="filters.type"
-            :items="[{ label: 'All types', value: null }, ...liabilityTypeOptions]"
-            placeholder="All types"
+            :items="[{ label: t('common.allTypes'), value: null }, ...liabilityTypeOptions]"
+            :placeholder="t('liabilities.typeFilterPlaceholder')"
           />
         </UFormField>
       </div>
@@ -190,9 +191,9 @@ const liabilityColumns: TableColumn<Liability>[] = [
           <div class="flex flex-col gap-0.5">
             <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ row.original.name }}</span>
             <span class="text-sm whitespace-nowrap text-muted">
-              {{ LIABILITY_TYPE_LABELS[row.original.type] }}
+              {{ liabilityTypeLabel(row.original.type) }}
               <template v-if="row.original.interest_rate"> · {{ formatRate(Number(row.original.interest_rate)) }}</template>
-              <template v-if="row.original.end_date"> · ends {{ formatDate(row.original.end_date) }}</template>
+              <template v-if="row.original.end_date"> · {{ t('liabilities.endsNote', { date: formatDate(row.original.end_date) }) }}</template>
             </span>
           </div>
         </template>
@@ -219,8 +220,8 @@ const liabilityColumns: TableColumn<Liability>[] = [
     <UEmpty
       v-else
       icon="i-lucide-landmark"
-      title="No liabilities recorded"
-      description="Nothing owed is a fine place to be. If you carry a mortgage or a loan, record it here so net worth stays accurate."
+      :title="t('liabilities.emptyTitle')"
+      :description="t('liabilities.emptyDescription')"
       class="neu-inset"
     />
   </div>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 defineProps<{
   open?: boolean
   title?: string
@@ -6,6 +8,8 @@ defineProps<{
   confirmLabel?: string
   confirmColor?: 'primary' | 'rust'
 }>()
+
+const { t } = useI18n()
 
 // Emitted directly by useConfirm's programmatic useOverlay().open() —
 // `close` resolves that call's result promise (true/false), `update:open`
@@ -29,7 +33,7 @@ function confirm() {
 <template>
   <UModal
     :open="open"
-    :title="title ?? 'Confirm'"
+    :title="title ?? t('common.confirm')"
     :ui="{ content: 'sm:max-w-sm' }"
     @update:open="(value: boolean) => { emit('update:open', value); if (!value) cancel() }"
     @after:leave="emit('after:leave')"
@@ -39,8 +43,8 @@ function confirm() {
     </template>
     <template #footer>
       <div class="flex flex-1 justify-end gap-2.5">
-        <UButton variant="ghost" color="neutral" label="Cancel" @click="cancel" />
-        <UButton :color="confirmColor ?? 'rust'" :label="confirmLabel ?? 'Delete'" @click="confirm" />
+        <UButton variant="ghost" color="neutral" :label="t('common.cancel')" @click="cancel" />
+        <UButton :color="confirmColor ?? 'rust'" :label="confirmLabel ?? t('common.delete')" @click="confirm" />
       </div>
     </template>
   </UModal>

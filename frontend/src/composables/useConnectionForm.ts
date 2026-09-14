@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { checkServerReachable } from '../api/client'
 import { useConnectionStore, type ConnectionMode } from '../stores/connection'
@@ -11,6 +12,7 @@ export function normalizeUrl(url: string) {
 // screen (pick one for the first time) — same mode/URL/test-the-server flow.
 export function useConnectionForm() {
   const connectionStore = useConnectionStore()
+  const { t } = useI18n()
 
   const mode = ref<ConnectionMode>(connectionStore.mode)
   const serverUrl = ref(connectionStore.serverUrl ?? '')
@@ -28,14 +30,14 @@ export function useConnectionForm() {
     testOk.value = false
     const url = normalizeUrl(serverUrl.value)
     if (!url) {
-      testError.value = 'Enter a server URL first.'
+      testError.value = t('connection.enterServerUrlFirst')
       return
     }
 
     testing.value = true
     try {
       testOk.value = await checkServerReachable(url, '/auth/status')
-      if (!testOk.value) testError.value = "Couldn't reach that server. Check the URL and that it's running."
+      if (!testOk.value) testError.value = t('connection.unreachable')
     } finally {
       testing.value = false
     }
