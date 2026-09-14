@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0](https://github.com/maelbel/croesus/compare/v1.2.0...v1.3.0) (2026-09-14)
+
+
+### Features
+
+* **frontend:** add UI language support (English/French) ([#51](https://github.com/maelbel/croesus/issues/51)) ([bc9fa3e](https://github.com/maelbel/croesus/commit/bc9fa3e5258be5a865ff1a81aaa024ba5968aa2f))
+
+
+### Documentation
+
+* remove optional expense-tracking phase, document price tracking ([#49](https://github.com/maelbel/croesus/issues/49)) ([e05c399](https://github.com/maelbel/croesus/commit/e05c399e34ece365721c2ec5e7cc8ae686fcd3a0))
+
 ## [1.2.0](https://github.com/maelbel/croesus/compare/v1.1.0...v1.2.0) (2026-09-14)
 
 
