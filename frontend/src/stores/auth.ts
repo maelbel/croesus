@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '../api/client'
 import { errorMessage } from '../lib/errors'
+import { i18n } from '../i18n'
 import type { AuthStatus, TokenResponse } from '../api/types'
 
 const TOKEN_KEY = 'croesus-auth-token'
@@ -40,7 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
       setToken(result.access_token)
       return true
     } catch (e) {
-      error.value = errorMessage(e, 'Login failed')
+      error.value = errorMessage(e, i18n.global.t('login.loginFailed'))
       return false
     }
   }

@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useConnectionForm, useApplyConnection } from '../composables/useConnectionForm'
 import ConnectionModeFields from './ConnectionModeFields.vue'
 
+const { t } = useI18n()
 const emit = defineEmits<{ continueLocal: [] }>()
 
 const { mode, serverUrl, testing, testError, testOk, testConnection, resetTest } = useConnectionForm()
@@ -20,7 +22,7 @@ function apply() {
   >
     <div class="flex flex-col gap-1">
       <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
-      <span class="text-sm text-muted">How do you want to use this app?</span>
+      <span class="text-sm text-muted">{{ t('onboarding.question') }}</span>
     </div>
 
     <ConnectionModeFields
@@ -33,9 +35,9 @@ function apply() {
       @reset-test="resetTest"
     >
       <p v-if="mode === 'local'" class="text-sm text-muted">
-        Keeps everything on this device, in a local database. Nothing leaves your computer.
+        {{ t('onboarding.localDescription') }}
       </p>
-      <p v-else class="text-sm text-muted">Connect to an existing self-hosted Croesus instance.</p>
+      <p v-else class="text-sm text-muted">{{ t('onboarding.remoteDescription') }}</p>
     </ConnectionModeFields>
 
     <UButton
@@ -45,8 +47,8 @@ function apply() {
       :disabled="mode === 'remote' && !testOk"
       @click="apply"
     >
-      {{ mode === 'remote' ? 'Connect & restart' : 'Continue' }}
+      {{ mode === 'remote' ? t('onboarding.connectAndRestart') : t('onboarding.continue') }}
     </UButton>
-    <span class="text-sm text-muted">You can change this later in Settings.</span>
+    <span class="text-sm text-muted">{{ t('onboarding.changeLater') }}</span>
   </div>
 </template>

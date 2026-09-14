@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useToast } from '@nuxt/ui/composables'
 import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useValuationsStore } from '../stores/valuations'
@@ -7,12 +8,12 @@ import { useAssetsStore } from '../stores/assets'
 import { useCrudForm } from '../composables/useCrudForm'
 import { useDeleteAction } from '../composables/useDeleteAction'
 import {
-  ACCOUNT_TYPE_LABELS,
-  ASSET_CLASS_LABELS,
+  ASSET_CLASSES,
+  accountTypeLabel,
+  assetClassLabel,
   AUTO_VALUATION_NOTE,
   type Account,
   type Asset,
-  type AssetClass,
   type AssetCreate,
   type AssetUpdate,
   type Valuation,
@@ -21,6 +22,8 @@ import {
 } from '../api/types'
 import { deltaColorClass, formatCurrency, formatDate, formatPercent, formatSignedCurrency } from '../lib/format'
 import EllipsisMenu from './EllipsisMenu.vue'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -54,13 +57,13 @@ const emergencyRatio = computed(() => {
 const totalMarketValue = computed(() => accountAssets.value.reduce((sum, asset) => sum + marketValue(asset), 0))
 
 function assetClassOptions() {
-  return Object.entries(ASSET_CLASS_LABELS).map(([value, label]) => ({ label, value: value as AssetClass }))
+  return ASSET_CLASSES.map((value) => ({ label: assetClassLabel(value), value }))
 }
 
 type ValuationFormValues = Omit<ValuationCreate, 'account_id'>
 
 const valuationForm = useCrudForm<Valuation, ValuationFormValues, ValuationUpdate>({
-  entityLabel: 'valuation',
+  entityKey: 'valuation',
   createDefaults: () => ({
     date: new Date().toISOString().slice(0, 10),
     value: '',
@@ -79,22 +82,22 @@ const deleteValuation = useDeleteAction('valuation')
 
 async function removeValuation(valuation: Valuation) {
   await deleteValuation(
-    `Delete the valuation from ${formatDate(valuation.date)}?`,
+    t('accountDetail.deleteValuationConfirm', { date: formatDate(valuation.date) }),
     () => valuationsStore.remove(valuation.id),
   )
 }
 
 function valuationMenuItems(valuation: Valuation) {
   return [
-    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => valuationForm.openEdit(valuation) },
-    { label: 'Delete', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeValuation(valuation) },
+    { label: t('common.edit'), icon: 'i-lucide-pencil', onSelect: () => valuationForm.openEdit(valuation) },
+    { label: t('common.delete'), icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeValuation(valuation) },
   ]
 }
 
 type AssetFormValues = Omit<AssetCreate, 'account_id'>
 
 const assetForm = useCrudForm<Asset, AssetFormValues, AssetUpdate>({
-  entityLabel: 'holding',
+  entityKey: 'holding',
   createDefaults: () => ({
     name: '',
     symbol: null,
@@ -158,13 +161,13 @@ const sortedAssets = computed(() => [...accountAssets.value].sort((a, b) => mark
 const deleteAsset = useDeleteAction('holding')
 
 async function removeAsset(asset: Asset) {
-  await deleteAsset(`Remove "${asset.name}" from this account?`, () => assetsStore.remove(asset.id))
+  await deleteAsset(t('accountDetail.removeHoldingConfirm', { name: asset.name }), () => assetsStore.remove(asset.id))
 }
 
 function assetMenuItems(asset: Asset) {
   return [
-    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => assetForm.openEdit(asset) },
-    { label: 'Remove', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeAsset(asset) },
+    { label: t('common.edit'), icon: 'i-lucide-pencil', onSelect: () => assetForm.openEdit(asset) },
+    { label: t('common.remove'), icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeAsset(asset) },
   ]
 }
 
@@ -172,35 +175,37 @@ async function refreshPrices() {
   const result = await assetsStore.refreshPrices()
   if (result.failed.length > 0) {
     toast.add({
-      title: `Couldn't fetch a price for ${result.failed.join(', ')}`,
+      title: t('accountDetail.refreshFailedTitle', { symbols: result.failed.join(', ') }),
       description:
-        result.updated.length > 0 ? `${result.updated.length} other holding(s) updated.` : undefined,
+        result.updated.length > 0
+          ? t('accountDetail.refreshFailedOthersUpdated', result.updated.length)
+          : undefined,
       color: 'rust',
     })
   } else if (result.updated.length > 0) {
-    toast.add({ title: `Refreshed ${result.updated.length} price(s)`, color: 'primary' })
+    toast.add({ title: t('accountDetail.refreshSuccessTitle', result.updated.length), color: 'primary' })
   }
 }
 
-const valuationColumns: TableColumn<Valuation>[] = [
-  { accessorKey: 'date', header: 'Date' },
-  { accessorKey: 'value', header: 'Value', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { id: 'note', header: 'Note' },
+const valuationColumns = computed<TableColumn<Valuation>[]>(() => [
+  { accessorKey: 'date', header: t('accountDetail.fieldDate') },
+  { accessorKey: 'value', header: t('accountDetail.fieldValue'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'note', header: t('accountDetail.fieldNote') },
   { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
-]
+])
 
-const holdingsColumns: TableColumn<Asset>[] = [
-  { accessorKey: 'name', header: 'Holding', footer: '' },
-  { accessorKey: 'quantity', header: 'Qty', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { id: 'price', header: 'Price', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { id: 'marketValue', header: 'Value', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } }, footer: '' },
+const holdingsColumns = computed<TableColumn<Asset>[]>(() => [
+  { accessorKey: 'name', header: t('accountDetail.columnHolding'), footer: '' },
+  { accessorKey: 'quantity', header: t('accountDetail.columnQty'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'price', header: t('accountDetail.columnPrice'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { id: 'marketValue', header: t('accountDetail.columnValue'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } }, footer: '' },
   { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
-]
+])
 
-const detailTabs = [
-  { label: 'History', value: 'history', slot: 'history' as const },
-  { label: 'Holdings', value: 'holdings', slot: 'holdings' as const },
-]
+const detailTabs = computed(() => [
+  { label: t('accountDetail.tabHistory'), value: 'history', slot: 'history' as const },
+  { label: t('accountDetail.tabHoldings'), value: 'holdings', slot: 'holdings' as const },
+])
 </script>
 
 <template>
@@ -220,15 +225,15 @@ const detailTabs = [
               <span v-if="change30d?.ratio != null" class="text-sm" :class="deltaColorClass(change30d.ratio)">
                 {{ formatSignedCurrency(change30d.delta) }} ({{ formatPercent(change30d.ratio) }}) · 30 d
               </span>
-              <span v-else class="text-sm text-muted">No 30-day comparison yet</span>
+              <span v-else class="text-sm text-muted">{{ t('accountDetail.noComparisonYet') }}</span>
             </div>
             <div class="flex flex-col items-end gap-1 text-right text-sm text-muted">
               <span class="flex items-center gap-2">
-                {{ ACCOUNT_TYPE_LABELS[account.type] }}
-                <UBadge v-if="account.is_emergency_fund" variant="outline" size="sm">Emergency fund</UBadge>
+                {{ accountTypeLabel(account.type) }}
+                <UBadge v-if="account.is_emergency_fund" variant="outline" size="sm">{{ t('accounts.emergencyFundBadge') }}</UBadge>
               </span>
               <span v-if="account.institution">{{ account.institution }}</span>
-              <span v-if="account.opened_at">Opened {{ formatDate(account.opened_at) }}</span>
+              <span v-if="account.opened_at">{{ t('accountDetail.openedOn', { date: formatDate(account.opened_at) }) }}</span>
             </div>
           </div>
 
@@ -237,7 +242,7 @@ const detailTabs = [
               <span class="stripe-fill" :style="{ width: `${emergencyRatio * 100}%` }" />
             </span>
             <span class="text-sm text-muted">
-              {{ formatCurrency(currentValue) }} of {{ formatCurrency(account.emergency_fund_target) }} target
+              {{ t('accountDetail.targetProgress', { current: formatCurrency(currentValue), target: formatCurrency(account.emergency_fund_target) }) }}
             </span>
           </div>
 
@@ -248,25 +253,24 @@ const detailTabs = [
           <template #history>
             <div class="flex flex-col gap-3.5 pt-4">
               <p v-if="hasHoldings" class="text-sm text-muted">
-                This account's value is calculated automatically from its holdings below. A manual
-                entry for today will be overwritten next time prices refresh.
+                {{ t('accountDetail.autoValueNote') }}
               </p>
 
               <UForm
                 class="neu-inset flex flex-wrap items-end gap-3 p-4"
                 @submit="valuationForm.submit()"
               >
-                <UFormField label="Date">
+                <UFormField :label="t('accountDetail.fieldDate')">
                   <UInput v-model="valuationForm.state.form.date" type="date" />
                 </UFormField>
-                <UFormField label="Value">
-                  <UInput v-model="valuationForm.state.form.value" type="number" placeholder="12500" />
+                <UFormField :label="t('accountDetail.fieldValue')">
+                  <UInput v-model="valuationForm.state.form.value" type="number" :placeholder="t('accountDetail.fieldValuePlaceholder')" />
                 </UFormField>
-                <UFormField label="Note" class="min-w-[140px] flex-1">
-                  <UInput v-model="valuationForm.state.form.note" placeholder="Optional" />
+                <UFormField :label="t('accountDetail.fieldNote')" class="min-w-[140px] flex-1">
+                  <UInput v-model="valuationForm.state.form.note" :placeholder="t('accountDetail.fieldNotePlaceholder')" />
                 </UFormField>
                 <UButton type="submit" :loading="valuationForm.state.submitting">
-                  {{ valuationForm.state.isEditing ? 'Save' : 'Add' }}
+                  {{ valuationForm.state.isEditing ? t('common.save') : t('common.add') }}
                 </UButton>
                 <UButton
                   v-if="valuationForm.state.isEditing"
@@ -274,7 +278,7 @@ const detailTabs = [
                   color="neutral"
                   @click="valuationForm.openCreate()"
                 >
-                  Cancel
+                  {{ t('common.cancel') }}
                 </UButton>
               </UForm>
 
@@ -288,7 +292,7 @@ const detailTabs = [
                 <template #note-cell="{ row }: { row: TableRow<Valuation> }">
                   <span class="text-sm text-muted">
                     <UBadge v-if="row.original.note === AUTO_VALUATION_NOTE" variant="outline" size="sm" icon="i-lucide-refresh-cw">
-                      Auto (holdings)
+                      {{ t('accountDetail.autoHoldingsBadge') }}
                     </UBadge>
                     <template v-else>{{ row.original.note }}</template>
                   </span>
@@ -300,8 +304,8 @@ const detailTabs = [
               <UEmpty
                 v-else
                 icon="i-lucide-line-chart"
-                title="No valuations yet"
-                description="Add one above to start tracking this account's value over time."
+                :title="t('accountDetail.emptyValuationsTitle')"
+                :description="t('accountDetail.emptyValuationsDescription')"
                 class="neu-inset"
               />
             </div>
@@ -310,33 +314,33 @@ const detailTabs = [
           <template #holdings>
             <div class="flex flex-col gap-3.5 pt-4">
               <UForm class="neu-inset flex flex-wrap items-end gap-3 p-4" @submit="assetForm.submit()">
-                <UFormField label="Name">
-                  <UInput v-model="assetForm.state.form.name" placeholder="S&P 500 ETF" />
+                <UFormField :label="t('accountDetail.fieldHoldingName')">
+                  <UInput v-model="assetForm.state.form.name" :placeholder="t('accountDetail.fieldHoldingNamePlaceholder')" />
                 </UFormField>
                 <UFormField class="w-32">
                   <template #label>
                     <span class="inline-flex items-center gap-1">
-                      Symbol
-                      <UTooltip text="Yahoo Finance ticker (e.g. AAPL, CW8.PA) or crypto symbol (BTC, ETH...) for automatic pricing">
+                      {{ t('accountDetail.fieldSymbol') }}
+                      <UTooltip :text="t('accountDetail.fieldSymbolTooltip')">
                         <UIcon name="i-lucide-info" class="text-muted" />
                       </UTooltip>
                     </span>
                   </template>
-                  <UInput v-model="assetForm.state.form.symbol" placeholder="AAPL / CW8.PA / BTC" class="w-full" />
+                  <UInput v-model="assetForm.state.form.symbol" :placeholder="t('accountDetail.fieldSymbolPlaceholder')" class="w-full" />
                 </UFormField>
-                <UFormField label="Class">
+                <UFormField :label="t('accountDetail.fieldClass')">
                   <USelect v-model="assetForm.state.form.asset_class" :items="assetClassOptions()" class="w-36" />
                 </UFormField>
                 <div class="flex items-end gap-3">
-                  <UFormField label="Quantity">
-                    <UInput v-model="assetForm.state.form.quantity" type="number" placeholder="10" class="w-24" />
+                  <UFormField :label="t('accountDetail.fieldQuantity')">
+                    <UInput v-model="assetForm.state.form.quantity" type="number" :placeholder="t('accountDetail.fieldQuantityPlaceholder')" class="w-24" />
                   </UFormField>
-                  <UFormField label="Unit cost">
-                    <UInput v-model="assetForm.state.form.unit_cost" type="number" placeholder="420.50" class="w-28" />
+                  <UFormField :label="t('accountDetail.fieldUnitCost')">
+                    <UInput v-model="assetForm.state.form.unit_cost" type="number" :placeholder="t('accountDetail.fieldUnitCostPlaceholder')" class="w-28" />
                   </UFormField>
                 </div>
                 <UButton type="submit" :loading="assetForm.state.submitting">
-                  {{ assetForm.state.isEditing ? 'Save' : 'Add' }}
+                  {{ assetForm.state.isEditing ? t('common.save') : t('common.add') }}
                 </UButton>
                 <UButton
                   v-if="assetForm.state.isEditing"
@@ -344,7 +348,7 @@ const detailTabs = [
                   color="neutral"
                   @click="assetForm.openCreate()"
                 >
-                  Cancel
+                  {{ t('common.cancel') }}
                 </UButton>
               </UForm>
 
@@ -353,21 +357,21 @@ const detailTabs = [
                   <div class="flex flex-col gap-0.5">
                     <span class="text-[15px] font-semibold whitespace-nowrap">{{ row.original.name }}</span>
                     <span class="text-sm text-muted">
-                      {{ ASSET_CLASS_LABELS[row.original.asset_class] }}
+                      {{ assetClassLabel(row.original.asset_class) }}
                       <template v-if="row.original.symbol"> · {{ row.original.symbol }}</template>
                     </span>
                     <span v-if="accountAssets.length > 1" class="text-xs text-muted">
-                      {{ Math.round(weightPct(row.original) * 100) }}% of holdings
+                      {{ t('accountDetail.weightPct', { pct: Math.round(weightPct(row.original) * 100) }) }}
                     </span>
                   </div>
                 </template>
                 <template #name-footer>
                   <span class="text-sm text-muted">
-                    {{ accountAssets.length }} holding{{ accountAssets.length === 1 ? '' : 's' }}
+                    {{ t('accountDetail.holdingsFooter', accountAssets.length) }}
                     <template v-if="totalUnrealizedGain !== null">
                       ·
                       <span :class="deltaColorClass(totalUnrealizedGain)">{{ formatSignedCurrency(totalUnrealizedGain) }}</span>
-                      unrealized
+                      {{ t('accountDetail.unrealizedSuffix') }}
                     </template>
                   </span>
                 </template>
@@ -375,7 +379,7 @@ const detailTabs = [
                   <span class="whitespace-nowrap text-sm text-muted">{{ row.original.quantity }}</span>
                 </template>
                 <template #price-cell="{ row }: { row: TableRow<Asset> }">
-                  <UTooltip :text="row.original.price_updated_at ? `Live price as of ${formatDate(row.original.price_updated_at)}` : 'No live price yet — showing cost basis'">
+                  <UTooltip :text="row.original.price_updated_at ? t('accountDetail.livePriceAsOf', { date: formatDate(row.original.price_updated_at) }) : t('accountDetail.noLivePriceYet')">
                     <span class="inline-flex items-center gap-1 whitespace-nowrap text-sm text-muted">
                       {{ formatCurrency(currentPrice(row.original)) }}
                       <UIcon v-if="row.original.current_price !== null" name="i-lucide-radio" class="text-primary" />
@@ -402,7 +406,7 @@ const detailTabs = [
                       :disabled="assetsStore.refreshingPrices"
                       @click="refreshPrices"
                     >
-                      {{ assetsStore.refreshingPrices ? 'Refreshing…' : 'Refresh' }}
+                      {{ assetsStore.refreshingPrices ? t('accountDetail.refreshing') : t('accountDetail.refresh') }}
                     </UButton>
                   </div>
                 </template>
@@ -413,8 +417,8 @@ const detailTabs = [
               <UEmpty
                 v-else
                 icon="i-lucide-briefcase"
-                title="No holdings yet"
-                description="Add one above — set a symbol to pick up a live market price automatically."
+                :title="t('accountDetail.emptyHoldingsTitle')"
+                :description="t('accountDetail.emptyHoldingsDescription')"
                 class="neu-inset"
               />
             </div>

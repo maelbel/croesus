@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { isTauri } from '@tauri-apps/api/core'
+import { useI18n } from 'vue-i18n'
 import { useToast } from '@nuxt/ui/composables'
 import { SKINS, useThemeStore, type Skin } from '../stores/theme'
+import { LOCALES, useLocaleStore } from '../stores/locale'
 import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
@@ -10,10 +12,12 @@ import { useConnectionForm, useApplyConnection } from '../composables/useConnect
 import { useConfirm } from '../composables/useConfirm'
 import ConnectionModeFields from '../components/ConnectionModeFields.vue'
 
+const { t } = useI18n()
 const toast = useToast()
 const confirm = useConfirm()
 
 const themeStore = useThemeStore()
+const localeStore = useLocaleStore()
 const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
@@ -43,8 +47,12 @@ async function deleteAllData() {
     accountsStore.accounts.length + liabilitiesStore.liabilities.length + envelopesStore.envelopes.length
   if (total === 0) return
   const confirmed = await confirm(
-    `Delete ${accountsStore.accounts.length} accounts, ${liabilitiesStore.liabilities.length} liabilities and ${envelopesStore.envelopes.length} envelopes? This cannot be undone.`,
-    { confirmLabel: 'Delete all', confirmColor: 'rust' },
+    t('settings.deleteAllConfirm', {
+      accounts: accountsStore.accounts.length,
+      liabilities: liabilitiesStore.liabilities.length,
+      envelopes: envelopesStore.envelopes.length,
+    }),
+    { confirmLabel: t('common.deleteAll'), confirmColor: 'rust' },
   )
   if (!confirmed) return
 
@@ -57,8 +65,8 @@ async function deleteAllData() {
   const failed = results.filter((r) => r.status === 'rejected').length
   if (failed > 0) {
     toast.add({
-      title: `${failed} of ${total} item(s) couldn't be deleted`,
-      description: 'Check your connection and try again.',
+      title: t('settings.deleteAllFailedTitle', { total }, failed),
+      description: t('settings.deleteAllFailedDescription'),
       color: 'rust',
     })
   }
@@ -69,11 +77,11 @@ async function deleteAllData() {
   <div class="mx-auto flex max-w-[760px] flex-col">
     <div
       v-if="isTauriApp"
-      class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6"
+      class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6"
     >
       <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">Connection</span>
-        <span class="text-sm text-muted">Local database, or an existing self-hosted server.</span>
+        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.connectionTitle') }}</span>
+        <span class="text-sm text-muted">{{ t('settings.connectionDescription') }}</span>
       </div>
       <div class="flex flex-col items-start gap-3">
         <div class="w-full max-w-sm">
@@ -94,16 +102,16 @@ async function deleteAllData() {
           :disabled="pendingMode === 'remote' && !testOk"
           @click="applyConnection"
         >
-          Save & restart
+          {{ t('settings.saveAndRestart') }}
         </UButton>
-        <span class="text-sm text-muted">Switching modes restarts the app.</span>
+        <span class="text-sm text-muted">{{ t('settings.switchingRestarts') }}</span>
       </div>
     </div>
 
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6">
+    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
       <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">Theme</span>
-        <span class="text-sm text-muted">Same data, different visual language.</span>
+        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.themeTitle') }}</span>
+        <span class="text-sm text-muted">{{ t('settings.themeDescription') }}</span>
       </div>
       <URadioGroup
         :model-value="themeStore.skin"
@@ -116,10 +124,10 @@ async function deleteAllData() {
       />
     </div>
 
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6">
+    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
       <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">Appearance</span>
-        <span class="text-sm text-muted">Dark is the default.</span>
+        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.appearanceTitle') }}</span>
+        <span class="text-sm text-muted">{{ t('settings.appearanceDescription') }}</span>
       </div>
       <div class="neu-inset flex w-max border border-default">
         <UButton
@@ -128,7 +136,7 @@ async function deleteAllData() {
           color="neutral"
           @click="themeStore.setMode('dark')"
         >
-          Dark
+          {{ t('settings.dark') }}
         </UButton>
         <UButton
           size="sm"
@@ -136,57 +144,62 @@ async function deleteAllData() {
           color="neutral"
           @click="themeStore.setMode('light')"
         >
-          Light
+          {{ t('settings.light') }}
         </UButton>
       </div>
     </div>
 
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6">
+    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
       <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">Language</span>
-        <span class="text-sm text-muted">Sets number and date formatting.</span>
+        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.languageTitle') }}</span>
+        <span class="text-sm text-muted">{{ t('settings.languageDescription') }}</span>
       </div>
-      <div class="flex flex-col items-start gap-2">
-        <div class="neu-inset flex w-max border border-default opacity-50">
-          <UButton size="sm" variant="solid" color="neutral" disabled>English</UButton>
-          <UButton size="sm" variant="ghost" color="neutral" disabled>Français</UButton>
-        </div>
-        <span class="text-sm text-muted">Not available yet — the app is English-only for now.</span>
+      <div class="neu-inset flex w-max border border-default">
+        <UButton
+          v-for="locale in LOCALES"
+          :key="locale.value"
+          size="sm"
+          :variant="localeStore.locale === locale.value ? 'solid' : 'ghost'"
+          color="neutral"
+          @click="localeStore.setLocale(locale.value)"
+        >
+          {{ locale.label }}
+        </UButton>
       </div>
     </div>
 
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6">
+    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
       <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">Currency</span>
-        <span class="text-sm text-muted">Everything is converted for display.</span>
+        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.currencyTitle') }}</span>
+        <span class="text-sm text-muted">{{ t('settings.currencyDescription') }}</span>
       </div>
       <div class="flex flex-col items-start gap-2">
         <div class="neu-inset flex w-max border border-default opacity-50">
           <UButton size="sm" variant="solid" color="neutral" disabled>EUR</UButton>
           <UButton size="sm" variant="ghost" color="neutral" disabled>USD</UButton>
         </div>
-        <span class="text-sm text-muted">Not available yet — values are shown in euros.</span>
+        <span class="text-sm text-muted">{{ t('settings.currencyNotAvailable') }}</span>
       </div>
     </div>
 
-    <div v-if="authStore.authEnabled" class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-b border-default py-6">
+    <div v-if="authStore.authEnabled" class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
       <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">Session</span>
-        <span class="text-sm text-muted">Signed in to this instance.</span>
+        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.sessionTitle') }}</span>
+        <span class="text-sm text-muted">{{ t('settings.sessionDescription') }}</span>
       </div>
       <div class="flex flex-col items-start gap-3">
-        <UButton color="neutral" variant="outline" @click="authStore.logout()">Log out</UButton>
+        <UButton color="neutral" variant="outline" @click="authStore.logout()">{{ t('settings.logOut') }}</UButton>
       </div>
     </div>
 
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] gap-8 py-6">
+    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 py-6">
       <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">Danger zone</span>
-        <span class="text-sm text-muted">This cannot be undone.</span>
+        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.dangerZoneTitle') }}</span>
+        <span class="text-sm text-muted">{{ t('settings.dangerZoneDescription') }}</span>
       </div>
       <div class="flex flex-col items-start gap-3">
-        <UButton color="rust" variant="outline" @click="deleteAllData">Delete all data</UButton>
-        <span class="text-sm text-muted">Removes every account, liability and envelope from this instance.</span>
+        <UButton color="rust" variant="outline" @click="deleteAllData">{{ t('settings.deleteAllData') }}</UButton>
+        <span class="text-sm text-muted">{{ t('settings.deleteAllDataDescription') }}</span>
       </div>
     </div>
   </div>

@@ -1,10 +1,11 @@
 import { reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useToast } from '@nuxt/ui/composables'
 import { errorMessage } from '../lib/errors'
 
 export interface UseCrudFormOptions<TEntity extends { id: number }, TCreate extends object, TUpdate> {
-  /** Human-readable name used in toast messages, e.g. "account". */
-  entityLabel: string
+  /** Key into the `entities` locale namespace used to look up toast messages, e.g. "account". */
+  entityKey: string
   /** Fresh field values for a new, empty "create" form. */
   createDefaults: () => TCreate
   /** Maps an existing entity back to editable form values, for "edit" mode. */
@@ -36,8 +37,9 @@ interface CrudFormState<TCreate> {
 export function useCrudForm<TEntity extends { id: number }, TCreate extends object, TUpdate = Partial<TCreate>>(
   options: UseCrudFormOptions<TEntity, TCreate, TUpdate>,
 ) {
-  const { entityLabel, createDefaults, toFormValues, create, update, toUpdatePayload } = options
+  const { entityKey, createDefaults, toFormValues, create, update, toUpdatePayload } = options
   const toast = useToast()
+  const { t } = useI18n()
 
   // Cast *after* construction rather than passing CrudFormState<TCreate> as
   // reactive()'s type argument — Vue's reactive() return type always runs
@@ -80,12 +82,11 @@ export function useCrudForm<TEntity extends { id: number }, TCreate extends obje
         await create(state.form)
       }
       state.open = false
-      const label = entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)
-      toast.add({ title: `${label} ${wasEditing ? 'updated' : 'added'}`, color: 'primary' })
+      toast.add({ title: t(`entities.${entityKey}.${wasEditing ? 'updated' : 'added'}`), color: 'primary' })
       return true
     } catch (error) {
       toast.add({
-        title: `Couldn't save ${entityLabel}`,
+        title: t(`entities.${entityKey}.saveError`),
         description: errorMessage(error),
         color: 'rust',
       })

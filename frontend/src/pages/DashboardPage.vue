@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useNetWorthStore } from '../stores/networth'
 import { useValuationsStore } from '../stores/valuations'
-import { ACCOUNT_TYPE_LABELS, type NetWorthHistoryPoint } from '../api/types'
+import { accountTypeLabel, type NetWorthHistoryPoint } from '../api/types'
 import { formatCurrency, formatSignedCurrency, formatDate, deltaColorClass } from '../lib/format'
 import { usePageAction } from '../composables/usePageAction'
 import StatCard from '../components/StatCard.vue'
@@ -17,8 +18,9 @@ import CompositionChart from '../components/CompositionChart.vue'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 
-usePageAction('Record a valuation', () => router.push('/accounts'))
+usePageAction(() => t('dashboard.recordValuationAction'), () => router.push('/accounts'))
 const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
@@ -48,7 +50,7 @@ const hasHistory = computed(() => netWorthStore.history.length > 0)
 const assetsByClass = computed(() => {
   const totals = new Map<string, number>()
   for (const account of accountsStore.accounts) {
-    const label = ACCOUNT_TYPE_LABELS[account.type]
+    const label = accountTypeLabel(account.type)
     const value = valuationsStore.currentValue(account.id)
     totals.set(label, (totals.get(label) ?? 0) + value)
   }
@@ -92,13 +94,13 @@ const assetClassColumns: TableColumn<AssetClassRow>[] = [
 
 type HistoryRow = NetWorthHistoryPoint & { change: number | null }
 
-const historyColumns: TableColumn<HistoryRow>[] = [
-  { accessorKey: 'date', header: 'Date' },
-  { accessorKey: 'total_assets', header: 'Assets', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { accessorKey: 'total_liabilities', header: 'Liabilities', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { accessorKey: 'net_worth', header: 'Net worth', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { accessorKey: 'change', header: 'Change', meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-]
+const historyColumns = computed<TableColumn<HistoryRow>[]>(() => [
+  { accessorKey: 'date', header: t('dashboard.columnDate') },
+  { accessorKey: 'total_assets', header: t('dashboard.columnAssets'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { accessorKey: 'total_liabilities', header: t('dashboard.columnLiabilities'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { accessorKey: 'net_worth', header: t('dashboard.columnNetWorth'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+  { accessorKey: 'change', header: t('dashboard.columnChange'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
+])
 </script>
 
 <template>
@@ -108,35 +110,32 @@ const historyColumns: TableColumn<HistoryRow>[] = [
     <StatCardRow v-else-if="showOnboarding">
       <div class="neu-surface bg-default flex flex-col gap-2.5 p-7">
         <span class="font-heading text-[37px] leading-none font-extrabold text-primary">01</span>
-        <span class="font-heading text-lg font-extrabold">Add your accounts</span>
+        <span class="font-heading text-lg font-extrabold">{{ t('dashboard.step1Heading') }}</span>
         <p class="text-[15px] text-muted">
-          Checking, Livret A, PEA, assurance-vie, SCPI, property. Each account keeps its own
-          valuation history.
+          {{ t('dashboard.step1Description') }}
         </p>
         <UButton variant="outline" color="neutral" class="mt-1.5 self-start" @click="router.push('/accounts')">
-          Add an account
+          {{ t('dashboard.step1Action') }}
         </UButton>
       </div>
       <div class="neu-surface bg-default flex flex-col gap-2.5 p-7">
         <span class="font-heading text-[37px] leading-none font-extrabold text-muted">02</span>
-        <span class="font-heading text-lg font-extrabold">Record what you owe</span>
+        <span class="font-heading text-lg font-extrabold">{{ t('dashboard.step2Heading') }}</span>
         <p class="text-[15px] text-muted">
-          Mortgage and loans, with remaining balance and monthly payment. Net worth is only
-          accurate once your debts are in it.
+          {{ t('dashboard.step2Description') }}
         </p>
         <UButton variant="outline" color="neutral" class="mt-1.5 self-start" @click="router.push('/liabilities')">
-          Add a liability
+          {{ t('dashboard.step2Action') }}
         </UButton>
       </div>
       <div class="neu-surface bg-default flex flex-col gap-2.5 p-7">
         <span class="font-heading text-[37px] leading-none font-extrabold text-muted">03</span>
-        <span class="font-heading text-lg font-extrabold">Divide it into envelopes</span>
+        <span class="font-heading text-lg font-extrabold">{{ t('dashboard.step3Heading') }}</span>
         <p class="text-[15px] text-muted">
-          Give every euro a job. Envelopes split money you already have; they never move it
-          between accounts.
+          {{ t('dashboard.step3Description') }}
         </p>
         <UButton variant="outline" color="neutral" class="mt-1.5 self-start" @click="router.push('/envelopes')">
-          Add an envelope
+          {{ t('dashboard.step3Action') }}
         </UButton>
       </div>
     </StatCardRow>
@@ -144,12 +143,12 @@ const historyColumns: TableColumn<HistoryRow>[] = [
     <template v-else>
       <StatCardRow>
         <StatCard
-          label="Total assets"
+          :label="t('dashboard.totalAssets')"
           :value="formatCurrency(netWorthStore.current?.total_assets ?? 0)"
           :note="
             netWorthStore.assetsDelta30d === null
               ? undefined
-              : `${formatSignedCurrency(netWorthStore.assetsDelta30d)} · ${accountsStore.accounts.length} accounts`
+              : t('dashboard.accountsNote', { delta: formatSignedCurrency(netWorthStore.assetsDelta30d) }, accountsStore.accounts.length)
           "
           :note-color="
             netWorthStore.assetsDelta30d === null
@@ -160,23 +159,23 @@ const historyColumns: TableColumn<HistoryRow>[] = [
           "
         />
         <StatCard
-          label="Total liabilities"
+          :label="t('dashboard.totalLiabilities')"
           :value="formatCurrency(netWorthStore.current?.total_liabilities ?? 0)"
           value-color="negative"
           :note="
             netWorthStore.liabilitiesDelta30d === null
               ? undefined
-              : `${formatSignedCurrency(netWorthStore.liabilitiesDelta30d)} · ${liabilitiesStore.liabilities.length} liabilities`
+              : t('dashboard.liabilitiesNote', { delta: formatSignedCurrency(netWorthStore.liabilitiesDelta30d) }, liabilitiesStore.liabilities.length)
           "
         />
         <StatCard
-          label="Net worth"
+          :label="t('dashboard.netWorth')"
           :value="formatCurrency(netWorthStore.current?.net_worth ?? 0)"
           highlighted
           :note="
             netWorthStore.netWorthDelta30d === null
               ? undefined
-              : `${formatSignedCurrency(netWorthStore.netWorthDelta30d)} · 30 days`
+              : t('dashboard.netWorthNote', { delta: formatSignedCurrency(netWorthStore.netWorthDelta30d) })
           "
           :note-color="
             netWorthStore.netWorthDelta30d === null
@@ -192,8 +191,8 @@ const historyColumns: TableColumn<HistoryRow>[] = [
         <section class="flex flex-col gap-5">
           <div class="flex items-end justify-between gap-5 border-b-2 border-default pb-2.5">
             <div class="flex flex-col gap-1">
-              <span class="text-sm text-muted">Net worth by year</span>
-              <h2 class="text-[22px]">One ring per year on record</h2>
+              <span class="text-sm text-muted">{{ t('dashboard.netWorthByYearKicker') }}</span>
+              <h2 class="text-[22px]">{{ t('dashboard.netWorthByYearHeading') }}</h2>
             </div>
           </div>
           <NetWorthRings />
@@ -201,16 +200,16 @@ const historyColumns: TableColumn<HistoryRow>[] = [
 
         <section class="flex flex-col gap-5">
           <div class="flex flex-col gap-1 border-b-2 border-default pb-2.5">
-            <span class="text-sm text-muted">Composition over time</span>
-            <h2 class="text-[22px]">Where the money sits, valuation by valuation</h2>
+            <span class="text-sm text-muted">{{ t('dashboard.compositionKicker') }}</span>
+            <h2 class="text-[22px]">{{ t('dashboard.compositionHeading') }}</h2>
           </div>
           <CompositionChart />
         </section>
 
         <section class="flex flex-col gap-5">
           <div class="flex flex-col gap-1 border-b-2 border-default pb-2.5">
-            <span class="text-sm text-muted">What the total is made of</span>
-            <h2 class="text-[22px]">By asset class</h2>
+            <span class="text-sm text-muted">{{ t('dashboard.byAssetClassKicker') }}</span>
+            <h2 class="text-[22px]">{{ t('dashboard.byAssetClassHeading') }}</h2>
           </div>
           <div class="flex items-start gap-7">
             <div class="flex h-[340px] w-[104px] flex-none flex-col gap-1">
@@ -240,15 +239,19 @@ const historyColumns: TableColumn<HistoryRow>[] = [
           </div>
 
           <div class="flex flex-col gap-2.5 border-t-2 border-default pt-4.5">
-            <span class="text-sm text-muted">Set against them</span>
+            <span class="text-sm text-muted">{{ t('dashboard.setAgainstThem') }}</span>
             <div class="flex items-start gap-7">
               <span
                 class="figure-rounded w-[104px] flex-none bg-rust"
                 :style="{ height: `${Math.max(liabilitiesBar.heightPx, 8)}px` }"
               />
               <span class="flex-1 text-[15px] text-muted">
-                Liabilities · {{ formatCurrency(netWorthStore.current?.total_liabilities ?? 0) }} ·
-                {{ (liabilitiesBar.pct * 100).toFixed(1) }}% of assets, drawn to the same scale as the bar above.
+                {{
+                  t('dashboard.liabilitiesVsAssets', {
+                    value: formatCurrency(netWorthStore.current?.total_liabilities ?? 0),
+                    pct: (liabilitiesBar.pct * 100).toFixed(1),
+                  })
+                }}
               </span>
             </div>
           </div>
@@ -256,8 +259,8 @@ const historyColumns: TableColumn<HistoryRow>[] = [
 
         <section class="flex flex-col gap-5">
           <div class="flex flex-col gap-1 border-b-2 border-default pb-2.5">
-            <span class="text-sm text-muted">Recent valuations</span>
-            <h2 class="text-[22px]">Month by month</h2>
+            <span class="text-sm text-muted">{{ t('dashboard.recentValuationsKicker') }}</span>
+            <h2 class="text-[22px]">{{ t('dashboard.recentValuationsHeading') }}</h2>
           </div>
           <UTable :data="recentHistory" :columns="historyColumns">
             <template #date-cell="{ row }: { row: TableRow<HistoryRow> }">
@@ -284,9 +287,9 @@ const historyColumns: TableColumn<HistoryRow>[] = [
       <UEmpty
         v-else
         icon="i-lucide-line-chart"
-        title="No history yet"
-        description="The dashboard fills in as soon as two valuations exist. Add an account and give it a starting value."
-        :actions="[{ label: 'Add an account', onClick: () => router.push('/accounts') }]"
+        :title="t('dashboard.emptyTitle')"
+        :description="t('dashboard.emptyDescription')"
+        :actions="[{ label: t('dashboard.step1Action'), onClick: () => router.push('/accounts') }]"
         class="neu-inset"
       />
     </template>

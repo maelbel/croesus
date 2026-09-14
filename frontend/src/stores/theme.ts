@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, watchEffect } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 import { getCookie, setCookie } from '../lib/cookies'
+import { i18n } from '../i18n'
 
 export type Mode = 'dark' | 'light'
 export type Skin = 'ledger' | 'neumorphic'
@@ -8,10 +9,18 @@ export type Skin = 'ledger' | 'neumorphic'
 const MODE_KEY = 'croesus-theme'
 const SKIN_KEY = 'croesus-skin'
 
-export const SKINS: { value: Skin; label: string; description: string }[] = [
-  { value: 'ledger', label: 'Ledger', description: 'Flat, bordered, editorial — the original look.' },
-  { value: 'neumorphic', label: 'Neumorphic', description: 'Soft extruded surfaces, no borders.' },
-]
+export const SKINS = computed(() => [
+  {
+    value: 'ledger' as Skin,
+    label: i18n.global.t('settings.skinLedgerLabel'),
+    description: i18n.global.t('settings.skinLedgerDescription'),
+  },
+  {
+    value: 'neumorphic' as Skin,
+    label: i18n.global.t('settings.skinNeumorphicLabel'),
+    description: i18n.global.t('settings.skinNeumorphicDescription'),
+  },
+])
 
 // One-time upgrade path from the localStorage-based version of these
 // settings — a cookie lets index.html's pre-mount theme bootstrap script

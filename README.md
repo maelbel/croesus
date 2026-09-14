@@ -58,6 +58,8 @@ means exactly one thing: **wealth, tracked over the long run.**
 - 🖥️ **Self-hosted or desktop** — run it on your own server behind Docker, or
   as a native Windows/macOS/Linux app with a local database. Same codebase,
   your choice.
+- 🌐 **English + French UI** — full interface translation, switchable per-user
+  in Settings, with locale-aware number and date formatting.
 - 🔓 **AGPL-3.0** — if someone runs a modified version of Croesus as a
   service, they owe the community those modifications back.
 

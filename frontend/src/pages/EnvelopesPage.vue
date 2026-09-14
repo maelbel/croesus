@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useAccountsStore } from '../stores/accounts'
 import { useValuationsStore } from '../stores/valuations'
@@ -15,6 +16,7 @@ import EllipsisMenu from '../components/EllipsisMenu.vue'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 import { useThemeStore } from '../stores/theme'
 
+const { t } = useI18n()
 const envelopesStore = useEnvelopesStore()
 
 // Only while the very first fetch is still in flight — once any envelopes
@@ -40,45 +42,56 @@ const checkingBalance = computed(() =>
 const unallocated = computed(() => Math.max(0, checkingBalance.value - totalAllocated.value))
 
 function ratio(target: string | null, current: string) {
-  const t = Number(target)
-  if (!target || t === 0) return 0
-  return Math.min(1, Number(current) / t)
+  const targetNum = Number(target)
+  if (!target || targetNum === 0) return 0
+  return Math.min(1, Number(current) / targetNum)
+}
+
+type EnvelopeStatusKey = 'unfunded' | 'funded' | 'empty' | 'filling'
+
+function statusKey(target: string | null, current: string): EnvelopeStatusKey {
+  if (!target || Number(target) === 0) return 'unfunded'
+  if (ratio(target, current) >= 1) return 'funded'
+  if (Number(current) === 0) return 'empty'
+  return 'filling'
+}
+
+const STATUS_COLOR: Record<EnvelopeStatusKey, 'neutral' | 'primary'> = {
+  unfunded: 'neutral',
+  funded: 'primary',
+  empty: 'neutral',
+  filling: 'neutral',
 }
 
 function status(target: string | null, current: string) {
-  if (!target || Number(target) === 0) return { label: 'Unfunded', color: 'neutral' as const }
-  const r = ratio(target, current)
-  if (r >= 1) return { label: 'Funded', color: 'primary' as const }
-  if (Number(current) === 0) return { label: 'Empty', color: 'neutral' as const }
-  return { label: 'Filling', color: 'neutral' as const }
+  const key = statusKey(target, current)
+  return { key, label: t(`envelopes.status${key.charAt(0).toUpperCase()}${key.slice(1)}`), color: STATUS_COLOR[key] }
 }
 
-type EnvelopeStatus = ReturnType<typeof status>['label']
-
-const statusOptions: { label: string; value: EnvelopeStatus | null }[] = [
-  { label: 'All statuses', value: null },
-  { label: 'Funded', value: 'Funded' },
-  { label: 'Filling', value: 'Filling' },
-  { label: 'Empty', value: 'Empty' },
-  { label: 'Unfunded', value: 'Unfunded' },
-]
+const statusOptions = computed(() => [
+  { label: t('common.allStatuses'), value: null },
+  { label: t('envelopes.statusFunded'), value: 'funded' as const },
+  { label: t('envelopes.statusFilling'), value: 'filling' as const },
+  { label: t('envelopes.statusEmpty'), value: 'empty' as const },
+  { label: t('envelopes.statusUnfunded'), value: 'unfunded' as const },
+])
 
 const filters = reactive({
   search: '',
-  status: null as EnvelopeStatus | null,
+  status: null as EnvelopeStatusKey | null,
 })
 
 const filteredEnvelopes = computed(() => {
   const search = filters.search.trim().toLowerCase()
   return envelopesStore.envelopes.filter((envelope) => {
-    if (filters.status && status(envelope.target_amount, envelope.current_amount).label !== filters.status) return false
+    if (filters.status && statusKey(envelope.target_amount, envelope.current_amount) !== filters.status) return false
     if (!search) return true
     return envelope.name.toLowerCase().includes(search)
   })
 })
 
 function barColor(target: string | null, current: string) {
-  return status(target, current).label === 'Funded'
+  return statusKey(target, current) === 'funded'
     ? 'var(--ui-primary)'
     : 'color-mix(in srgb, var(--ui-text) 62%, transparent)'
 }
@@ -99,7 +112,7 @@ function envelopeFormDefaults(): EnvelopeCreate {
 }
 
 const envelopeForm = useCrudForm<Envelope, EnvelopeCreate>({
-  entityLabel: 'envelope',
+  entityKey: 'envelope',
   createDefaults: envelopeFormDefaults,
   toFormValues: (envelope) => ({
     name: envelope.name,
@@ -112,18 +125,18 @@ const envelopeForm = useCrudForm<Envelope, EnvelopeCreate>({
   update: (id, payload) => envelopesStore.update(id, payload),
 })
 
-usePageAction('Add an envelope', () => envelopeForm.openCreate())
+usePageAction(() => t('envelopes.addTitle'), () => envelopeForm.openCreate())
 
 const deleteEnvelope = useDeleteAction('envelope')
 
 async function removeEnvelope(envelope: Envelope) {
-  await deleteEnvelope(`Delete "${envelope.name}"?`, () => envelopesStore.remove(envelope.id))
+  await deleteEnvelope(t('envelopes.deleteConfirm', { name: envelope.name }), () => envelopesStore.remove(envelope.id))
 }
 
 function envelopeMenuItems(envelope: Envelope) {
   return [
-    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => envelopeForm.openEdit(envelope) },
-    { label: 'Delete', icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeEnvelope(envelope) },
+    { label: t('common.edit'), icon: 'i-lucide-pencil', onSelect: () => envelopeForm.openEdit(envelope) },
+    { label: t('common.delete'), icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeEnvelope(envelope) },
   ]
 }
 </script>
@@ -132,25 +145,25 @@ function envelopeMenuItems(envelope: Envelope) {
   <div class="flex flex-col gap-7">
     <EntityFormModal
       :open="envelopeForm.state.open"
-      :title="envelopeForm.state.isEditing ? 'Edit envelope' : 'Add an envelope'"
+      :title="envelopeForm.state.isEditing ? t('envelopes.editTitle') : t('envelopes.addTitle')"
       :loading="envelopeForm.state.submitting"
       @update:open="envelopeForm.state.open = $event"
       @submit="envelopeForm.submit()"
     >
-      <UFormField label="Name">
-        <UInput v-model="envelopeForm.state.form.name" placeholder="Vacation" />
+      <UFormField :label="t('envelopes.fieldName')">
+        <UInput v-model="envelopeForm.state.form.name" :placeholder="t('envelopes.fieldNamePlaceholder')" />
       </UFormField>
-      <UFormField label="Target">
-        <UInput v-model="envelopeForm.state.form.target_amount" type="number" placeholder="2000" />
+      <UFormField :label="t('envelopes.fieldTarget')">
+        <UInput v-model="envelopeForm.state.form.target_amount" type="number" :placeholder="t('envelopes.fieldTargetPlaceholder')" />
       </UFormField>
-      <UFormField label="Current amount">
-        <UInput v-model="envelopeForm.state.form.current_amount" type="number" placeholder="0" />
+      <UFormField :label="t('envelopes.fieldCurrentAmount')">
+        <UInput v-model="envelopeForm.state.form.current_amount" type="number" :placeholder="t('envelopes.fieldCurrentAmountPlaceholder')" />
       </UFormField>
-      <UFormField label="Color" description="A hex color used for the envelope's accent">
+      <UFormField :label="t('envelopes.fieldColor')" :description="t('envelopes.fieldColorDescription')">
         <UInput v-model="envelopeForm.state.form.color" type="color" class="h-9 w-16 p-1" />
       </UFormField>
-      <UFormField label="Icon" description="A Lucide icon name, e.g. i-lucide-plane">
-        <UInput v-model="envelopeForm.state.form.icon" placeholder="i-lucide-plane" />
+      <UFormField :label="t('envelopes.fieldIcon')" :description="t('envelopes.fieldIconDescription')">
+        <UInput v-model="envelopeForm.state.form.icon" :placeholder="t('envelopes.fieldIconPlaceholder')" />
       </UFormField>
     </EntityFormModal>
 
@@ -159,20 +172,20 @@ function envelopeMenuItems(envelope: Envelope) {
     <template v-else-if="envelopesStore.envelopes.length > 0">
       <StatCardRow>
         <StatCard
-          label="Allocated"
+          :label="t('envelopes.allocated')"
           :value="formatCurrency(totalAllocated)"
-          :note="`Across ${envelopesStore.envelopes.length} envelopes`"
+          :note="t('envelopes.allocatedNote', envelopesStore.envelopes.length)"
         />
-        <StatCard label="Targets" value-color="muted" :value="formatCurrency(totalTargets)" :note="fundedRatio === null ? undefined : `${Math.round(fundedRatio * 100)}% funded`" />
-        <StatCard label="Unallocated" value-color="positive" :value="formatCurrency(unallocated)" note="Sitting in checking" />
+        <StatCard :label="t('envelopes.targets')" value-color="muted" :value="formatCurrency(totalTargets)" :note="fundedRatio === null ? undefined : t('envelopes.targetsFundedNote', { pct: Math.round(fundedRatio * 100) })" />
+        <StatCard :label="t('envelopes.unallocated')" value-color="positive" :value="formatCurrency(unallocated)" :note="t('envelopes.unallocatedNote')" />
       </StatCardRow>
 
       <div class="flex flex-wrap items-end gap-4">
-        <UFormField label="Search" class="w-64">
-          <UInput v-model="filters.search" placeholder="Envelope name" />
+        <UFormField :label="t('envelopes.searchLabel')" class="w-64">
+          <UInput v-model="filters.search" :placeholder="t('envelopes.searchPlaceholder')" />
         </UFormField>
-        <UFormField label="Status" class="w-48">
-          <USelect v-model="filters.status" :items="statusOptions" placeholder="All statuses" />
+        <UFormField :label="t('envelopes.statusLabel')" class="w-48">
+          <USelect v-model="filters.status" :items="statusOptions" :placeholder="t('common.allStatuses')" />
         </UFormField>
       </div>
 
@@ -209,7 +222,7 @@ function envelopeMenuItems(envelope: Envelope) {
               <span class="text-[15px] text-muted">/ {{ formatEuro(envelope.target_amount) }}</span>
             </span>
             <span class="flex items-center justify-between text-sm text-muted">
-              <span>{{ Math.round(ratio(envelope.target_amount, envelope.current_amount) * 100) }}% funded</span>
+              <span>{{ t('envelopes.fundedPct', { pct: Math.round(ratio(envelope.target_amount, envelope.current_amount) * 100) }) }}</span>
               <EllipsisMenu :items="envelopeMenuItems(envelope)" size="xs" />
             </span>
           </div>
@@ -220,8 +233,8 @@ function envelopeMenuItems(envelope: Envelope) {
     <UEmpty
       v-else
       icon="i-lucide-mail"
-      title="No envelopes yet"
-      description="Envelopes divide the money you already have into jobs — travel, works, taxes. They never move money between accounts."
+      :title="t('envelopes.emptyTitle')"
+      :description="t('envelopes.emptyDescription')"
       class="neu-inset"
     />
   </div>

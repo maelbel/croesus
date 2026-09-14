@@ -1,24 +1,21 @@
-export type AccountType =
-  | 'checking'
-  | 'regulated_savings'
-  | 'pea'
-  | 'life_insurance'
-  | 'brokerage'
-  | 'crypto'
-  | 'real_estate'
-  | 'scpi'
-  | 'other'
+import { i18n } from '../i18n'
 
-export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  checking: 'Checking account',
-  regulated_savings: 'Regulated savings',
-  pea: 'PEA',
-  life_insurance: 'Life insurance',
-  brokerage: 'Brokerage account',
-  crypto: 'Crypto',
-  real_estate: 'Real estate',
-  scpi: 'SCPI',
-  other: 'Other',
+export const ACCOUNT_TYPES = [
+  'checking',
+  'regulated_savings',
+  'pea',
+  'life_insurance',
+  'brokerage',
+  'crypto',
+  'real_estate',
+  'scpi',
+  'other',
+] as const
+
+export type AccountType = (typeof ACCOUNT_TYPES)[number]
+
+export function accountTypeLabel(type: AccountType): string {
+  return i18n.global.t(`accountTypes.${type}`)
 }
 
 export interface Account {
@@ -52,14 +49,11 @@ export type ValuationUpdate = Partial<Omit<ValuationCreate, 'account_id'>>
 /** Must match AUTO_VALUATION_NOTE in backend/app/services/holdings_valuation.py. */
 export const AUTO_VALUATION_NOTE = 'Auto-calculated from holdings'
 
-export type AssetClass = 'stock' | 'etf' | 'crypto' | 'fund' | 'other'
+export const ASSET_CLASSES = ['stock', 'etf', 'crypto', 'fund', 'other'] as const
+export type AssetClass = (typeof ASSET_CLASSES)[number]
 
-export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
-  stock: 'Stock',
-  etf: 'ETF',
-  crypto: 'Crypto',
-  fund: 'Fund',
-  other: 'Other',
+export function assetClassLabel(assetClass: AssetClass): string {
+  return i18n.global.t(`assetClasses.${assetClass}`)
 }
 
 export interface Asset {
@@ -88,12 +82,11 @@ export interface PriceRefreshResult {
   skipped_no_symbol: number
 }
 
-export type LiabilityType = 'mortgage' | 'consumer_loan' | 'other'
+export const LIABILITY_TYPES = ['mortgage', 'consumer_loan', 'other'] as const
+export type LiabilityType = (typeof LIABILITY_TYPES)[number]
 
-export const LIABILITY_TYPE_LABELS: Record<LiabilityType, string> = {
-  mortgage: 'Mortgage',
-  consumer_loan: 'Consumer loan',
-  other: 'Other',
+export function liabilityTypeLabel(type: LiabilityType): string {
+  return i18n.global.t(`liabilityTypes.${type}`)
 }
 
 export interface Liability {

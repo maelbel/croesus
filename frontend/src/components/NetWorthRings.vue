@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useNetWorthStore } from '../stores/networth'
 import { formatCurrency, formatSignedCurrency, deltaColorClass } from '../lib/format'
 
+const { t } = useI18n()
 const netWorthStore = useNetWorthStore()
 
 /** One point per calendar year — the last known net worth recorded in that year. */
@@ -51,11 +53,11 @@ const rings = computed(() => {
 
 type RingRow = { year: string; netWorth: number; growth: number; isLatest: boolean }
 
-const ringsColumns: TableColumn<RingRow>[] = [
-  { accessorKey: 'year', header: 'Year' },
-  { accessorKey: 'netWorth', header: 'Net worth', meta: { class: { th: 'text-right', td: 'text-right' } } },
-  { accessorKey: 'growth', header: 'Growth', meta: { class: { th: 'text-right', td: 'text-right' } } },
-]
+const ringsColumns = computed<TableColumn<RingRow>[]>(() => [
+  { accessorKey: 'year', header: t('netWorthRings.columnYear') },
+  { accessorKey: 'netWorth', header: t('netWorthRings.columnNetWorth'), meta: { class: { th: 'text-right', td: 'text-right' } } },
+  { accessorKey: 'growth', header: t('netWorthRings.columnGrowth'), meta: { class: { th: 'text-right', td: 'text-right' } } },
+])
 </script>
 
 <template>
@@ -85,8 +87,8 @@ const ringsColumns: TableColumn<RingRow>[] = [
         <span class="max-w-[40ch] text-[15px] text-muted">
           {{
             rings.items.length > 1
-              ? `grown across ${rings.items.length} years on record. Each ring is one year, and a wider gap between rings is a year that grew more.`
-              : 'One year on record so far — more rings will appear as history builds up.'
+              ? t('netWorthRings.multiYear', rings.items.length)
+              : t('netWorthRings.singleYear')
           }}
         </span>
       </div>
