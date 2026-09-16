@@ -113,7 +113,19 @@ Two target usage modes:
       currency for the consolidated net worth view (supersedes the earlier
       "EUR only" non-goal)
 
-## Phase 4 — Advanced analytics
+## Phase 4 — Customizable dashboard
+
+- [ ] Drag-and-resize widget grid (12-column, snap-to-cell) replacing the
+      current fixed dashboard layout — add, remove, rearrange and resize
+      widgets, with an edit mode and a persisted per-instance layout
+- [ ] Widget catalog: stat tile, trend chart, breakdown donut, list, and a
+      debt/envelope payoff-status widget — each bound to a choice of data
+      source (net worth, total debt, envelopes remaining, emergency fund,
+      a specific account/liability balance, assets-by-class...) and a size
+      preset
+- [ ] Empty-dashboard state prompting the first widget to be added
+
+## Phase 5 — Advanced analytics
 
 - [ ] Performance against market — compare portfolio return (XIRR) against a
       benchmark index (CAC 40, S&P 500, MSCI World...) over the same period
@@ -124,24 +136,33 @@ Two target usage modes:
       reach €X") — kept deliberately simple; see non-goals
 - [ ] Tax-wrapper limit tracking — flag accounts approaching contribution
       ceilings (PEA €150k, Livret A cap, etc.)
+- [ ] Debt payoff projections — debt-free date, remaining interest at the
+      current rate, and "what if I paid €X more/month" scenarios on a
+      liability's detail view
 
-## Phase 5 — Household sharing (optional)
+## Phase 6 — Household sharing (optional)
 
 - [ ] Shared/household net worth — multiple users on one instance, with
       some accounts shared and others kept private (supersedes the earlier
       single-user non-goal)
 
-## Phase 6 — Data portability & reliability
+## Phase 7 — Data portability & reliability
 
 - [ ] Import from spreadsheet/CSV (bootstrapping from an existing manual
       tracker)
 - [ ] Export — CSV and/or PDF net worth report
 - [ ] Encrypted backup export, restorable independently of the running
       instance
-- [ ] Valuation staleness reminders (e.g. "account X hasn't been updated in
-      60 days")
+- [ ] Notifications — a weekly net worth summary, envelope-overspend
+      alerts, and a reminder when an account hasn't had a valuation
+      recorded in a while (supersedes the earlier "valuation staleness
+      reminders" wording — same idea, folded into a broader notifications
+      feature)
+- [ ] Account security — two-factor authentication (authenticator app) and
+      visibility/revocation of active sessions, alongside the existing
+      password/OIDC login
 
-## Phase 7 — Bank aggregation
+## Phase 8 — Bank aggregation
 
 - [ ] Powens (formerly Budget Insight) or Bridge API integration for
       automatic sync of French bank accounts
@@ -151,7 +172,7 @@ Two target usage modes:
 
 ## Non-goals (for now)
 
-- Automated financial advice (projections stay simple — see Phase 4)
+- Automated financial advice (projections stay simple — see Phase 5)
 - Automated cross-platform builds (will come via CI/CD — GitHub Actions —
   rather than locally from the Pi, which can't natively compile Windows/macOS
   binaries)
