@@ -191,6 +191,7 @@ def seed() -> None:
                 Liability(
                     name="Prêt auto",
                     type=LiabilityType.CONSUMER_LOAN,
+                    currency=Currency.USD,
                     initial_amount=Decimal("18000.00"),
                     remaining_amount=Decimal("6400.00"),
                     monthly_payment=Decimal("410.00"),
