@@ -3,12 +3,14 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.currency import Currency
 from app.models.liability import LiabilityType
 
 
 class LiabilityBase(BaseModel):
     name: str
     type: LiabilityType
+    currency: Currency = Currency.EUR
     initial_amount: Decimal = Field(ge=0)
     remaining_amount: Decimal = Field(ge=0)
     monthly_payment: Decimal | None = Field(default=None, ge=0)
@@ -24,6 +26,7 @@ class LiabilityCreate(LiabilityBase):
 class LiabilityUpdate(BaseModel):
     name: str | None = None
     type: LiabilityType | None = None
+    currency: Currency | None = None
     initial_amount: Decimal | None = Field(default=None, ge=0)
     remaining_amount: Decimal | None = Field(default=None, ge=0)
     monthly_payment: Decimal | None = Field(default=None, ge=0)

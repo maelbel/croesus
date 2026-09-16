@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { api } from '../api/client'
 import { findReferencePoint } from '../lib/trailingWindow'
 import type { NetWorth, NetWorthHistoryPoint } from '../api/types'
 import { useAccountsStore } from './accounts'
+import { useCurrencyStore } from './currency'
+import { useFxRatesStore } from './fxRates'
 import { useLiabilitiesStore } from './liabilities'
 import { useValuationsStore } from './valuations'
 
@@ -26,12 +28,25 @@ export const useNetWorthStore = defineStore('networth', () => {
     })
   }
 
+  const currencyStore = useCurrencyStore()
+  const fxRatesStore = useFxRatesStore()
+  // referenceCurrency is a plain ref, not a Pinia action, so it needs watch() rather than the
+  // $onAction self-invalidation above.
+  watch(
+    () => currencyStore.referenceCurrency,
+    (currency) => {
+      fetchAll()
+      fxRatesStore.fetchRates(currency)
+    },
+  )
+
   async function fetchAll() {
     loading.value = true
     try {
+      const currency = encodeURIComponent(currencyStore.referenceCurrency)
       const [currentResult, historyResult] = await Promise.all([
-        api.get<NetWorth>('/dashboard/net-worth'),
-        api.get<NetWorthHistoryPoint[]>('/dashboard/net-worth/history'),
+        api.get<NetWorth>(`/dashboard/net-worth?currency=${currency}`),
+        api.get<NetWorthHistoryPoint[]>(`/dashboard/net-worth/history?currency=${currency}`),
       ])
       current.value = currentResult
       history.value = historyResult

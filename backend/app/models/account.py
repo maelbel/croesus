@@ -7,6 +7,7 @@ from sqlalchemy import Boolean, Date, DateTime, Enum, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.models.currency import Currency
 
 if TYPE_CHECKING:
     from app.models.asset import Asset
@@ -31,6 +32,7 @@ class Account(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
     type: Mapped[AccountType] = mapped_column(Enum(AccountType))
+    currency: Mapped[Currency] = mapped_column(Enum(Currency), default=Currency.EUR)
     institution: Mapped[str | None] = mapped_column(String(255), default=None)
     opened_at: Mapped[date | None] = mapped_column(Date, default=None)
     is_emergency_fund: Mapped[bool] = mapped_column(Boolean, default=False)

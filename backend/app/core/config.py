@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     # refresh following closely after the scheduled one.
     price_cache_ttl_minutes: int = 5
 
+    # Deployment-wide default for the consolidated net worth view when a
+    # request doesn't explicitly pass ?currency=; each account/liability
+    # still keeps its own currency regardless of this setting.
+    reference_currency: str = "EUR"
+    # Frankfurter (ECB rates) only updates ~once/day, so a long TTL is fine.
+    fx_rate_cache_ttl_minutes: int = 720
+
     @property
     def password_enabled(self) -> bool:
         return bool(self.admin_username and self.admin_password)

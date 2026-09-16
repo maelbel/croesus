@@ -3,10 +3,19 @@ import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useLiabilitiesStore } from '../stores/liabilities'
+import { useCurrencyStore } from '../stores/currency'
+import { useFxRatesStore } from '../stores/fxRates'
 import { useCrudForm } from '../composables/useCrudForm'
 import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
-import { LIABILITY_TYPES, liabilityTypeLabel, type Liability, type LiabilityCreate, type LiabilityType } from '../api/types'
+import {
+  CURRENCIES,
+  LIABILITY_TYPES,
+  liabilityTypeLabel,
+  type Liability,
+  type LiabilityCreate,
+  type LiabilityType,
+} from '../api/types'
 import { formatCurrency, formatRate, formatDate } from '../lib/format'
 import StatCard from '../components/StatCard.vue'
 import StatCardRow from '../components/StatCardRow.vue'
@@ -16,6 +25,8 @@ import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 
 const { t } = useI18n()
 const liabilitiesStore = useLiabilitiesStore()
+const currencyStore = useCurrencyStore()
+const fxRatesStore = useFxRatesStore()
 
 // Only while the very first fetch is still in flight — once any liabilities
 // exist, later refetches (after a create/update/remove) don't re-show this.
@@ -24,6 +35,7 @@ const initialLoading = computed(() => liabilitiesStore.loading && liabilitiesSto
 const liabilityTypeOptions = computed(() =>
   LIABILITY_TYPES.map((value) => ({ label: liabilityTypeLabel(value), value })),
 )
+const currencyOptions = computed(() => CURRENCIES.map((value) => ({ label: value, value })))
 
 const filters = reactive({
   search: '',
@@ -39,18 +51,27 @@ const filteredLiabilities = computed(() => {
   })
 })
 
+// Liabilities can each hold a different currency — every cross-liability sum
+// on this page converts into the reference currency first (fxRatesStore),
+// while individual rows below keep showing each liability's own currency.
 const totalRemaining = computed(() =>
-  liabilitiesStore.liabilities.reduce((sum, l) => sum + Number(l.remaining_amount), 0),
+  liabilitiesStore.liabilities.reduce(
+    (sum, l) => sum + fxRatesStore.convert(Number(l.remaining_amount), l.currency),
+    0,
+  ),
 )
 const totalMonthly = computed(() =>
-  liabilitiesStore.liabilities.reduce((sum, l) => sum + Number(l.monthly_payment ?? 0), 0),
+  liabilitiesStore.liabilities.reduce(
+    (sum, l) => sum + fxRatesStore.convert(Number(l.monthly_payment ?? 0), l.currency),
+    0,
+  ),
 )
 const weightedRate = computed(() => {
   const withRate = liabilitiesStore.liabilities.filter((l) => l.interest_rate !== null)
-  const base = withRate.reduce((sum, l) => sum + Number(l.remaining_amount), 0)
+  const base = withRate.reduce((sum, l) => sum + fxRatesStore.convert(Number(l.remaining_amount), l.currency), 0)
   if (base === 0) return null
   const weighted = withRate.reduce(
-    (sum, l) => sum + Number(l.interest_rate) * Number(l.remaining_amount),
+    (sum, l) => sum + Number(l.interest_rate) * fxRatesStore.convert(Number(l.remaining_amount), l.currency),
     0,
   )
   return weighted / base
@@ -71,6 +92,7 @@ function liabilityFormDefaults(): LiabilityCreate {
   return {
     name: '',
     type: 'mortgage',
+    currency: currencyStore.referenceCurrency,
     initial_amount: '',
     remaining_amount: '',
     monthly_payment: null,
@@ -86,6 +108,7 @@ const liabilityForm = useCrudForm<Liability, LiabilityCreate>({
   toFormValues: (liability) => ({
     name: liability.name,
     type: liability.type,
+    currency: liability.currency,
     initial_amount: liability.initial_amount,
     remaining_amount: liability.remaining_amount,
     monthly_payment: liability.monthly_payment,
@@ -135,6 +158,9 @@ const liabilityColumns = computed<TableColumn<Liability>[]>(() => [
       </UFormField>
       <UFormField :label="t('liabilities.fieldType')">
         <USelect v-model="liabilityForm.state.form.type" :items="liabilityTypeOptions" class="w-full" />
+      </UFormField>
+      <UFormField :label="t('liabilities.fieldCurrency')">
+        <USelect v-model="liabilityForm.state.form.currency" :items="currencyOptions" class="w-full" />
       </UFormField>
       <UFormField :label="t('liabilities.fieldInitialAmount')">
         <UInput v-model="liabilityForm.state.form.initial_amount" type="number" :placeholder="t('liabilities.fieldInitialAmountPlaceholder')" />
@@ -198,10 +224,10 @@ const liabilityColumns = computed<TableColumn<Liability>[]>(() => [
           </div>
         </template>
         <template #remaining_amount-cell="{ row }: { row: TableRow<Liability> }">
-          <span class="font-heading text-[15.5px] font-extrabold whitespace-nowrap text-rust">{{ formatCurrency(row.original.remaining_amount) }}</span>
+          <span class="font-heading text-[15.5px] font-extrabold whitespace-nowrap text-rust">{{ formatCurrency(row.original.remaining_amount, row.original.currency) }}</span>
         </template>
         <template #monthly_payment-cell="{ row }: { row: TableRow<Liability> }">
-          <span class="text-[15px]">{{ row.original.monthly_payment ? formatCurrency(row.original.monthly_payment) : '—' }}</span>
+          <span class="text-[15px]">{{ row.original.monthly_payment ? formatCurrency(row.original.monthly_payment, row.original.currency) : '—' }}</span>
         </template>
         <template #paidOff-cell="{ row }: { row: TableRow<Liability> }">
           <span class="flex items-center gap-2.5">

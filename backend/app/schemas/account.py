@@ -4,11 +4,13 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 from app.models.account import AccountType
+from app.models.currency import Currency
 
 
 class AccountBase(BaseModel):
     name: str
     type: AccountType
+    currency: Currency = Currency.EUR
     institution: str | None = None
     opened_at: date | None = None
     is_emergency_fund: bool = False
@@ -23,6 +25,7 @@ class AccountCreate(AccountBase):
 class AccountUpdate(BaseModel):
     name: str | None = None
     type: AccountType | None = None
+    currency: Currency | None = None
     institution: str | None = None
     opened_at: date | None = None
     is_emergency_fund: bool | None = None

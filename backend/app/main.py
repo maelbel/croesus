@@ -14,6 +14,7 @@ from app.api.routes import (
     auth,
     dashboard,
     envelopes,
+    fx,
     liabilities,
     valuations,
 )
@@ -154,6 +155,7 @@ app.include_router(assets.router)
 app.include_router(liabilities.router)
 app.include_router(envelopes.router)
 app.include_router(dashboard.router)
+app.include_router(fx.router)
 
 
 @app.get("/health")

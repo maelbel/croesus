@@ -1,5 +1,8 @@
 import { i18n } from '../i18n'
 
+export const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD'] as const
+export type Currency = (typeof CURRENCIES)[number]
+
 export const ACCOUNT_TYPES = [
   'checking',
   'regulated_savings',
@@ -22,6 +25,7 @@ export interface Account {
   id: number
   name: string
   type: AccountType
+  currency: Currency
   institution: string | null
   opened_at: string | null
   is_emergency_fund: boolean
@@ -93,6 +97,7 @@ export interface Liability {
   id: number
   name: string
   type: LiabilityType
+  currency: Currency
   initial_amount: string
   remaining_amount: string
   monthly_payment: string | null
@@ -131,6 +136,13 @@ export interface NetWorthHistoryPoint {
   total_assets: number
   total_liabilities: number
   net_worth: number
+}
+
+export interface FxRates {
+  base: Currency
+  /** rate[X] * amount_in_X === amount_in_base, for every currency other than base. */
+  rates: Record<string, number>
+  as_of: string
 }
 
 export interface AuthStatus {

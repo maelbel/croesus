@@ -25,6 +25,7 @@ from dateutil.relativedelta import relativedelta
 from app.core.database import SessionLocal
 from app.models.account import Account, AccountType
 from app.models.asset import Asset, AssetClass
+from app.models.currency import Currency
 from app.models.envelope import Envelope
 from app.models.liability import Liability, LiabilityType
 from app.models.valuation import Valuation
@@ -87,6 +88,7 @@ def seed() -> None:
             Account(
                 name="Compte-titres",
                 type=AccountType.BROKERAGE,
+                currency=Currency.USD,
                 institution="Trade Republic",
                 opened_at=date(2021, 2, 10),
             ),
