@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { isTauri } from '@tauri-apps/api/core'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '@nuxt/ui/composables'
 import { SKINS, useThemeStore, type Skin } from '../stores/theme'
 import { LOCALES, useLocaleStore } from '../stores/locale'
+import { useCurrencyStore } from '../stores/currency'
+import { CURRENCIES } from '../api/types'
 import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
@@ -18,6 +21,8 @@ const confirm = useConfirm()
 
 const themeStore = useThemeStore()
 const localeStore = useLocaleStore()
+const currencyStore = useCurrencyStore()
+const currencyOptions = computed(() => CURRENCIES.map((value) => ({ label: value, value })))
 const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
@@ -173,13 +178,12 @@ async function deleteAllData() {
         <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.currencyTitle') }}</span>
         <span class="text-sm text-muted">{{ t('settings.currencyDescription') }}</span>
       </div>
-      <div class="flex flex-col items-start gap-2">
-        <div class="neu-inset flex w-max border border-default opacity-50">
-          <UButton size="sm" variant="solid" color="neutral" disabled>EUR</UButton>
-          <UButton size="sm" variant="ghost" color="neutral" disabled>USD</UButton>
-        </div>
-        <span class="text-sm text-muted">{{ t('settings.currencyNotAvailable') }}</span>
-      </div>
+      <USelect
+        :model-value="currencyStore.referenceCurrency"
+        :items="currencyOptions"
+        class="w-40"
+        @update:model-value="currencyStore.setReferenceCurrency($event)"
+      />
     </div>
 
     <div v-if="authStore.authEnabled" class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">

@@ -109,7 +109,7 @@ Two target usage modes:
 
 - [x] UI language support (i18n) — externalize frontend strings, start with
       French + English
-- [ ] Multi-currency — per-account currency, conversion to a reference
+- [x] Multi-currency — per-account currency, conversion to a reference
       currency for the consolidated net worth view (supersedes the earlier
       "EUR only" non-goal)
 

@@ -96,7 +96,7 @@ function barColor(target: string | null, current: string) {
     : 'color-mix(in srgb, var(--ui-text) 62%, transparent)'
 }
 
-function formatEuro(value: string | null) {
+function formatAmount(value: string | null) {
   if (value === null) return '—'
   return formatCurrency(value)
 }
@@ -218,8 +218,8 @@ function envelopeMenuItems(envelope: Envelope) {
               </UBadge>
             </span>
             <span class="flex items-baseline gap-2">
-              <span class="font-heading text-[28px] leading-none font-extrabold">{{ formatEuro(envelope.current_amount) }}</span>
-              <span class="text-[15px] text-muted">/ {{ formatEuro(envelope.target_amount) }}</span>
+              <span class="font-heading text-[28px] leading-none font-extrabold">{{ formatAmount(envelope.current_amount) }}</span>
+              <span class="text-[15px] text-muted">/ {{ formatAmount(envelope.target_amount) }}</span>
             </span>
             <span class="flex items-center justify-between text-sm text-muted">
               <span>{{ t('envelopes.fundedPct', { pct: Math.round(ratio(envelope.target_amount, envelope.current_amount) * 100) }) }}</span>

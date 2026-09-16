@@ -221,9 +221,9 @@ const detailTabs = computed(() => [
         <section class="neu-surface flex flex-col gap-4 border-2 border-default p-5">
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="flex flex-col gap-1">
-              <span class="font-heading text-[28px] leading-none font-extrabold">{{ formatCurrency(currentValue) }}</span>
+              <span class="font-heading text-[28px] leading-none font-extrabold">{{ formatCurrency(currentValue, account.currency) }}</span>
               <span v-if="change30d?.ratio != null" class="text-sm" :class="deltaColorClass(change30d.ratio)">
-                {{ formatSignedCurrency(change30d.delta) }} ({{ formatPercent(change30d.ratio) }}) · 30 d
+                {{ formatSignedCurrency(change30d.delta, account.currency) }} ({{ formatPercent(change30d.ratio) }}) · 30 d
               </span>
               <span v-else class="text-sm text-muted">{{ t('accountDetail.noComparisonYet') }}</span>
             </div>
@@ -242,7 +242,7 @@ const detailTabs = computed(() => [
               <span class="stripe-fill" :style="{ width: `${emergencyRatio * 100}%` }" />
             </span>
             <span class="text-sm text-muted">
-              {{ t('accountDetail.targetProgress', { current: formatCurrency(currentValue), target: formatCurrency(account.emergency_fund_target) }) }}
+              {{ t('accountDetail.targetProgress', { current: formatCurrency(currentValue, account.currency), target: formatCurrency(account.emergency_fund_target, account.currency) }) }}
             </span>
           </div>
 
@@ -287,7 +287,7 @@ const detailTabs = computed(() => [
                   <span class="text-sm whitespace-nowrap text-muted">{{ formatDate(row.original.date) }}</span>
                 </template>
                 <template #value-cell="{ row }: { row: TableRow<Valuation> }">
-                  <span class="text-[15px] font-semibold whitespace-nowrap">{{ formatCurrency(row.original.value) }}</span>
+                  <span class="text-[15px] font-semibold whitespace-nowrap">{{ formatCurrency(row.original.value, account.currency) }}</span>
                 </template>
                 <template #note-cell="{ row }: { row: TableRow<Valuation> }">
                   <span class="text-sm text-muted">
@@ -370,7 +370,7 @@ const detailTabs = computed(() => [
                     {{ t('accountDetail.holdingsFooter', accountAssets.length) }}
                     <template v-if="totalUnrealizedGain !== null">
                       ·
-                      <span :class="deltaColorClass(totalUnrealizedGain)">{{ formatSignedCurrency(totalUnrealizedGain) }}</span>
+                      <span :class="deltaColorClass(totalUnrealizedGain)">{{ formatSignedCurrency(totalUnrealizedGain, account.currency) }}</span>
                       {{ t('accountDetail.unrealizedSuffix') }}
                     </template>
                   </span>
@@ -381,19 +381,19 @@ const detailTabs = computed(() => [
                 <template #price-cell="{ row }: { row: TableRow<Asset> }">
                   <UTooltip :text="row.original.price_updated_at ? t('accountDetail.livePriceAsOf', { date: formatDate(row.original.price_updated_at) }) : t('accountDetail.noLivePriceYet')">
                     <span class="inline-flex items-center gap-1 whitespace-nowrap text-sm text-muted">
-                      {{ formatCurrency(currentPrice(row.original)) }}
+                      {{ formatCurrency(currentPrice(row.original), account.currency) }}
                       <UIcon v-if="row.original.current_price !== null" name="i-lucide-radio" class="text-primary" />
                     </span>
                   </UTooltip>
                 </template>
                 <template #marketValue-cell="{ row }: { row: TableRow<Asset> }">
-                  <div class="text-[15px] font-semibold">{{ formatCurrency(marketValue(row.original)) }}</div>
+                  <div class="text-[15px] font-semibold">{{ formatCurrency(marketValue(row.original), account.currency) }}</div>
                   <div v-if="unrealizedGain(row.original) !== null" class="text-xs" :class="deltaColorClass(unrealizedGain(row.original))">
-                    {{ formatSignedCurrency(unrealizedGain(row.original)!) }}
+                    {{ formatSignedCurrency(unrealizedGain(row.original)!, account.currency) }}
                   </div>
                 </template>
                 <template #marketValue-footer>
-                  <span class="text-sm font-semibold whitespace-nowrap">{{ formatCurrency(totalMarketValue) }}</span>
+                  <span class="text-sm font-semibold whitespace-nowrap">{{ formatCurrency(totalMarketValue, account.currency) }}</span>
                 </template>
                 <template #actions-header>
                   <div v-if="accountAssets.some((asset) => asset.symbol)" class="flex justify-end">

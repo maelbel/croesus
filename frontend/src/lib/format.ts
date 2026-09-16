@@ -1,4 +1,6 @@
 import { i18n } from '../i18n'
+import { useCurrencyStore } from '../stores/currency'
+import type { Currency } from '../api/types'
 
 const INTL_LOCALE: Record<string, string> = { en: 'en-US', fr: 'fr-FR' }
 
@@ -7,12 +9,14 @@ function intlLocale(): string {
 }
 
 const currencyFormatters = new Map<string, Intl.NumberFormat>()
-function currencyFormatter(): Intl.NumberFormat {
+function currencyFormatter(currency?: Currency): Intl.NumberFormat {
+  const code = currency ?? useCurrencyStore().referenceCurrency
   const locale = intlLocale()
-  let formatter = currencyFormatters.get(locale)
+  const key = `${locale}:${code}`
+  let formatter = currencyFormatters.get(key)
   if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' })
-    currencyFormatters.set(locale, formatter)
+    formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: code })
+    currencyFormatters.set(key, formatter)
   }
   return formatter
 }
@@ -44,12 +48,12 @@ function dateFormatter(): Intl.DateTimeFormat {
   return formatter
 }
 
-export function formatCurrency(value: number | string): string {
-  return currencyFormatter().format(Number(value))
+export function formatCurrency(value: number | string, currency?: Currency): string {
+  return currencyFormatter(currency).format(Number(value))
 }
 
-export function formatSignedCurrency(value: number): string {
-  const formatted = currencyFormatter().format(Math.abs(value))
+export function formatSignedCurrency(value: number, currency?: Currency): string {
+  const formatted = currencyFormatter(currency).format(Math.abs(value))
   if (value > 0) return `+${formatted}`
   if (value < 0) return `-${formatted}`
   return formatted

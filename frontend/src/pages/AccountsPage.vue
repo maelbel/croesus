@@ -3,11 +3,20 @@ import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useAccountsStore } from '../stores/accounts'
+import { useCurrencyStore } from '../stores/currency'
+import { useFxRatesStore } from '../stores/fxRates'
 import { useValuationsStore, type ValuationChange } from '../stores/valuations'
 import { useCrudForm } from '../composables/useCrudForm'
 import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
-import { ACCOUNT_TYPES, accountTypeLabel, type Account, type AccountCreate, type AccountType } from '../api/types'
+import {
+  ACCOUNT_TYPES,
+  accountTypeLabel,
+  CURRENCIES,
+  type Account,
+  type AccountCreate,
+  type AccountType,
+} from '../api/types'
 import { formatCurrency, formatPercent, formatDate, formatSignedCurrency, deltaColorClass } from '../lib/format'
 import EntityFormModal from '../components/EntityFormModal.vue'
 import AccountDetailPanel from '../components/AccountDetailPanel.vue'
@@ -18,6 +27,8 @@ import StatCardRow from '../components/StatCardRow.vue'
 
 const { t } = useI18n()
 const accountsStore = useAccountsStore()
+const currencyStore = useCurrencyStore()
+const fxRatesStore = useFxRatesStore()
 const valuationsStore = useValuationsStore()
 
 // Only while the very first fetch is still in flight — once any accounts
@@ -27,6 +38,7 @@ const initialLoading = computed(() => accountsStore.loading && accountsStore.acc
 const accountTypeOptions = computed(() =>
   ACCOUNT_TYPES.map((value) => ({ label: accountTypeLabel(value), value })),
 )
+const currencyOptions = computed(() => CURRENCIES.map((value) => ({ label: value, value })))
 
 const filters = reactive({
   search: '',
@@ -45,8 +57,14 @@ const filteredAccounts = computed(() => {
   })
 })
 
+// Accounts can each hold a different currency — every cross-account sum on
+// this page converts into the reference currency first (fxRatesStore),
+// while individual rows below keep showing each account's own currency.
 const totalValue = computed(() =>
-  accountsStore.accounts.reduce((sum, a) => sum + valuationsStore.currentValue(a.id), 0),
+  accountsStore.accounts.reduce(
+    (sum, a) => sum + fxRatesStore.convert(valuationsStore.currentValue(a.id), a.currency),
+    0,
+  ),
 )
 
 // Aggregated the same way as each row's own 30 d column (delta vs. the value
@@ -57,8 +75,9 @@ const totalChange30d = computed(() => {
   for (const account of accountsStore.accounts) {
     const change = valuationsStore.changeOverDays(account.id, 30)
     if (!change) continue
-    deltaSum += change.delta
-    referenceSum += valuationsStore.currentValue(account.id) - change.delta
+    const delta = fxRatesStore.convert(change.delta, account.currency)
+    deltaSum += delta
+    referenceSum += fxRatesStore.convert(valuationsStore.currentValue(account.id), account.currency) - delta
   }
   if (referenceSum === 0) return null
   return { delta: deltaSum, ratio: deltaSum / referenceSum }
@@ -80,10 +99,16 @@ function updatedLabel(account: Account) {
 
 const emergencyAccounts = computed(() => accountsStore.accounts.filter((a) => a.is_emergency_fund))
 const efCurrent = computed(() =>
-  emergencyAccounts.value.reduce((sum, a) => sum + valuationsStore.currentValue(a.id), 0),
+  emergencyAccounts.value.reduce(
+    (sum, a) => sum + fxRatesStore.convert(valuationsStore.currentValue(a.id), a.currency),
+    0,
+  ),
 )
 const efTarget = computed(() =>
-  emergencyAccounts.value.reduce((sum, a) => sum + Number(a.emergency_fund_target ?? 0), 0),
+  emergencyAccounts.value.reduce(
+    (sum, a) => sum + fxRatesStore.convert(Number(a.emergency_fund_target ?? 0), a.currency),
+    0,
+  ),
 )
 const efRatio = computed(() => (efTarget.value > 0 ? Math.min(1, efCurrent.value / efTarget.value) : 0))
 
@@ -91,6 +116,7 @@ function accountFormDefaults(): AccountCreate {
   return {
     name: '',
     type: 'checking',
+    currency: currencyStore.referenceCurrency,
     institution: null,
     opened_at: null,
     is_emergency_fund: false,
@@ -105,6 +131,7 @@ const accountForm = useCrudForm<Account, AccountCreate>({
   toFormValues: (account) => ({
     name: account.name,
     type: account.type,
+    currency: account.currency,
     institution: account.institution,
     opened_at: account.opened_at,
     is_emergency_fund: account.is_emergency_fund,
@@ -167,6 +194,9 @@ const accountColumns = computed<TableColumn<AccountRow>[]>(() => [
       </UFormField>
       <UFormField :label="t('accounts.fieldType')">
         <USelect v-model="accountForm.state.form.type" :items="accountTypeOptions" class="w-full" />
+      </UFormField>
+      <UFormField :label="t('accounts.fieldCurrency')">
+        <USelect v-model="accountForm.state.form.currency" :items="currencyOptions" class="w-full" />
       </UFormField>
       <UFormField :label="t('accounts.fieldInstitution')">
         <UInput v-model="accountForm.state.form.institution" :placeholder="t('accounts.fieldInstitutionPlaceholder')" />
@@ -244,7 +274,7 @@ const accountColumns = computed<TableColumn<AccountRow>[]>(() => [
         </template>
         <template #value-cell="{ row }: { row: TableRow<AccountRow> }">
           <span class="font-heading text-[15.5px] font-extrabold whitespace-nowrap">
-            {{ formatCurrency(valuationsStore.currentValue(row.original.account.id)) }}
+            {{ formatCurrency(valuationsStore.currentValue(row.original.account.id), row.original.account.currency) }}
           </span>
         </template>
         <template #change-cell="{ row }: { row: TableRow<AccountRow> }">
