@@ -205,6 +205,12 @@ export default {
     emptyDescription:
       'Envelopes divide the money you already have into jobs — travel, works, taxes. They never move money between accounts.',
   },
+  liabilityDetail: {
+    backToLiabilities: 'Liabilities',
+    detailsHeading: 'Liability details',
+    deleteLiability: 'Delete liability',
+    deleteLiabilityHint: 'Removes this liability from your net worth.',
+  },
   accountDetail: {
     backToAccounts: 'Accounts',
     currentValue: 'Current value',

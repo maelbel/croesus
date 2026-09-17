@@ -202,6 +202,12 @@ export default {
     emptyDescription:
       "Les enveloppes répartissent l'argent que vous avez déjà en missions — voyages, travaux, impôts. Elles ne déplacent jamais d'argent entre comptes.",
   },
+  liabilityDetail: {
+    backToLiabilities: 'Passifs',
+    detailsHeading: 'Détails du passif',
+    deleteLiability: 'Supprimer le passif',
+    deleteLiabilityHint: 'Supprime ce passif de votre patrimoine net.',
+  },
   accountDetail: {
     backToAccounts: 'Comptes',
     currentValue: 'Valeur actuelle',

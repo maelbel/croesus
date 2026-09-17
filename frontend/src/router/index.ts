@@ -32,6 +32,14 @@ const router = createRouter({
       meta: { kicker: 'router.liabilities.kicker', title: 'router.liabilities.title' },
     },
     {
+      path: '/liabilities/:id',
+      name: 'liability',
+      component: () => import('../pages/LiabilityPage.vue'),
+      props: true,
+      // No meta kicker/title: this page's title is the liability's own name,
+      // set dynamically via usePageTitle (see composables/usePageTitle.ts).
+    },
+    {
       path: '/envelopes',
       name: 'envelopes',
       component: () => import('../pages/EnvelopesPage.vue'),

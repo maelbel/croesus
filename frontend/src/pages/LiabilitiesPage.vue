@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useCurrencyStore } from '../stores/currency'
 import { useFxRatesStore } from '../stores/fxRates'
 import { useNetWorthStore } from '../stores/networth'
 import { useCrudForm } from '../composables/useCrudForm'
-import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
 import {
   CURRENCIES,
@@ -17,10 +17,10 @@ import {
 } from '../api/types'
 import { formatCurrency, formatSignedCurrency, formatRate, formatDate, deltaColorClass } from '../lib/format'
 import EntityFormModal from '../components/EntityFormModal.vue'
-import EllipsisMenu from '../components/EllipsisMenu.vue'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 const liabilitiesStore = useLiabilitiesStore()
 const currencyStore = useCurrencyStore()
 const fxRatesStore = useFxRatesStore()
@@ -119,19 +119,9 @@ const liabilityForm = useCrudForm<Liability, LiabilityCreate>({
 
 usePageAction(() => t('liabilities.addTitle'), () => liabilityForm.openCreate())
 
-const deleteLiability = useDeleteAction('liability')
-
-async function removeLiability(liability: Liability) {
-  await deleteLiability(t('liabilities.deleteConfirm', { name: liability.name }), () => liabilitiesStore.remove(liability.id))
+function openLiability(liability: Liability) {
+  router.push({ name: 'liability', params: { id: liability.id } })
 }
-
-function liabilityMenuItems(liability: Liability) {
-  return [
-    { label: t('common.edit'), icon: 'i-lucide-pencil', onSelect: () => liabilityForm.openEdit(liability) },
-    { label: t('common.delete'), icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeLiability(liability) },
-  ]
-}
-
 </script>
 
 <template>
@@ -191,8 +181,8 @@ function liabilityMenuItems(liability: Liability) {
           role="button"
           tabindex="0"
           class="neu-surface flex cursor-pointer flex-col gap-3.5 bg-default p-5"
-          @click="liabilityForm.openEdit(liability)"
-          @keydown.enter="liabilityForm.openEdit(liability)"
+          @click="openLiability(liability)"
+          @keydown.enter="openLiability(liability)"
         >
           <span class="flex items-start justify-between gap-4">
             <span class="flex min-w-0 flex-col gap-0.5">
@@ -208,9 +198,6 @@ function liabilityMenuItems(liability: Liability) {
               <span class="text-[12.5px] whitespace-nowrap text-muted">
                 {{ liability.monthly_payment ? t('liabilities.perMonth', { amount: formatCurrency(liability.monthly_payment, liability.currency) }) : '—' }}
               </span>
-            </span>
-            <span @click.stop @keydown.stop>
-              <EllipsisMenu :items="liabilityMenuItems(liability)" size="xs" />
             </span>
           </span>
           <span class="flex flex-col gap-1.5">
