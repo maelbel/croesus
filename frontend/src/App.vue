@@ -18,7 +18,7 @@ import { usePageActionStore } from './stores/pageActions'
 import { usePageTitleStore } from './stores/pageTitle'
 import { useLocaleStore } from './stores/locale'
 import { useOidcCallback } from './composables/useOidcCallback'
-import { formatCurrency, formatDate } from './lib/format'
+import { formatCurrency } from './lib/format'
 import { en as uiEn, fr as uiFr } from '@nuxt/ui/locale'
 import LoginForm from './components/LoginForm.vue'
 import OnboardingScreen from './components/OnboardingScreen.vue'
@@ -152,7 +152,6 @@ const links = computed(() => [
 const netWorth = computed(() =>
   netWorthStore.current ? formatCurrency(netWorthStore.current.net_worth) : '—',
 )
-const asOf = computed(() => t('nav.asOf', { date: formatDate(new Date().toISOString()) }))
 // router.isReady() isn't awaited before mount (see main.ts), so on the very
 // first paint `route.meta` can briefly be `{}` before the initial navigation
 // resolves — t(undefined) throws, where the old raw-string interpolation
@@ -208,7 +207,6 @@ const pageTitle = computed(
               <h1 class="text-[37px] tracking-tight">{{ pageTitle }}</h1>
             </div>
             <div class="flex items-center gap-2.5">
-              <span class="text-sm text-muted">{{ asOf }}</span>
               <UButton
                 v-if="pageActionStore.label"
                 color="primary"

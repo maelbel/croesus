@@ -66,6 +66,25 @@ function paidRatio(liability: Liability) {
   return Math.min(1, Math.max(0, (initial - Number(liability.remaining_amount)) / initial))
 }
 
+// Simulates the same amortization schedule implied by the liability's own
+// remaining balance/rate/payment (balance -= payment - interest, month by
+// month) rather than requiring a separate stored field — mirrors how a
+// standard loan payoff schedule is derived from those three numbers alone.
+// Capped like any such simulation: a payment that doesn't even cover the
+// monthly interest would never reach zero.
+function paymentsLeft(liability: Liability): number | null {
+  const rate = Number(liability.interest_rate ?? 0) / 100 / 12
+  const payment = Number(liability.monthly_payment ?? 0)
+  let balance = Number(liability.remaining_amount)
+  if (payment <= 0 || balance <= 0) return null
+  let months = 0
+  while (balance > 0 && months < 600) {
+    balance = balance + balance * rate - payment
+    months++
+  }
+  return months < 600 ? months : null
+}
+
 function liabilityFormDefaults(): LiabilityCreate {
   return {
     name: '',
@@ -185,7 +204,7 @@ function liabilityMenuItems(liability: Liability) {
               </span>
             </span>
             <span class="flex flex-none flex-col items-end gap-0.5">
-              <span class="text-[20px] font-extrabold tracking-tight whitespace-nowrap text-rust">{{ formatCurrency(liability.remaining_amount, liability.currency) }}</span>
+              <span class="text-[20px] font-extrabold tracking-tight whitespace-nowrap">{{ formatCurrency(liability.remaining_amount, liability.currency) }}</span>
               <span class="text-[12.5px] whitespace-nowrap text-muted">
                 {{ liability.monthly_payment ? t('liabilities.perMonth', { amount: formatCurrency(liability.monthly_payment, liability.currency) }) : '—' }}
               </span>
@@ -196,9 +215,12 @@ function liabilityMenuItems(liability: Liability) {
           </span>
           <span class="flex flex-col gap-1.5">
             <span class="stripe-track">
-              <span class="stripe-fill paid-off-fill" :style="{ width: `${paidRatio(liability) * 100}%` }" />
+              <span class="stripe-fill" :style="{ width: `${paidRatio(liability) * 100}%` }" />
             </span>
-            <span class="text-[12.5px] text-muted">{{ t('liabilities.paidOffPct', { pct: Math.round(paidRatio(liability) * 100) }) }}</span>
+            <span class="flex items-center justify-between gap-4 text-[12.5px] text-muted">
+              <span>{{ t('liabilities.paidOffPct', { pct: Math.round(paidRatio(liability) * 100) }) }}</span>
+              <span v-if="paymentsLeft(liability) !== null">{{ t('liabilities.paymentsLeft', paymentsLeft(liability)!) }}</span>
+            </span>
           </span>
         </div>
       </div>

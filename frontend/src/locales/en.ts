@@ -67,13 +67,12 @@ export default {
   router: {
     dashboard: { kicker: 'Overview', title: 'Dashboard' },
     accounts: { kicker: 'Assets', title: 'Accounts' },
-    liabilities: { kicker: 'What you owe', title: 'Liabilities' },
+    liabilities: { kicker: 'Debts', title: 'Liabilities' },
     envelopes: { kicker: 'Money with a job', title: 'Envelopes' },
     settings: { kicker: 'Preferences', title: 'Settings' },
   },
   nav: {
     tagline: 'Every euro, accounted for.',
-    asOf: 'As of {date}',
     backendUnreachable: "Couldn't reach the backend. Please restart the app.",
     startingUp: 'Starting up…',
   },
@@ -147,7 +146,7 @@ export default {
       'Accounts are where value lives. Add a checking account, a Livret A, a PEA — anything you want counted in your net worth.',
   },
   liabilities: {
-    addTitle: 'Add a liability',
+    addTitle: 'Add liability',
     editTitle: 'Edit liability',
     fieldName: 'Name',
     fieldNamePlaceholder: 'Mortgage',
@@ -168,6 +167,7 @@ export default {
     heroNoteWithDelta: 'this month · {monthly} going out every month',
     heroNote: '{monthly} going out every month',
     paidOffPct: '{pct}% paid off',
+    paymentsLeft: '{count} payment left | {count} payments left',
     perMonth: '{amount} / month',
     deleteConfirm: 'Delete "{name}"?',
     emptyTitle: 'No liabilities recorded',

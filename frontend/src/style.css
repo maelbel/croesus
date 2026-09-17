@@ -164,10 +164,6 @@ h6 {
   background: var(--stripe-color, var(--ui-primary));
 }
 
-.paid-off-fill {
-  --stripe-color: color-mix(in srgb, var(--ui-text) 62%, transparent);
-}
-
 /* Nuxt UI primitives: target their public `data-slot` hooks directly so
    templates don't need per-component overrides. */
 button[data-slot='base'] {

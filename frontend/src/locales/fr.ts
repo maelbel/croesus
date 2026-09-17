@@ -67,13 +67,12 @@ export default {
   router: {
     dashboard: { kicker: "Vue d'ensemble", title: 'Tableau de bord' },
     accounts: { kicker: 'Actifs', title: 'Comptes' },
-    liabilities: { kicker: 'Ce que vous devez', title: 'Passifs' },
+    liabilities: { kicker: 'Dettes', title: 'Passifs' },
     envelopes: { kicker: 'Argent avec une mission', title: 'Enveloppes' },
     settings: { kicker: 'Préférences', title: 'Réglages' },
   },
   nav: {
     tagline: 'Chaque euro, comptabilisé.',
-    asOf: 'Au {date}',
     backendUnreachable: 'Impossible de joindre le serveur. Merci de redémarrer l\'application.',
     startingUp: 'Démarrage…',
   },
@@ -168,6 +167,7 @@ export default {
     heroNoteWithDelta: 'ce mois-ci · {monthly} sortants chaque mois',
     heroNote: '{monthly} sortants chaque mois',
     paidOffPct: '{pct}% remboursé',
+    paymentsLeft: '{count} mensualité restante | {count} mensualités restantes',
     perMonth: '{amount} / mois',
     deleteConfirm: 'Supprimer « {name} » ?',
     emptyTitle: 'Aucun passif enregistré',
