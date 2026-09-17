@@ -47,7 +47,7 @@ async function signInWithSso() {
 </script>
 
 <template>
-  <div class="neu-surface flex w-80 flex-col gap-4 border border-default p-8">
+  <div class="neu-surface flex w-80 flex-col gap-4 p-8">
     <div class="flex flex-col gap-1">
       <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>
       <span class="text-sm text-muted">{{ t('login.tagline') }}</span>

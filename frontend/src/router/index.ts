@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { usePageActionStore } from '../stores/pageActions'
+import { usePageTitleStore } from '../stores/pageTitle'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -34,6 +36,14 @@ const router = createRouter({
       meta: { kicker: 'router.settings.kicker', title: 'router.settings.title' },
     },
   ],
+})
+
+// Cleared here, before the outgoing page unmounts and the incoming one's
+// setup runs — not from the outgoing page's unmount (see usePageAction.ts
+// for why that races the next page's own call and can wipe its button).
+router.beforeEach(() => {
+  usePageActionStore().clearPrimaryAction()
+  usePageTitleStore().clearTitle()
 })
 
 export default router

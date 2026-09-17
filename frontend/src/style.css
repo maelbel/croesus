@@ -1,15 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+/* One font for everything, headings included — matches the "Croesus App v6"
+   design file, which never pairs a serif/display face with the body font. */
 @theme {
-  --font-heading: 'Bitter', Georgia, serif;
-  --font-body: 'Archivo', system-ui, sans-serif;
-}
-
-[data-skin='neumorphic'] {
-  --font-heading: 'Outfit', system-ui, sans-serif;
-  --font-body: 'Nunito Sans', system-ui, sans-serif;
+  --font-heading: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
 }
 
 /* Nuxt UI's Vite/Vue-plugin integration (no full Nuxt build) doesn't
@@ -17,43 +14,46 @@
    the way the full Nuxt module does — it only wires up the Tailwind alias
    layer. So the actual palette values are supplied directly here, using
    Nuxt UI's own CSS variable surface (https://ui.nuxt.com/docs/getting-started/theme).
-   Shade 500 is the light-theme design token, shade 400 the dark-theme one. */
+   Shade 400 is the dark-theme design token, 500 the light-theme one — from
+   the "Croesus App v6" design file's default accent (#4FD1A5) and its own
+   light-mode remap (a darker shade of the same hue, for 4.5:1+ contrast on a
+   near-white ground), plus its --color-neg. */
 :root {
-  --ui-color-primary-50: color-mix(in srgb, #4e6b2c 6%, white);
-  --ui-color-primary-100: color-mix(in srgb, #4e6b2c 14%, white);
-  --ui-color-primary-200: color-mix(in srgb, #4e6b2c 28%, white);
-  --ui-color-primary-300: color-mix(in srgb, #4e6b2c 45%, white);
-  --ui-color-primary-400: #9dbe6a;
-  --ui-color-primary-500: #4e6b2c;
-  --ui-color-primary-600: color-mix(in srgb, #4e6b2c 85%, black);
-  --ui-color-primary-700: color-mix(in srgb, #4e6b2c 70%, black);
-  --ui-color-primary-800: color-mix(in srgb, #4e6b2c 55%, black);
-  --ui-color-primary-900: color-mix(in srgb, #4e6b2c 40%, black);
-  --ui-color-primary-950: color-mix(in srgb, #4e6b2c 25%, black);
+  --ui-color-primary-50: color-mix(in srgb, #0b6b50 6%, white);
+  --ui-color-primary-100: color-mix(in srgb, #0b6b50 14%, white);
+  --ui-color-primary-200: color-mix(in srgb, #0b6b50 28%, white);
+  --ui-color-primary-300: color-mix(in srgb, #0b6b50 45%, white);
+  --ui-color-primary-400: #4fd1a5;
+  --ui-color-primary-500: #0b6b50;
+  --ui-color-primary-600: color-mix(in srgb, #0b6b50 85%, black);
+  --ui-color-primary-700: color-mix(in srgb, #0b6b50 70%, black);
+  --ui-color-primary-800: color-mix(in srgb, #0b6b50 55%, black);
+  --ui-color-primary-900: color-mix(in srgb, #0b6b50 40%, black);
+  --ui-color-primary-950: color-mix(in srgb, #0b6b50 25%, black);
 
-  --ui-color-rust-50: color-mix(in srgb, #9a3a1b 6%, white);
-  --ui-color-rust-100: color-mix(in srgb, #9a3a1b 14%, white);
-  --ui-color-rust-200: color-mix(in srgb, #9a3a1b 28%, white);
-  --ui-color-rust-300: color-mix(in srgb, #9a3a1b 45%, white);
-  --ui-color-rust-400: #d4694a;
-  --ui-color-rust-500: #9a3a1b;
-  --ui-color-rust-600: color-mix(in srgb, #9a3a1b 85%, black);
-  --ui-color-rust-700: color-mix(in srgb, #9a3a1b 70%, black);
-  --ui-color-rust-800: color-mix(in srgb, #9a3a1b 55%, black);
-  --ui-color-rust-900: color-mix(in srgb, #9a3a1b 40%, black);
-  --ui-color-rust-950: color-mix(in srgb, #9a3a1b 25%, black);
+  --ui-color-rust-50: color-mix(in srgb, #c2361f 6%, white);
+  --ui-color-rust-100: color-mix(in srgb, #c2361f 14%, white);
+  --ui-color-rust-200: color-mix(in srgb, #c2361f 28%, white);
+  --ui-color-rust-300: color-mix(in srgb, #c2361f 45%, white);
+  --ui-color-rust-400: #ff6b5e;
+  --ui-color-rust-500: #c2361f;
+  --ui-color-rust-600: color-mix(in srgb, #c2361f 85%, black);
+  --ui-color-rust-700: color-mix(in srgb, #c2361f 70%, black);
+  --ui-color-rust-800: color-mix(in srgb, #c2361f 55%, black);
+  --ui-color-rust-900: color-mix(in srgb, #c2361f 40%, black);
+  --ui-color-rust-950: color-mix(in srgb, #c2361f 25%, black);
 
-  --ui-color-error-50: color-mix(in srgb, #9a3a1b 6%, white);
-  --ui-color-error-100: color-mix(in srgb, #9a3a1b 14%, white);
-  --ui-color-error-200: color-mix(in srgb, #9a3a1b 28%, white);
-  --ui-color-error-300: color-mix(in srgb, #9a3a1b 45%, white);
-  --ui-color-error-400: #d4694a;
-  --ui-color-error-500: #9a3a1b;
-  --ui-color-error-600: color-mix(in srgb, #9a3a1b 85%, black);
-  --ui-color-error-700: color-mix(in srgb, #9a3a1b 70%, black);
-  --ui-color-error-800: color-mix(in srgb, #9a3a1b 55%, black);
-  --ui-color-error-900: color-mix(in srgb, #9a3a1b 40%, black);
-  --ui-color-error-950: color-mix(in srgb, #9a3a1b 25%, black);
+  --ui-color-error-50: color-mix(in srgb, #c2361f 6%, white);
+  --ui-color-error-100: color-mix(in srgb, #c2361f 14%, white);
+  --ui-color-error-200: color-mix(in srgb, #c2361f 28%, white);
+  --ui-color-error-300: color-mix(in srgb, #c2361f 45%, white);
+  --ui-color-error-400: #ff6b5e;
+  --ui-color-error-500: #c2361f;
+  --ui-color-error-600: color-mix(in srgb, #c2361f 85%, black);
+  --ui-color-error-700: color-mix(in srgb, #c2361f 70%, black);
+  --ui-color-error-800: color-mix(in srgb, #c2361f 55%, black);
+  --ui-color-error-900: color-mix(in srgb, #c2361f 40%, black);
+  --ui-color-error-950: color-mix(in srgb, #c2361f 25%, black);
 
   /* Warm neutral (Tailwind 'stone') for structural chrome not covered by
      the semantic bg/text/border overrides below. */
@@ -71,43 +71,47 @@
 }
 
 /* Exact brand surfaces/text/borders/accent, layered on top so fidelity to
-   the design doesn't depend on shade-picking heuristics. Dark is default. */
+   the design doesn't depend on shade-picking heuristics. Dark is default.
+   Near-black/near-white with a single hairline border tone, matching the
+   "Croesus App v6" design file exactly (its
+   --color-bg/-surface/-raised/-text/-muted/-hairline). */
 :root,
 .dark {
-  --ui-radius: 0px;
+  --ui-radius: 16px;
   --ui-primary: var(--ui-color-primary-400);
   --ui-moss: var(--ui-color-primary-400);
   --ui-rust: var(--ui-color-rust-400);
   --ui-error: var(--ui-color-error-400);
-  --ui-bg: #16110e;
-  --ui-bg-muted: #201812;
-  --ui-bg-elevated: #201812;
-  --ui-bg-accented: #2d231b;
-  --ui-text: #f2eadd;
-  --ui-text-muted: #cbbaa6;
-  --ui-text-toned: #cbbaa6;
-  --ui-text-highlighted: #f2eadd;
-  --ui-border: color-mix(in srgb, #f2eadd 28%, transparent);
-  --ui-border-muted: color-mix(in srgb, #f2eadd 28%, transparent);
-  --ui-border-accented: color-mix(in srgb, #f2eadd 46%, transparent);
+  --ui-bg: #0b0b0c;
+  --ui-bg-muted: #141416;
+  --ui-bg-elevated: #141416;
+  --ui-bg-accented: #1e1e22;
+  --ui-text: #fafafa;
+  --ui-text-muted: #8c8c95;
+  --ui-text-toned: #8c8c95;
+  --ui-text-highlighted: #fafafa;
+  --ui-border: rgba(255, 255, 255, 0.07);
+  --ui-border-muted: rgba(255, 255, 255, 0.07);
+  --ui-border-accented: rgba(255, 255, 255, 0.14);
 }
 
 .light {
+  --ui-radius: 16px;
   --ui-primary: var(--ui-color-primary-500);
   --ui-moss: var(--ui-color-primary-500);
   --ui-rust: var(--ui-color-rust-500);
   --ui-error: var(--ui-color-error-500);
-  --ui-bg: #f4eee3;
-  --ui-bg-muted: #eae2d3;
-  --ui-bg-elevated: #eae2d3;
-  --ui-bg-accented: #ddd3c1;
-  --ui-text: #1e1711;
-  --ui-text-muted: #4a3c2e;
-  --ui-text-toned: #4a3c2e;
-  --ui-text-highlighted: #1e1711;
-  --ui-border: color-mix(in srgb, #1e1711 26%, transparent);
-  --ui-border-muted: color-mix(in srgb, #1e1711 26%, transparent);
-  --ui-border-accented: color-mix(in srgb, #1e1711 48%, transparent);
+  --ui-bg: #fbfaf9;
+  --ui-bg-muted: #ffffff;
+  --ui-bg-elevated: #ffffff;
+  --ui-bg-accented: #f1f0ee;
+  --ui-text: #0c0c0e;
+  --ui-text-muted: #63636b;
+  --ui-text-toned: #63636b;
+  --ui-text-highlighted: #0c0c0e;
+  --ui-border: rgba(0, 0, 0, 0.09);
+  --ui-border-muted: rgba(0, 0, 0, 0.09);
+  --ui-border-accented: rgba(0, 0, 0, 0.18);
 }
 
 :root {
@@ -150,245 +154,56 @@ h6 {
 .stripe-track {
   display: block;
   height: 10px;
-  background: repeating-linear-gradient(90deg, var(--ui-bg-accented) 0 10px, transparent 10px 12px);
+  background: var(--ui-bg-accented);
+  border-radius: 999px;
 }
 .stripe-fill {
   display: block;
   height: 100%;
-  background: repeating-linear-gradient(90deg, var(--stripe-color, var(--ui-primary)) 0 10px, transparent 10px 12px);
-}
-
-.stripe-track-v {
-  display: flex;
-  flex-direction: column-reverse;
-  width: 14px;
-  background: repeating-linear-gradient(0deg, var(--ui-bg-accented) 0 10px, transparent 10px 12px);
-}
-.stripe-fill-v {
-  display: block;
-  width: 100%;
-  background: repeating-linear-gradient(0deg, var(--stripe-color, var(--ui-primary)) 0 10px, transparent 10px 12px);
+  border-radius: 999px;
+  background: var(--stripe-color, var(--ui-primary));
 }
 
 .paid-off-fill {
   --stripe-color: color-mix(in srgb, var(--ui-text) 62%, transparent);
 }
-[data-skin='neumorphic'] .paid-off-fill {
-  --stripe-color: var(--band-3);
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   Neumorphic skin — matches the "Croesus Neumorphic" design file exactly
-   (colors, shadows, radii, fonts). Soft extruded surfaces instead of
-   borders/rules. Selected via [data-skin="neumorphic"] on <html>, set by
-   stores/theme.ts.
-   ══════════════════════════════════════════════════════════════════════ */
-[data-skin='neumorphic'] {
-  --ui-radius: 18px; /* --r */
-  --neu-radius-lg: 26px; /* --r-lg */
-  --neu-raised: 7px 7px 16px var(--neu-shadow-dark), -7px -7px 16px var(--neu-shadow-light);
-  --neu-raised-sm: 3px 3px 7px var(--neu-shadow-dark), -3px -3px 7px var(--neu-shadow-light);
-  --neu-inset: inset 4px 4px 10px var(--neu-shadow-dark), inset -4px -4px 10px var(--neu-shadow-light);
-  --neu-inset-sm: inset 2px 2px 5px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light);
-
-  --ui-color-primary-50: color-mix(in srgb, #1f8f6c 6%, white);
-  --ui-color-primary-100: color-mix(in srgb, #1f8f6c 14%, white);
-  --ui-color-primary-200: color-mix(in srgb, #1f8f6c 28%, white);
-  --ui-color-primary-300: color-mix(in srgb, #1f8f6c 45%, white);
-  --ui-color-primary-400: #4dc9a0;
-  --ui-color-primary-500: #1f8f6c;
-  --ui-color-primary-600: color-mix(in srgb, #1f8f6c 85%, black);
-  --ui-color-primary-700: color-mix(in srgb, #1f8f6c 70%, black);
-  --ui-color-primary-800: color-mix(in srgb, #1f8f6c 55%, black);
-  --ui-color-primary-900: color-mix(in srgb, #1f8f6c 40%, black);
-  --ui-color-primary-950: color-mix(in srgb, #1f8f6c 25%, black);
-
-  --ui-color-rust-50: color-mix(in srgb, #c2543a 6%, white);
-  --ui-color-rust-100: color-mix(in srgb, #c2543a 14%, white);
-  --ui-color-rust-200: color-mix(in srgb, #c2543a 28%, white);
-  --ui-color-rust-300: color-mix(in srgb, #c2543a 45%, white);
-  --ui-color-rust-400: #ef8069;
-  --ui-color-rust-500: #c2543a;
-  --ui-color-rust-600: color-mix(in srgb, #c2543a 85%, black);
-  --ui-color-rust-700: color-mix(in srgb, #c2543a 70%, black);
-  --ui-color-rust-800: color-mix(in srgb, #c2543a 55%, black);
-  --ui-color-rust-900: color-mix(in srgb, #c2543a 40%, black);
-  --ui-color-rust-950: color-mix(in srgb, #c2543a 25%, black);
-
-  --ui-color-error-50: color-mix(in srgb, #c2543a 6%, white);
-  --ui-color-error-100: color-mix(in srgb, #c2543a 14%, white);
-  --ui-color-error-200: color-mix(in srgb, #c2543a 28%, white);
-  --ui-color-error-300: color-mix(in srgb, #c2543a 45%, white);
-  --ui-color-error-400: #ef8069;
-  --ui-color-error-500: #c2543a;
-  --ui-color-error-600: color-mix(in srgb, #c2543a 85%, black);
-  --ui-color-error-700: color-mix(in srgb, #c2543a 70%, black);
-  --ui-color-error-800: color-mix(in srgb, #c2543a 55%, black);
-  --ui-color-error-900: color-mix(in srgb, #c2543a 40%, black);
-  --ui-color-error-950: color-mix(in srgb, #c2543a 25%, black);
-}
-
-[data-skin='neumorphic'].dark {
-  --neu-shadow-dark: #1d2128;
-  --neu-shadow-light: #333a45;
-  --ui-primary: var(--ui-color-primary-400);
-  --ui-moss: var(--ui-color-primary-400);
-  --ui-rust: var(--ui-color-rust-400);
-  --ui-error: var(--ui-color-error-400);
-  --ui-bg: #262b33;
-  --ui-bg-muted: #2b313a;
-  --ui-bg-elevated: #2b313a;
-  --ui-bg-accented: #323945;
-  --ui-text: #eef1f6;
-  --ui-text-muted: #a9b3c2;
-  --ui-text-toned: #a9b3c2;
-  --ui-text-highlighted: #eef1f6;
-  --ui-border: color-mix(in srgb, #eef1f6 12%, transparent);
-  --ui-border-muted: color-mix(in srgb, #eef1f6 12%, transparent);
-  --ui-border-accented: color-mix(in srgb, #eef1f6 16%, transparent);
-  --band-1: #c2c7d2;
-  --band-2: #a7aebd;
-  --band-3: #8f98a9;
-  --band-4: #798395;
-  --band-5: #646e80;
-  --band-6: #515b6b;
-}
-
-[data-skin='neumorphic'].light {
-  --neu-shadow-dark: #c3c7d2;
-  --neu-shadow-light: #ffffff;
-  --ui-primary: var(--ui-color-primary-500);
-  --ui-moss: var(--ui-color-primary-500);
-  --ui-rust: var(--ui-color-rust-500);
-  --ui-error: var(--ui-color-error-500);
-  --ui-bg: #e7eaf1;
-  --ui-bg-muted: #edeff5;
-  --ui-bg-elevated: #edeff5;
-  --ui-bg-accented: #dfe3ec;
-  --ui-text: #232833;
-  --ui-text-muted: #5d6779;
-  --ui-text-toned: #5d6779;
-  --ui-text-highlighted: #232833;
-  --ui-border: color-mix(in srgb, #232833 12%, transparent);
-  --ui-border-muted: color-mix(in srgb, #232833 12%, transparent);
-  --ui-border-accented: color-mix(in srgb, #232833 16%, transparent);
-  --band-1: #3f4653;
-  --band-2: #515867;
-  --band-3: #656d7e;
-  --band-4: #7c8494;
-  --band-5: #929aa8;
-  --band-6: #a8afbd;
-}
 
 /* Nuxt UI primitives: target their public `data-slot` hooks directly so
-   templates stay skin-agnostic. Buttons/selects pop out at rest, flatten
-   slightly on hover, and press in on click — text fields sit permanently
-   pressed in. Background/text are forced back to plain surface colors so a
-   `variant="solid"` button (built for a bright fill + inverted text) still
-   reads correctly once that fill is gone. */
-[data-skin='neumorphic'] button[data-slot='base'] {
-  border: none;
-  border-radius: 999px;
-  background: var(--ui-bg);
-  box-shadow: var(--neu-raised);
-  transition: box-shadow 0.15s ease;
-}
-[data-skin='neumorphic'] button[data-slot='base'].text-inverted {
-  color: var(--ui-text);
-}
-[data-skin='neumorphic'] button[data-slot='base']:hover:not(:disabled) {
-  box-shadow: var(--neu-raised-sm);
-}
-[data-skin='neumorphic'] button[data-slot='base']:active:not(:disabled) {
-  box-shadow: var(--neu-inset);
-}
-[data-skin='neumorphic'] button[data-slot='base']:disabled {
-  opacity: 0.45;
-  box-shadow: var(--neu-inset-sm);
-}
-[data-skin='neumorphic'] input[data-slot='base'],
-[data-skin='neumorphic'] textarea[data-slot='base'] {
-  border: none;
-  border-radius: 14px;
-  background: var(--ui-bg);
-  box-shadow: var(--neu-inset);
-}
-[data-skin='neumorphic'] [data-slot='root'] {
-  border: none;
-  border-radius: var(--neu-radius-lg);
-  background: var(--ui-bg);
-  box-shadow: var(--neu-raised);
-}
-[data-skin='neumorphic'] span[data-slot='base'] {
-  border: none;
-  border-radius: 999px;
-  box-shadow: var(--neu-raised-sm);
-}
-
-/* Marker classes for our own components — no-ops under the Ledger skin
-   since these rules only fire under [data-skin="neumorphic"]. */
-[data-skin='neumorphic'] .neu-surface {
-  border: none;
-  border-radius: var(--neu-radius-lg);
-  box-shadow: var(--neu-raised);
-}
-[data-skin='neumorphic'] .neu-inset {
-  border: none;
-  border-radius: var(--neu-radius-lg);
-  box-shadow: var(--neu-inset);
-}
-[data-skin='neumorphic'] .neu-flat {
-  border-color: transparent;
-}
-[data-skin='neumorphic'] .stripe-track,
-[data-skin='neumorphic'] .stripe-track-v {
-  background: var(--ui-bg);
-  border-radius: 999px;
-  box-shadow: var(--neu-inset-sm);
-}
-[data-skin='neumorphic'] .stripe-fill,
-[data-skin='neumorphic'] .stripe-fill-v {
+   templates don't need per-component overrides. */
+button[data-slot='base'] {
   border-radius: 999px;
 }
-[data-skin='neumorphic'] .figure-rounded {
+input[data-slot='base'],
+textarea[data-slot='base'] {
+  border: none;
+  background: var(--ui-bg-accented);
+}
+span[data-slot='base'] {
+  border-radius: 999px;
+}
+/* Checkbox's own toggle control shares the button[data-slot="base"] hook
+   above, but it's a small square (checked/unchecked), not a pill — undo
+   the pill radius there specifically. */
+[data-slot='container'] button[data-slot='base'] {
   border-radius: 6px;
 }
 
-/* App shell */
-[data-skin='neumorphic'] .app-sidebar {
+/* Marker classes for our own components — flat surfaces distinguished by
+   background contrast alone, no borders/rules, matching the design file. */
+.neu-surface {
   border: none;
+  border-radius: 18px;
   background: var(--ui-bg-elevated);
-  box-shadow: var(--neu-raised);
 }
-[data-skin='neumorphic'] .app-header {
+.neu-inset {
+  border: none;
+  border-radius: 14px;
+  background: var(--ui-bg-accented);
+}
+.neu-flat {
   border-color: transparent;
 }
-[data-skin='neumorphic'] .app-networth {
-  border: none;
-  border-radius: var(--ui-radius);
-  background: var(--ui-bg);
-  box-shadow: var(--neu-inset);
-}
-[data-skin='neumorphic'] .nav-link {
-  margin: 3px 18px;
-  border-radius: 14px;
-  background: var(--ui-bg-elevated);
-  box-shadow: none;
-  color: var(--ui-text-muted);
-}
-[data-skin='neumorphic'] .nav-link.nav-active {
-  box-shadow: var(--neu-inset-sm);
-  color: var(--ui-primary);
-}
-[data-skin='neumorphic'] .nav-bar-indicator {
-  background: transparent !important;
+.figure-rounded {
+  border-radius: 4px;
 }
 
-.sidebar-fade-enter-active,
-.sidebar-fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-.sidebar-fade-enter-from,
-.sidebar-fade-leave-to {
-  opacity: 0;
-}

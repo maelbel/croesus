@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Croesus</title>
     <script>
-      // Runs before any module/store exists, to set the right classes before
+      // Runs before any module/store exists, to set the right class before
       // first paint (avoids a flash of the wrong theme) — see
-      // src/stores/theme.ts, which owns these same two cookies afterward.
-      // Falls back to localStorage for a session that set these before the
+      // src/stores/theme.ts, which owns this same cookie afterward. Falls
+      // back to localStorage for a session that set this before the
       // cookie-based version shipped; the store clears it on next load.
       ;(function () {
         function getCookie(name) {
@@ -17,9 +17,7 @@
           return match ? decodeURIComponent(match[1]) : null
         }
         var theme = getCookie('croesus-theme') || localStorage.getItem('croesus-theme')
-        var skin = getCookie('croesus-skin') || localStorage.getItem('croesus-skin')
         document.documentElement.classList.add(theme === 'light' ? 'light' : 'dark')
-        document.documentElement.dataset.skin = skin === 'neumorphic' ? 'neumorphic' : 'ledger'
       })()
     </script>
   </head>

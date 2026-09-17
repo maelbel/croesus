@@ -18,7 +18,7 @@ const { t } = useI18n()
 
 <template>
   <div class="flex flex-col gap-3">
-    <div class="neu-inset flex w-max border border-default">
+    <div class="neu-inset flex w-max">
       <UButton size="sm" :variant="mode === 'local' ? 'solid' : 'ghost'" color="neutral" @click="mode = 'local'">
         {{ t('connection.local') }}
       </UButton>
