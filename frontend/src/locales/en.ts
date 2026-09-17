@@ -68,7 +68,7 @@ export default {
     dashboard: { kicker: 'Overview', title: 'Dashboard' },
     accounts: { kicker: 'Assets', title: 'Accounts' },
     liabilities: { kicker: 'Debts', title: 'Liabilities' },
-    envelopes: { kicker: 'Money with a job', title: 'Envelopes' },
+    envelopes: { kicker: 'Budget', title: 'Envelopes' },
     settings: { kicker: 'Preferences', title: 'Settings' },
   },
   nav: {
@@ -175,7 +175,7 @@ export default {
       'Nothing owed is a fine place to be. If you carry a mortgage or a loan, record it here so net worth stays accurate.',
   },
   envelopes: {
-    addTitle: 'Add an envelope',
+    addTitle: 'Create envelope',
     editTitle: 'Edit envelope',
     fieldName: 'Name',
     fieldNamePlaceholder: 'Vacation',

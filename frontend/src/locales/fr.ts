@@ -68,7 +68,7 @@ export default {
     dashboard: { kicker: "Vue d'ensemble", title: 'Tableau de bord' },
     accounts: { kicker: 'Actifs', title: 'Comptes' },
     liabilities: { kicker: 'Dettes', title: 'Passifs' },
-    envelopes: { kicker: 'Argent avec une mission', title: 'Enveloppes' },
+    envelopes: { kicker: 'Budget', title: 'Enveloppes' },
     settings: { kicker: 'Préférences', title: 'Réglages' },
   },
   nav: {
@@ -175,7 +175,7 @@ export default {
       "Ne rien devoir, c'est une bonne place à occuper. Si vous avez un prêt immobilier ou un crédit, enregistrez-le ici pour que le patrimoine net reste exact.",
   },
   envelopes: {
-    addTitle: 'Ajouter une enveloppe',
+    addTitle: 'Créer une enveloppe',
     editTitle: "Modifier l'enveloppe",
     fieldName: 'Nom',
     fieldNamePlaceholder: 'Vacances',

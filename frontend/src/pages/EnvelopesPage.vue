@@ -68,12 +68,6 @@ const sortedEnvelopes = computed(() =>
   [...envelopesStore.envelopes].sort((a, b) => a.name.localeCompare(b.name)),
 )
 
-function barColor(target: string | null, current: string) {
-  return statusKey(target, current) === 'funded'
-    ? 'var(--ui-primary)'
-    : 'color-mix(in srgb, var(--ui-text) 62%, transparent)'
-}
-
 function formatAmount(value: string | null) {
   if (value === null) return '—'
   return formatCurrency(value)
@@ -177,13 +171,7 @@ function envelopeMenuItems(envelope: Envelope) {
           </span>
           <span class="flex flex-col gap-1.5">
             <span class="stripe-track">
-              <span
-                class="stripe-fill"
-                :style="{
-                  width: `${ratio(envelope.target_amount, envelope.current_amount) * 100}%`,
-                  '--stripe-color': barColor(envelope.target_amount, envelope.current_amount),
-                }"
-              />
+              <span class="stripe-fill" :style="{ width: `${ratio(envelope.target_amount, envelope.current_amount) * 100}%` }" />
             </span>
             <span class="text-[12.5px] text-muted">
               {{ t('envelopes.fundedPct', { pct: Math.round(ratio(envelope.target_amount, envelope.current_amount) * 100) }) }}
