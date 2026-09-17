@@ -15,6 +15,7 @@ import {
   type LiabilityCreate,
 } from '../api/types'
 import { formatCurrency, formatDate, formatRate } from '../lib/format'
+import { paidRatio, paymentsLeft } from '../lib/liabilityMath'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 
 const props = defineProps<{ id: string }>()
@@ -47,27 +48,6 @@ const liabilityTypeOptions = computed(() =>
   LIABILITY_TYPES.map((value) => ({ label: liabilityTypeLabel(value), value })),
 )
 const currencyOptions = computed(() => CURRENCIES.map((value) => ({ label: value, value })))
-
-function paidRatio(l: Liability) {
-  const initial = Number(l.initial_amount)
-  if (initial <= 0) return 0
-  return Math.min(1, Math.max(0, (initial - Number(l.remaining_amount)) / initial))
-}
-
-// See LiabilitiesPage.vue's own copy of this for why it's a simulation
-// rather than a stored field.
-function paymentsLeft(l: Liability): number | null {
-  const rate = Number(l.interest_rate ?? 0) / 100 / 12
-  const payment = Number(l.monthly_payment ?? 0)
-  let balance = Number(l.remaining_amount)
-  if (payment <= 0 || balance <= 0) return null
-  let months = 0
-  while (balance > 0 && months < 600) {
-    balance = balance + balance * rate - payment
-    months++
-  }
-  return months < 600 ? months : null
-}
 
 // Editable directly on the page (no modal) — kept in sync with whichever
 // liability this route currently points at.
