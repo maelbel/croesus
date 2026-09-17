@@ -14,7 +14,10 @@ const emit = defineEmits<{ 'update:widgets': [widgets: Widget[]] }>()
 
 const { t } = useI18n()
 
-const editMode = ref(false)
+// Starts already in edit mode when the board is empty — otherwise the only
+// way to discover "Add widget" would be to find "Edit layout" first, with
+// nothing on screen hinting that's the next step.
+const editMode = ref(props.widgets.length === 0)
 
 // Fixed row pitch (px) — every widget's height is always a whole multiple of
 // this, same as its width is always a whole number of the 12 columns.
@@ -163,7 +166,17 @@ function addCatalogWidget({ type, source, w, h }: { type: CatalogWidgetType; sou
       </UButton>
     </div>
 
+    <UEmpty
+      v-if="widgets.length === 0"
+      icon="i-lucide-layout-dashboard"
+      :title="t('dashboardGrid.emptyTitle')"
+      :description="t('dashboardGrid.emptyDescription')"
+      :actions="[{ label: t('dashboardGrid.emptyAction'), onClick: () => (editMode = true) }]"
+      class="neu-inset"
+    />
+
     <div
+      v-else
       ref="gridRef"
       class="grid grid-cols-12 gap-4"
       :class="editMode ? 'edit-grid-bg' : ''"

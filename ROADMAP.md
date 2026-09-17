@@ -123,7 +123,7 @@ Two target usage modes:
       source (net worth, total debt, envelopes remaining, emergency fund,
       a specific account/liability balance, assets-by-class...) and a size
       preset
-- [ ] Empty-dashboard state prompting the first widget to be added
+- [x] Empty-dashboard state prompting the first widget to be added
 
 ## Phase 5 — Advanced analytics
 
