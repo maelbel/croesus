@@ -26,9 +26,9 @@ const resolvedSubmitLabel = computed(() => props.submitLabel ?? t('common.save')
 </script>
 
 <template>
-  <UModal :open="open" :title="title" @update:open="emit('update:open', $event)">
+  <UModal :open="open" :title="title" :ui="{ content: 'sm:max-w-xl' }" @update:open="emit('update:open', $event)">
     <template #body>
-      <UForm :id="formId" class="flex flex-col gap-3.5" @submit="emit('submit')">
+      <UForm :id="formId" class="grid grid-cols-1 gap-x-4 gap-y-3.5 sm:grid-cols-2" @submit="emit('submit')">
         <slot />
       </UForm>
     </template>

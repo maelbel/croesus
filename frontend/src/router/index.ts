@@ -18,6 +18,14 @@ const router = createRouter({
       meta: { kicker: 'router.accounts.kicker', title: 'router.accounts.title' },
     },
     {
+      path: '/accounts/:id',
+      name: 'account',
+      component: () => import('../pages/AccountPage.vue'),
+      props: true,
+      // No meta kicker/title: this page's title is the account's own name,
+      // set dynamically via usePageTitle (see composables/usePageTitle.ts).
+    },
+    {
       path: '/liabilities',
       name: 'liabilities',
       component: () => import('../pages/LiabilitiesPage.vue'),

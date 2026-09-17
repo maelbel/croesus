@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useAccountsStore } from '../stores/accounts'
@@ -9,12 +9,9 @@ import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
 import { formatCurrency } from '../lib/format'
 import type { Envelope, EnvelopeCreate } from '../api/types'
-import StatCard from '../components/StatCard.vue'
-import StatCardRow from '../components/StatCardRow.vue'
 import EntityFormModal from '../components/EntityFormModal.vue'
 import EllipsisMenu from '../components/EllipsisMenu.vue'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
-import { useThemeStore } from '../stores/theme'
 
 const { t } = useI18n()
 const envelopesStore = useEnvelopesStore()
@@ -24,7 +21,6 @@ const envelopesStore = useEnvelopesStore()
 const initialLoading = computed(() => envelopesStore.loading && envelopesStore.envelopes.length === 0)
 const accountsStore = useAccountsStore()
 const valuationsStore = useValuationsStore()
-const themeStore = useThemeStore()
 
 const totalAllocated = computed(() =>
   envelopesStore.envelopes.reduce((sum, e) => sum + Number(e.current_amount), 0),
@@ -68,27 +64,9 @@ function status(target: string | null, current: string) {
   return { key, label: t(`envelopes.status${key.charAt(0).toUpperCase()}${key.slice(1)}`), color: STATUS_COLOR[key] }
 }
 
-const statusOptions = computed(() => [
-  { label: t('common.allStatuses'), value: null },
-  { label: t('envelopes.statusFunded'), value: 'funded' as const },
-  { label: t('envelopes.statusFilling'), value: 'filling' as const },
-  { label: t('envelopes.statusEmpty'), value: 'empty' as const },
-  { label: t('envelopes.statusUnfunded'), value: 'unfunded' as const },
-])
-
-const filters = reactive({
-  search: '',
-  status: null as EnvelopeStatusKey | null,
-})
-
-const filteredEnvelopes = computed(() => {
-  const search = filters.search.trim().toLowerCase()
-  return envelopesStore.envelopes.filter((envelope) => {
-    if (filters.status && statusKey(envelope.target_amount, envelope.current_amount) !== filters.status) return false
-    if (!search) return true
-    return envelope.name.toLowerCase().includes(search)
-  })
-})
+const sortedEnvelopes = computed(() =>
+  [...envelopesStore.envelopes].sort((a, b) => a.name.localeCompare(b.name)),
+)
 
 function barColor(target: string | null, current: string) {
   return statusKey(target, current) === 'funded'
@@ -150,82 +128,67 @@ function envelopeMenuItems(envelope: Envelope) {
       @update:open="envelopeForm.state.open = $event"
       @submit="envelopeForm.submit()"
     >
-      <UFormField :label="t('envelopes.fieldName')">
-        <UInput v-model="envelopeForm.state.form.name" :placeholder="t('envelopes.fieldNamePlaceholder')" />
+      <UFormField :label="t('envelopes.fieldName')" class="sm:col-span-2">
+        <UInput v-model="envelopeForm.state.form.name" :placeholder="t('envelopes.fieldNamePlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('envelopes.fieldTarget')">
-        <UInput v-model="envelopeForm.state.form.target_amount" type="number" :placeholder="t('envelopes.fieldTargetPlaceholder')" />
+        <UInput v-model="envelopeForm.state.form.target_amount" type="number" :placeholder="t('envelopes.fieldTargetPlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('envelopes.fieldCurrentAmount')">
-        <UInput v-model="envelopeForm.state.form.current_amount" type="number" :placeholder="t('envelopes.fieldCurrentAmountPlaceholder')" />
+        <UInput v-model="envelopeForm.state.form.current_amount" type="number" :placeholder="t('envelopes.fieldCurrentAmountPlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('envelopes.fieldColor')" :description="t('envelopes.fieldColorDescription')">
         <UInput v-model="envelopeForm.state.form.color" type="color" class="h-9 w-16 p-1" />
       </UFormField>
       <UFormField :label="t('envelopes.fieldIcon')" :description="t('envelopes.fieldIconDescription')">
-        <UInput v-model="envelopeForm.state.form.icon" :placeholder="t('envelopes.fieldIconPlaceholder')" />
+        <UInput v-model="envelopeForm.state.form.icon" :placeholder="t('envelopes.fieldIconPlaceholder')" class="w-full" />
       </UFormField>
     </EntityFormModal>
 
     <PageLoadingSkeleton v-if="initialLoading" />
 
     <template v-else-if="envelopesStore.envelopes.length > 0">
-      <StatCardRow>
-        <StatCard
-          :label="t('envelopes.allocated')"
-          :value="formatCurrency(totalAllocated)"
-          :note="t('envelopes.allocatedNote', envelopesStore.envelopes.length)"
-        />
-        <StatCard :label="t('envelopes.targets')" value-color="muted" :value="formatCurrency(totalTargets)" :note="fundedRatio === null ? undefined : t('envelopes.targetsFundedNote', { pct: Math.round(fundedRatio * 100) })" />
-        <StatCard :label="t('envelopes.unallocated')" value-color="positive" :value="formatCurrency(unallocated)" :note="t('envelopes.unallocatedNote')" />
-      </StatCardRow>
-
-      <div class="flex flex-wrap items-end gap-4">
-        <UFormField :label="t('envelopes.searchLabel')" class="w-64">
-          <UInput v-model="filters.search" :placeholder="t('envelopes.searchPlaceholder')" />
-        </UFormField>
-        <UFormField :label="t('envelopes.statusLabel')" class="w-48">
-          <USelect v-model="filters.status" :items="statusOptions" :placeholder="t('common.allStatuses')" />
-        </UFormField>
+      <div class="flex flex-col gap-3">
+        <span class="text-xs tracking-wide text-muted uppercase">{{ t('envelopes.heroKicker') }}</span>
+        <span class="flex flex-wrap items-baseline gap-2.5">
+          <span class="font-heading text-[clamp(38px,5vw,60px)] leading-none font-extrabold tracking-tight">{{ formatCurrency(totalAllocated) }}</span>
+          <span v-if="totalTargets > 0" class="text-[17px] font-semibold text-muted">{{ t('envelopes.heroOfTargets', { targets: formatCurrency(totalTargets) }) }}</span>
+        </span>
+        <span v-if="fundedRatio !== null" class="stripe-track max-w-[560px]">
+          <span class="stripe-fill" :style="{ width: `${Math.min(1, fundedRatio) * 100}%` }" />
+        </span>
+        <span class="text-sm text-muted">{{ t('envelopes.heroNote', { unallocated: formatCurrency(unallocated) }, envelopesStore.envelopes.length) }}</span>
       </div>
 
-      <div
-        :class="
-          themeStore.skin === 'neumorphic'
-            ? 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'
-            : 'grid grid-cols-1 gap-0.5 border-2 border-default bg-accented sm:grid-cols-2 lg:grid-cols-3'
-        "
-      >
-        <div
-          v-for="envelope in filteredEnvelopes"
-          :key="envelope.id"
-          class="neu-surface flex gap-4.5 bg-default p-5"
-        >
-          <span class="stripe-track-v">
-            <span
-              class="stripe-fill-v"
-              :style="{
-                height: `${ratio(envelope.target_amount, envelope.current_amount) * 100}%`,
-                '--stripe-color': barColor(envelope.target_amount, envelope.current_amount),
-              }"
-            />
-          </span>
-          <div class="flex min-w-0 flex-1 flex-col gap-3">
-            <span class="flex items-baseline justify-between gap-2.5">
-              <span class="text-[16.5px] font-semibold">{{ envelope.name }}</span>
-              <UBadge variant="outline" size="sm" :color="status(envelope.target_amount, envelope.current_amount).color">
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-2.5">
+        <div v-for="envelope in sortedEnvelopes" :key="envelope.id" class="neu-surface flex flex-col gap-4 bg-default p-5">
+          <span class="flex items-center justify-between gap-2.5">
+            <span class="text-[14.5px] font-bold">{{ envelope.name }}</span>
+            <span class="flex items-center gap-1">
+              <UBadge variant="soft" size="sm" :color="status(envelope.target_amount, envelope.current_amount).color">
                 {{ status(envelope.target_amount, envelope.current_amount).label }}
               </UBadge>
-            </span>
-            <span class="flex items-baseline gap-2">
-              <span class="font-heading text-[28px] leading-none font-extrabold">{{ formatAmount(envelope.current_amount) }}</span>
-              <span class="text-[15px] text-muted">/ {{ formatAmount(envelope.target_amount) }}</span>
-            </span>
-            <span class="flex items-center justify-between text-sm text-muted">
-              <span>{{ t('envelopes.fundedPct', { pct: Math.round(ratio(envelope.target_amount, envelope.current_amount) * 100) }) }}</span>
               <EllipsisMenu :items="envelopeMenuItems(envelope)" size="xs" />
             </span>
-          </div>
+          </span>
+          <span class="flex flex-col gap-1">
+            <span class="font-heading text-[26px] leading-none font-extrabold tracking-tight">{{ formatAmount(envelope.current_amount) }}</span>
+            <span v-if="envelope.target_amount" class="text-[12.5px] text-muted">{{ t('envelopes.ofTarget', { target: formatAmount(envelope.target_amount) }) }}</span>
+          </span>
+          <span class="flex flex-col gap-1.5">
+            <span class="stripe-track">
+              <span
+                class="stripe-fill"
+                :style="{
+                  width: `${ratio(envelope.target_amount, envelope.current_amount) * 100}%`,
+                  '--stripe-color': barColor(envelope.target_amount, envelope.current_amount),
+                }"
+              />
+            </span>
+            <span class="text-[12.5px] text-muted">
+              {{ t('envelopes.fundedPct', { pct: Math.round(ratio(envelope.target_amount, envelope.current_amount) * 100) }) }}
+            </span>
+          </span>
         </div>
       </div>
     </template>

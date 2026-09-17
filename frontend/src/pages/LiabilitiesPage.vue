@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useCurrencyStore } from '../stores/currency'
 import { useFxRatesStore } from '../stores/fxRates'
+import { useNetWorthStore } from '../stores/networth'
 import { useCrudForm } from '../composables/useCrudForm'
 import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
@@ -14,11 +14,8 @@ import {
   liabilityTypeLabel,
   type Liability,
   type LiabilityCreate,
-  type LiabilityType,
 } from '../api/types'
-import { formatCurrency, formatRate, formatDate } from '../lib/format'
-import StatCard from '../components/StatCard.vue'
-import StatCardRow from '../components/StatCardRow.vue'
+import { formatCurrency, formatSignedCurrency, formatRate, formatDate, deltaColorClass } from '../lib/format'
 import EntityFormModal from '../components/EntityFormModal.vue'
 import EllipsisMenu from '../components/EllipsisMenu.vue'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
@@ -27,6 +24,7 @@ const { t } = useI18n()
 const liabilitiesStore = useLiabilitiesStore()
 const currencyStore = useCurrencyStore()
 const fxRatesStore = useFxRatesStore()
+const netWorthStore = useNetWorthStore()
 
 // Only while the very first fetch is still in flight — once any liabilities
 // exist, later refetches (after a create/update/remove) don't re-show this.
@@ -37,19 +35,9 @@ const liabilityTypeOptions = computed(() =>
 )
 const currencyOptions = computed(() => CURRENCIES.map((value) => ({ label: value, value })))
 
-const filters = reactive({
-  search: '',
-  type: null as LiabilityType | null,
-})
-
-const filteredLiabilities = computed(() => {
-  const search = filters.search.trim().toLowerCase()
-  return liabilitiesStore.liabilities.filter((liability) => {
-    if (filters.type && liability.type !== filters.type) return false
-    if (!search) return true
-    return liability.name.toLowerCase().includes(search)
-  })
-})
+const sortedLiabilities = computed(() =>
+  [...liabilitiesStore.liabilities].sort((a, b) => a.name.localeCompare(b.name)),
+)
 
 // Liabilities can each hold a different currency — every cross-liability sum
 // on this page converts into the reference currency first (fxRatesStore),
@@ -66,21 +54,11 @@ const totalMonthly = computed(() =>
     0,
   ),
 )
-const weightedRate = computed(() => {
-  const withRate = liabilitiesStore.liabilities.filter((l) => l.interest_rate !== null)
-  const base = withRate.reduce((sum, l) => sum + fxRatesStore.convert(Number(l.remaining_amount), l.currency), 0)
-  if (base === 0) return null
-  const weighted = withRate.reduce(
-    (sum, l) => sum + Number(l.interest_rate) * fxRatesStore.convert(Number(l.remaining_amount), l.currency),
-    0,
-  )
-  return weighted / base
-})
-const lastPayoff = computed(() => {
-  const dates = liabilitiesStore.liabilities.map((l) => l.end_date).filter((d): d is string => !!d)
-  if (dates.length === 0) return null
-  return dates.reduce((latest, d) => (d > latest ? d : latest))
-})
+// A decrease in total debt is the "good" direction, unlike every other
+// delta in the app — so this is deliberately the negated sign.
+const totalDelta30d = computed(() =>
+  netWorthStore.liabilitiesDelta30d === null ? null : -netWorthStore.liabilitiesDelta30d,
+)
 
 function paidRatio(liability: Liability) {
   const initial = Number(liability.initial_amount)
@@ -135,13 +113,6 @@ function liabilityMenuItems(liability: Liability) {
   ]
 }
 
-const liabilityColumns = computed<TableColumn<Liability>[]>(() => [
-  { accessorKey: 'name', header: t('liabilities.columnLiability') },
-  { accessorKey: 'remaining_amount', header: t('liabilities.columnRemaining'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { accessorKey: 'monthly_payment', header: t('liabilities.columnMonthly'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { id: 'paidOff', header: t('liabilities.columnPaidOff'), meta: { class: { th: 'w-[150px] pl-6' } } },
-  { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
-])
 </script>
 
 <template>
@@ -153,8 +124,8 @@ const liabilityColumns = computed<TableColumn<Liability>[]>(() => [
       @update:open="liabilityForm.state.open = $event"
       @submit="liabilityForm.submit()"
     >
-      <UFormField :label="t('liabilities.fieldName')">
-        <UInput v-model="liabilityForm.state.form.name" :placeholder="t('liabilities.fieldNamePlaceholder')" />
+      <UFormField :label="t('liabilities.fieldName')" class="sm:col-span-2">
+        <UInput v-model="liabilityForm.state.form.name" :placeholder="t('liabilities.fieldNamePlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('liabilities.fieldType')">
         <USelect v-model="liabilityForm.state.form.type" :items="liabilityTypeOptions" class="w-full" />
@@ -163,84 +134,74 @@ const liabilityColumns = computed<TableColumn<Liability>[]>(() => [
         <USelect v-model="liabilityForm.state.form.currency" :items="currencyOptions" class="w-full" />
       </UFormField>
       <UFormField :label="t('liabilities.fieldInitialAmount')">
-        <UInput v-model="liabilityForm.state.form.initial_amount" type="number" :placeholder="t('liabilities.fieldInitialAmountPlaceholder')" />
+        <UInput v-model="liabilityForm.state.form.initial_amount" type="number" :placeholder="t('liabilities.fieldInitialAmountPlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('liabilities.fieldRemainingBalance')">
-        <UInput v-model="liabilityForm.state.form.remaining_amount" type="number" :placeholder="t('liabilities.fieldRemainingBalancePlaceholder')" />
+        <UInput v-model="liabilityForm.state.form.remaining_amount" type="number" :placeholder="t('liabilities.fieldRemainingBalancePlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('liabilities.fieldMonthlyPayment')">
-        <UInput v-model="liabilityForm.state.form.monthly_payment" type="number" :placeholder="t('liabilities.fieldMonthlyPaymentPlaceholder')" />
+        <UInput v-model="liabilityForm.state.form.monthly_payment" type="number" :placeholder="t('liabilities.fieldMonthlyPaymentPlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('liabilities.fieldInterestRate')">
-        <UInput v-model="liabilityForm.state.form.interest_rate" type="number" step="0.01" :placeholder="t('liabilities.fieldInterestRatePlaceholder')" />
+        <UInput v-model="liabilityForm.state.form.interest_rate" type="number" step="0.01" :placeholder="t('liabilities.fieldInterestRatePlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('liabilities.fieldStartDate')">
-        <UInput v-model="liabilityForm.state.form.start_date" type="date" />
+        <UInput v-model="liabilityForm.state.form.start_date" type="date" class="w-full" />
       </UFormField>
       <UFormField :label="t('liabilities.fieldEndDate')">
-        <UInput v-model="liabilityForm.state.form.end_date" type="date" />
+        <UInput v-model="liabilityForm.state.form.end_date" type="date" class="w-full" />
       </UFormField>
     </EntityFormModal>
 
     <PageLoadingSkeleton v-if="initialLoading" />
 
     <template v-else-if="liabilitiesStore.liabilities.length > 0">
-      <StatCardRow>
-        <StatCard :label="t('liabilities.remainingDebt')" :value="formatCurrency(totalRemaining)" value-color="negative" />
-        <StatCard
-          :label="t('liabilities.monthlyPayments')"
-          :value="formatCurrency(totalMonthly)"
-          :note="t('liabilities.monthlyPaymentsNote', liabilitiesStore.liabilities.length)"
-        />
-        <StatCard
-          :label="t('liabilities.weightedRate')"
-          :value="weightedRate === null ? '—' : formatRate(weightedRate)"
-          :note="lastPayoff ? t('liabilities.lastPayoffNote', { date: formatDate(lastPayoff) }) : undefined"
-        />
-      </StatCardRow>
-
-      <div class="flex flex-wrap items-end gap-4">
-        <UFormField :label="t('liabilities.searchLabel')" class="w-64">
-          <UInput v-model="filters.search" :placeholder="t('liabilities.searchPlaceholder')" />
-        </UFormField>
-        <UFormField :label="t('liabilities.fieldType')" class="w-48">
-          <USelect
-            v-model="filters.type"
-            :items="[{ label: t('common.allTypes'), value: null }, ...liabilityTypeOptions]"
-            :placeholder="t('liabilities.typeFilterPlaceholder')"
-          />
-        </UFormField>
+      <div class="flex flex-col gap-2">
+        <span class="text-xs tracking-wide text-muted uppercase">{{ t('liabilities.heroKicker') }}</span>
+        <span class="font-heading text-[clamp(38px,5vw,60px)] leading-none font-extrabold tracking-tight">{{ formatCurrency(totalRemaining) }}</span>
+        <span class="text-[14.5px] font-semibold">
+          <template v-if="totalDelta30d !== null"><span :class="deltaColorClass(totalDelta30d)">{{ formatSignedCurrency(totalDelta30d) }}</span> <span class="font-medium text-muted">{{ t('liabilities.heroNoteWithDelta', { monthly: formatCurrency(totalMonthly) }) }}</span></template>
+          <span v-else class="font-medium text-muted">{{ t('liabilities.heroNote', { monthly: formatCurrency(totalMonthly) }) }}</span>
+        </span>
       </div>
 
-      <UTable :data="filteredLiabilities" :columns="liabilityColumns">
-        <template #name-cell="{ row }: { row: TableRow<Liability> }">
-          <div class="flex flex-col gap-0.5">
-            <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ row.original.name }}</span>
-            <span class="text-sm whitespace-nowrap text-muted">
-              {{ liabilityTypeLabel(row.original.type) }}
-              <template v-if="row.original.interest_rate"> · {{ formatRate(Number(row.original.interest_rate)) }}</template>
-              <template v-if="row.original.end_date"> · {{ t('liabilities.endsNote', { date: formatDate(row.original.end_date) }) }}</template>
+      <div class="flex flex-col gap-2.5">
+        <div
+          v-for="liability in sortedLiabilities"
+          :key="liability.id"
+          role="button"
+          tabindex="0"
+          class="neu-surface flex cursor-pointer flex-col gap-3.5 bg-default p-5"
+          @click="liabilityForm.openEdit(liability)"
+          @keydown.enter="liabilityForm.openEdit(liability)"
+        >
+          <span class="flex items-start justify-between gap-4">
+            <span class="flex min-w-0 flex-col gap-0.5">
+              <span class="text-[16px] font-bold tracking-tight">{{ liability.name }}</span>
+              <span class="text-[13px] text-muted">
+                {{ liabilityTypeLabel(liability.type) }}
+                <template v-if="liability.interest_rate"> · {{ formatRate(Number(liability.interest_rate)) }}</template>
+                <template v-if="liability.end_date"> · {{ t('liabilities.endsNote', { date: formatDate(liability.end_date) }) }}</template>
+              </span>
             </span>
-          </div>
-        </template>
-        <template #remaining_amount-cell="{ row }: { row: TableRow<Liability> }">
-          <span class="font-heading text-[15.5px] font-extrabold whitespace-nowrap text-rust">{{ formatCurrency(row.original.remaining_amount, row.original.currency) }}</span>
-        </template>
-        <template #monthly_payment-cell="{ row }: { row: TableRow<Liability> }">
-          <span class="text-[15px]">{{ row.original.monthly_payment ? formatCurrency(row.original.monthly_payment, row.original.currency) : '—' }}</span>
-        </template>
-        <template #paidOff-cell="{ row }: { row: TableRow<Liability> }">
-          <span class="flex items-center gap-2.5">
-            <span class="stripe-track flex-1">
-              <span class="stripe-fill paid-off-fill" :style="{ width: `${paidRatio(row.original) * 100}%` }" />
+            <span class="flex flex-none flex-col items-end gap-0.5">
+              <span class="text-[20px] font-extrabold tracking-tight whitespace-nowrap text-rust">{{ formatCurrency(liability.remaining_amount, liability.currency) }}</span>
+              <span class="text-[12.5px] whitespace-nowrap text-muted">
+                {{ liability.monthly_payment ? t('liabilities.perMonth', { amount: formatCurrency(liability.monthly_payment, liability.currency) }) : '—' }}
+              </span>
             </span>
-            <span class="min-w-[34px] text-right text-sm text-muted">{{ Math.round(paidRatio(row.original) * 100) }}%</span>
+            <span @click.stop @keydown.stop>
+              <EllipsisMenu :items="liabilityMenuItems(liability)" size="xs" />
+            </span>
           </span>
-        </template>
-        <template #actions-cell="{ row }: { row: TableRow<Liability> }">
-          <EllipsisMenu :items="liabilityMenuItems(row.original)" />
-        </template>
-      </UTable>
+          <span class="flex flex-col gap-1.5">
+            <span class="stripe-track">
+              <span class="stripe-fill paid-off-fill" :style="{ width: `${paidRatio(liability) * 100}%` }" />
+            </span>
+            <span class="text-[12.5px] text-muted">{{ t('liabilities.paidOffPct', { pct: Math.round(paidRatio(liability) * 100) }) }}</span>
+          </span>
+        </div>
+      </div>
     </template>
 
     <UEmpty
