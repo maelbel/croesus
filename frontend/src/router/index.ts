@@ -46,6 +46,14 @@ const router = createRouter({
       meta: { kicker: 'router.envelopes.kicker', title: 'router.envelopes.title' },
     },
     {
+      path: '/envelopes/:id',
+      name: 'envelope',
+      component: () => import('../pages/EnvelopePage.vue'),
+      props: true,
+      // No meta kicker/title: this page's title is the envelope's own name,
+      // set dynamically via usePageTitle (see composables/usePageTitle.ts).
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('../pages/SettingsPage.vue'),
