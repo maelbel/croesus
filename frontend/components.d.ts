@@ -12,15 +12,18 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppTopBar: typeof import('./src/components/AppTopBar.vue')['default']
+    AssetsByClassWidget: typeof import('./src/components/widgets/AssetsByClassWidget.vue')['default']
     CompositionChart: typeof import('./src/components/CompositionChart.vue')['default']
     ConfirmDialog: typeof import('./src/components/ConfirmDialog.vue')['default']
     ConnectionModeFields: typeof import('./src/components/ConnectionModeFields.vue')['default']
     EllipsisMenu: typeof import('./src/components/EllipsisMenu.vue')['default']
     EntityFormModal: typeof import('./src/components/EntityFormModal.vue')['default']
+    LiabilitiesVsAssetsWidget: typeof import('./src/components/widgets/LiabilitiesVsAssetsWidget.vue')['default']
     LoginForm: typeof import('./src/components/LoginForm.vue')['default']
     NetWorthRings: typeof import('./src/components/NetWorthRings.vue')['default']
     OnboardingScreen: typeof import('./src/components/OnboardingScreen.vue')['default']
     PageLoadingSkeleton: typeof import('./src/components/PageLoadingSkeleton.vue')['default']
+    RecentValuationsWidget: typeof import('./src/components/widgets/RecentValuationsWidget.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StatCard: typeof import('./src/components/StatCard.vue')['default']
@@ -43,5 +46,6 @@ declare module 'vue' {
     UTabs: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Tabs.vue')['default']
     UTextarea: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Textarea.vue')['default']
     UTooltip: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Tooltip.vue')['default']
+    WidgetGrid: typeof import('./src/components/WidgetGrid.vue')['default']
   }
 }
