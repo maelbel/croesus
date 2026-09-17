@@ -102,9 +102,9 @@ export default {
     compositionHeading: "Où se trouve l'argent, valorisation par valorisation",
     byAssetClassKicker: 'De quoi le total est composé',
     byAssetClassHeading: "Par classe d'actif",
-    setAgainstThem: 'En regard',
-    liabilitiesVsAssets:
-      'Passifs · {value} · {pct}% des actifs, tracé à la même échelle que la barre ci-dessus.',
+    liabilitiesVsAssetsKicker: 'En regard',
+    liabilitiesVsAssetsHeading: 'Passifs et actifs',
+    liabilitiesVsAssets: 'Passifs · {value} · {pct}% des actifs',
     recentValuationsKicker: 'Valorisations récentes',
     recentValuationsHeading: 'Mois par mois',
     columnDate: 'Date',
@@ -115,6 +115,17 @@ export default {
     emptyTitle: 'Pas encore d\'historique',
     emptyDescription:
       'Le tableau de bord se remplit dès que deux valorisations existent. Ajoutez un compte et donnez-lui une valeur de départ.',
+  },
+  dashboardGrid: {
+    editLayout: 'Modifier la disposition',
+    doneEditing: 'Terminé',
+    addWidget: 'Ajouter un widget',
+    removeWidget: 'Retirer le widget',
+    widgetNetWorthRings: 'Patrimoine net par année',
+    widgetComposition: 'Composition dans le temps',
+    widgetAssetsByClass: "Par classe d'actif",
+    widgetLiabilitiesVsAssets: 'Passifs et actifs',
+    widgetRecentValuations: 'Valorisations récentes',
   },
   accounts: {
     addTitle: 'Ajouter un compte',

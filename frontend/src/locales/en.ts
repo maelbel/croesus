@@ -102,9 +102,9 @@ export default {
     compositionHeading: 'Where the money sits, valuation by valuation',
     byAssetClassKicker: 'What the total is made of',
     byAssetClassHeading: 'By asset class',
-    setAgainstThem: 'Set against them',
-    liabilitiesVsAssets:
-      'Liabilities · {value} · {pct}% of assets, drawn to the same scale as the bar above.',
+    liabilitiesVsAssetsKicker: 'Set against them',
+    liabilitiesVsAssetsHeading: 'Liabilities vs. assets',
+    liabilitiesVsAssets: 'Liabilities · {value} · {pct}% of assets',
     recentValuationsKicker: 'Recent valuations',
     recentValuationsHeading: 'Month by month',
     columnDate: 'Date',
@@ -115,6 +115,17 @@ export default {
     emptyTitle: 'No history yet',
     emptyDescription:
       'The dashboard fills in as soon as two valuations exist. Add an account and give it a starting value.',
+  },
+  dashboardGrid: {
+    editLayout: 'Edit layout',
+    doneEditing: 'Done',
+    addWidget: 'Add widget',
+    removeWidget: 'Remove widget',
+    widgetNetWorthRings: 'Net worth by year',
+    widgetComposition: 'Composition over time',
+    widgetAssetsByClass: 'By asset class',
+    widgetLiabilitiesVsAssets: 'Liabilities vs. assets',
+    widgetRecentValuations: 'Recent valuations',
   },
   accounts: {
     addTitle: 'Add account',

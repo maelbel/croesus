@@ -125,6 +125,29 @@ export interface Envelope {
 export type EnvelopeCreate = Omit<Envelope, 'id' | 'created_at' | 'updated_at'>
 export type EnvelopeUpdate = Partial<EnvelopeCreate>
 
+export const WIDGET_TYPES = [
+  'netWorthRings',
+  'composition',
+  'assetsByClass',
+  'liabilitiesVsAssets',
+  'recentValuations',
+] as const
+export type WidgetType = (typeof WIDGET_TYPES)[number]
+
+export interface Widget {
+  id: string
+  type: WidgetType
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export interface DashboardLayout {
+  widgets: Widget[]
+  updated_at: string
+}
+
 export interface NetWorth {
   total_assets: number
   total_liabilities: number

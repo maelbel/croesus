@@ -115,7 +115,7 @@ Two target usage modes:
 
 ## Phase 4 — Customizable dashboard
 
-- [ ] Drag-and-resize widget grid (12-column, snap-to-cell) replacing the
+- [x] Drag-and-resize widget grid (12-column, snap-to-cell) replacing the
       current fixed dashboard layout — add, remove, rearrange and resize
       widgets, with an edit mode and a persisted per-instance layout
 - [ ] Widget catalog: stat tile, trend chart, breakdown donut, list, and a

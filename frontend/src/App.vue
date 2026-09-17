@@ -8,6 +8,7 @@ import { useAccountsStore } from './stores/accounts'
 import { useLiabilitiesStore } from './stores/liabilities'
 import { useEnvelopesStore } from './stores/envelopes'
 import { useNetWorthStore } from './stores/networth'
+import { useDashboardLayoutStore } from './stores/dashboardLayout'
 import { useCurrencyStore } from './stores/currency'
 import { useFxRatesStore } from './stores/fxRates'
 import { useValuationsStore } from './stores/valuations'
@@ -30,6 +31,7 @@ const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
 const netWorthStore = useNetWorthStore()
+const dashboardLayoutStore = useDashboardLayoutStore()
 const currencyStore = useCurrencyStore()
 const fxRatesStore = useFxRatesStore()
 const valuationsStore = useValuationsStore()
@@ -70,6 +72,7 @@ function loadData() {
   liabilitiesStore.fetchAll()
   envelopesStore.fetchAll()
   netWorthStore.fetchAll()
+  dashboardLayoutStore.fetchAll()
   fxRatesStore.fetchRates(currencyStore.referenceCurrency)
   valuationsStore.fetchAll()
   assetsStore.fetchAll()

@@ -13,6 +13,7 @@ from app.api.routes import (
     assets,
     auth,
     dashboard,
+    dashboard_layout,
     envelopes,
     fx,
     liabilities,
@@ -155,6 +156,7 @@ app.include_router(assets.router)
 app.include_router(liabilities.router)
 app.include_router(envelopes.router)
 app.include_router(dashboard.router)
+app.include_router(dashboard_layout.router)
 app.include_router(fx.router)
 
 
