@@ -118,7 +118,7 @@ Two target usage modes:
 - [x] Drag-and-resize widget grid (12-column, snap-to-cell) replacing the
       current fixed dashboard layout — add, remove, rearrange and resize
       widgets, with an edit mode and a persisted per-instance layout
-- [ ] Widget catalog: stat tile, trend chart, breakdown donut, list, and a
+- [x] Widget catalog: stat tile, trend chart, breakdown donut, list, and a
       debt/envelope payoff-status widget — each bound to a choice of data
       source (net worth, total debt, envelopes remaining, emergency fund,
       a specific account/liability balance, assets-by-class...) and a size

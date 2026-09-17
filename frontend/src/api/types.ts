@@ -125,18 +125,26 @@ export interface Envelope {
 export type EnvelopeCreate = Omit<Envelope, 'id' | 'created_at' | 'updated_at'>
 export type EnvelopeUpdate = Partial<EnvelopeCreate>
 
-export const WIDGET_TYPES = [
+// One fixed data source each, at most one instance on the board.
+export const LEGACY_WIDGET_TYPES = [
   'netWorthRings',
   'composition',
   'assetsByClass',
   'liabilitiesVsAssets',
   'recentValuations',
 ] as const
+// `source` picks what the widget shows; multiple instances are allowed as
+// long as no two share the same (type, source) pair.
+export const CATALOG_WIDGET_TYPES = ['statTile', 'trendChart', 'breakdownDonut', 'list', 'payoffStatus'] as const
+export const WIDGET_TYPES = [...LEGACY_WIDGET_TYPES, ...CATALOG_WIDGET_TYPES] as const
+export type LegacyWidgetType = (typeof LEGACY_WIDGET_TYPES)[number]
+export type CatalogWidgetType = (typeof CATALOG_WIDGET_TYPES)[number]
 export type WidgetType = (typeof WIDGET_TYPES)[number]
 
 export interface Widget {
   id: string
   type: WidgetType
+  source?: string
   x: number
   y: number
   w: number
