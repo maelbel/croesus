@@ -127,40 +127,61 @@ Two target usage modes:
 
 ## Phase 5 — Advanced analytics
 
+All grouped under a new top-level **Insights** page.
+
 - [ ] Performance against market — compare portfolio return (XIRR) against a
-      benchmark index (CAC 40, S&P 500, MSCI World...) over the same period
+      benchmark index (CAC 40, S&P 500, MSCI World...) over the same period,
+      with the ability to add a custom benchmark (symbol + expected annual
+      return) alongside the built-in ones
 - [ ] Contribution vs. performance decomposition — split net worth growth
       into money contributed vs. market/valuation effect
 - [ ] Simple net worth projections — linear/compound projection from
       existing valuation history (e.g. "at this savings rate, when do I
       reach €X") — kept deliberately simple; see non-goals
-- [ ] Tax-wrapper limit tracking — flag accounts approaching contribution
-      ceilings (PEA €150k, Livret A cap, etc.)
+- [ ] Tax-wrapper limit tracking — flag accounts approaching or at their
+      contribution ceiling (PEA €150k, Livret A, LEP, PER deductible envelope,
+      etc.), *and* flag wrappers the user is eligible for but hasn't opened
+      (e.g. an unused LEP)
 - [ ] Debt payoff projections — debt-free date, remaining interest at the
       current rate, and "what if I paid €X more/month" scenarios on a
       liability's detail view
+- [ ] Automated practice checks — a ranked feed of rule-based nudges derived
+      from existing data (no external advice/AI), graded alert / warning /
+      hint: tax wrapper at cap or left unused, envelope overspent, a single
+      holding over ~a third of total assets, stale valuations, underperforming
+      a benchmark, an oversized emergency fund, mortgage-rate-vs-investing
+      guidance. Stays within the "no automated financial advice" non-goal —
+      these are data-derived observations, not recommendations to act on
 
 ## Phase 6 — Household sharing (optional)
 
 - [ ] Shared/household net worth — multiple users on one instance, with
       some accounts shared and others kept private (supersedes the earlier
-      single-user non-goal)
+      single-user non-goal). Per-account shared/private toggle, an invite
+      flow to add a household member, and a "mine" vs "household" net worth
+      scope switch usable throughout the app (dashboard, accounts, insights)
 
 ## Phase 7 — Data portability & reliability
 
-- [ ] Import from spreadsheet/CSV (bootstrapping from an existing manual
-      tracker)
-- [ ] Export — CSV and/or PDF net worth report
-- [ ] Encrypted backup export, restorable independently of the running
-      instance
+- [ ] Import from spreadsheet/CSV or XLSX (bootstrapping from an existing
+      manual tracker) — column mapping step (date, value, currency columns)
+      rather than a fixed schema
+- [ ] Export — CSV of every table, and/or a PDF net worth report (with or
+      without charts)
+- [ ] Per-widget/per-chart sharing — download or share any single dashboard
+      widget or insights chart as a PNG/PDF snapshot, with a "hide amounts"
+      toggle that redacts figures (shapes/percentages stay) for safe sharing
+- [ ] Encrypted backup export (passphrase-protected, AES-256), restorable
+      independently of the running instance
 - [ ] Notifications — a weekly net worth summary, envelope-overspend
       alerts, and a reminder when an account hasn't had a valuation
-      recorded in a while (supersedes the earlier "valuation staleness
+      recorded in a while, with a configurable staleness threshold
+      (30/60/90 days) (supersedes the earlier "valuation staleness
       reminders" wording — same idea, folded into a broader notifications
       feature)
-- [ ] Account security — two-factor authentication (authenticator app) and
-      visibility/revocation of active sessions, alongside the existing
-      password/OIDC login
+- [ ] Account security — two-factor authentication (authenticator app +
+      recovery codes) and visibility/revocation of active sessions,
+      alongside the existing password/OIDC login
 
 ## Phase 8 — Bank aggregation
 
