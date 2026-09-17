@@ -70,6 +70,12 @@ export default {
         trigger: 'cursor-pointer',
       },
     },
+    navigationMenu: {
+      slots: {
+        link: 'cursor-pointer',
+        childLink: 'cursor-pointer',
+      },
+    },
     tooltip: {
       slots: {
         content: 'z-30',
