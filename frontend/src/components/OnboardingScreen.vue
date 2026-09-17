@@ -18,7 +18,7 @@ function apply() {
 
 <template>
   <div
-    class="neu-surface flex w-96 flex-col gap-5 border border-default p-8"
+    class="neu-surface flex w-96 flex-col gap-5 p-8"
   >
     <div class="flex flex-col gap-1">
       <span class="font-heading text-xl font-extrabold tracking-tight">CROESUS</span>

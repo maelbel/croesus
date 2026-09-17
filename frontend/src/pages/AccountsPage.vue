@@ -1,31 +1,20 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { TableColumn, TableRow } from '@nuxt/ui'
+import { useRouter } from 'vue-router'
 import { useAccountsStore } from '../stores/accounts'
 import { useCurrencyStore } from '../stores/currency'
 import { useFxRatesStore } from '../stores/fxRates'
-import { useValuationsStore, type ValuationChange } from '../stores/valuations'
+import { useValuationsStore } from '../stores/valuations'
 import { useCrudForm } from '../composables/useCrudForm'
-import { useDeleteAction } from '../composables/useDeleteAction'
 import { usePageAction } from '../composables/usePageAction'
-import {
-  ACCOUNT_TYPES,
-  accountTypeLabel,
-  CURRENCIES,
-  type Account,
-  type AccountCreate,
-  type AccountType,
-} from '../api/types'
-import { formatCurrency, formatPercent, formatDate, formatSignedCurrency, deltaColorClass } from '../lib/format'
+import { ACCOUNT_TYPES, accountTypeLabel, CURRENCIES, type Account, type AccountCreate, type AccountType } from '../api/types'
+import { formatCurrency, formatSignedCurrency, deltaColorClass } from '../lib/format'
 import EntityFormModal from '../components/EntityFormModal.vue'
-import AccountDetailPanel from '../components/AccountDetailPanel.vue'
-import EllipsisMenu from '../components/EllipsisMenu.vue'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
-import StatCard from '../components/StatCard.vue'
-import StatCardRow from '../components/StatCardRow.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 const accountsStore = useAccountsStore()
 const currencyStore = useCurrencyStore()
 const fxRatesStore = useFxRatesStore()
@@ -39,23 +28,6 @@ const accountTypeOptions = computed(() =>
   ACCOUNT_TYPES.map((value) => ({ label: accountTypeLabel(value), value })),
 )
 const currencyOptions = computed(() => CURRENCIES.map((value) => ({ label: value, value })))
-
-const filters = reactive({
-  search: '',
-  type: null as AccountType | null,
-})
-
-const filteredAccounts = computed(() => {
-  const search = filters.search.trim().toLowerCase()
-  return accountsStore.accounts.filter((account) => {
-    if (filters.type && account.type !== filters.type) return false
-    if (!search) return true
-    return (
-      account.name.toLowerCase().includes(search) ||
-      (account.institution ?? '').toLowerCase().includes(search)
-    )
-  })
-})
 
 // Accounts can each hold a different currency — every cross-account sum on
 // this page converts into the reference currency first (fxRatesStore),
@@ -83,34 +55,47 @@ const totalChange30d = computed(() => {
   return { delta: deltaSum, ratio: deltaSum / referenceSum }
 })
 
-const filteredAccountRows = computed(() =>
-  filteredAccounts.value
-    .map((account) => ({
-      account,
-      change: valuationsStore.changeOverDays(account.id, 30),
-    }))
-    .sort((a, b) => a.account.name.localeCompare(b.account.name)),
-)
-
-function updatedLabel(account: Account) {
-  const latest = valuationsStore.latest(account.id)
-  return latest ? formatDate(latest.date) : '—'
+// Groups accounts the same way the design's own sample data does (Checking /
+// Savings / Investment / Other) — our schema has no separate "Cash" type, so
+// that group is dropped rather than mapped to something always-empty.
+type GroupKey = 'checking' | 'savings' | 'investment' | 'other'
+const GROUP_ORDER: { key: GroupKey; labelKey: string }[] = [
+  { key: 'checking', labelKey: 'accounts.groupChecking' },
+  { key: 'savings', labelKey: 'accounts.groupSavings' },
+  { key: 'investment', labelKey: 'accounts.groupInvestment' },
+  { key: 'other', labelKey: 'accounts.groupOther' },
+]
+const TYPE_GROUP: Record<AccountType, GroupKey> = {
+  checking: 'checking',
+  regulated_savings: 'savings',
+  pea: 'investment',
+  life_insurance: 'investment',
+  brokerage: 'investment',
+  crypto: 'other',
+  real_estate: 'other',
+  scpi: 'investment',
+  other: 'other',
 }
 
-const emergencyAccounts = computed(() => accountsStore.accounts.filter((a) => a.is_emergency_fund))
-const efCurrent = computed(() =>
-  emergencyAccounts.value.reduce(
-    (sum, a) => sum + fxRatesStore.convert(valuationsStore.currentValue(a.id), a.currency),
-    0,
-  ),
+// Collapsed groups, keyed by group key — absent (the default) means open,
+// matching the design's own per-group `open` toggle state.
+const collapsedGroups = reactive<Partial<Record<GroupKey, boolean>>>({})
+function toggleGroup(key: GroupKey) {
+  collapsedGroups[key] = !collapsedGroups[key]
+}
+
+const groupedAccounts = computed(() =>
+  GROUP_ORDER.map(({ key, labelKey }) => {
+    const accounts = accountsStore.accounts
+      .filter((a) => TYPE_GROUP[a.type] === key)
+      .sort((a, b) => a.name.localeCompare(b.name))
+    const total = accounts.reduce(
+      (sum, a) => sum + fxRatesStore.convert(valuationsStore.currentValue(a.id), a.currency),
+      0,
+    )
+    return { key, label: t(labelKey), accounts, total, open: !collapsedGroups[key] }
+  }).filter((group) => group.accounts.length > 0),
 )
-const efTarget = computed(() =>
-  emergencyAccounts.value.reduce(
-    (sum, a) => sum + fxRatesStore.convert(Number(a.emergency_fund_target ?? 0), a.currency),
-    0,
-  ),
-)
-const efRatio = computed(() => (efTarget.value > 0 ? Math.min(1, efCurrent.value / efTarget.value) : 0))
 
 function accountFormDefaults(): AccountCreate {
   return {
@@ -144,40 +129,9 @@ const accountForm = useCrudForm<Account, AccountCreate>({
 
 usePageAction(() => t('accounts.addTitle'), () => accountForm.openCreate())
 
-const deleteAccount = useDeleteAction('account')
-
-async function removeAccount(account: Account) {
-  await deleteAccount(
-    t('accounts.deleteConfirm', { name: account.name }),
-    () => accountsStore.remove(account.id),
-  )
+function openAccount(account: Account) {
+  router.push({ name: 'account', params: { id: account.id } })
 }
-
-function accountMenuItems(account: Account) {
-  return [
-    { label: t('common.edit'), icon: 'i-lucide-pencil', onSelect: () => accountForm.openEdit(account) },
-    { label: t('common.delete'), icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeAccount(account) },
-  ]
-}
-
-// Store the id, not the account object — createCrudStore's update() replaces
-// the array element with a new object, so holding the object itself would go
-// stale (still showing pre-edit values) if this account is edited while its
-// detail panel is open.
-const detailAccountId = ref<number | null>(null)
-const detailAccount = computed(
-  () => accountsStore.accounts.find((account) => account.id === detailAccountId.value) ?? null,
-)
-
-type AccountRow = { account: Account; change: ValuationChange | null }
-
-const accountColumns = computed<TableColumn<AccountRow>[]>(() => [
-  { id: 'name', header: t('accounts.columnAccount') },
-  { id: 'value', header: t('accounts.columnValue'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { id: 'change', header: t('accounts.column30d'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { id: 'updated', header: t('accounts.columnUpdated'), meta: { class: { th: 'text-right', td: 'text-right whitespace-nowrap' } } },
-  { id: 'actions', header: '', meta: { class: { td: 'text-right whitespace-nowrap' } } },
-])
 </script>
 
 <template>
@@ -189,8 +143,8 @@ const accountColumns = computed<TableColumn<AccountRow>[]>(() => [
       @update:open="accountForm.state.open = $event"
       @submit="accountForm.submit()"
     >
-      <UFormField :label="t('accounts.fieldName')">
-        <UInput v-model="accountForm.state.form.name" :placeholder="t('accounts.fieldNamePlaceholder')" />
+      <UFormField :label="t('accounts.fieldName')" class="sm:col-span-2">
+        <UInput v-model="accountForm.state.form.name" :placeholder="t('accounts.fieldNamePlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('accounts.fieldType')">
         <USelect v-model="accountForm.state.form.type" :items="accountTypeOptions" class="w-full" />
@@ -199,96 +153,78 @@ const accountColumns = computed<TableColumn<AccountRow>[]>(() => [
         <USelect v-model="accountForm.state.form.currency" :items="currencyOptions" class="w-full" />
       </UFormField>
       <UFormField :label="t('accounts.fieldInstitution')">
-        <UInput v-model="accountForm.state.form.institution" :placeholder="t('accounts.fieldInstitutionPlaceholder')" />
+        <UInput v-model="accountForm.state.form.institution" :placeholder="t('accounts.fieldInstitutionPlaceholder')" class="w-full" />
       </UFormField>
       <UFormField :label="t('accounts.fieldOpenedOn')">
-        <UInput v-model="accountForm.state.form.opened_at" type="date" />
+        <UInput v-model="accountForm.state.form.opened_at" type="date" class="w-full" />
       </UFormField>
-      <UCheckbox v-model="accountForm.state.form.is_emergency_fund" :label="t('accounts.emergencyFundCheckbox')" />
-      <UFormField v-if="accountForm.state.form.is_emergency_fund" :label="t('accounts.fieldEmergencyTarget')">
-        <UInput v-model="accountForm.state.form.emergency_fund_target" type="number" :placeholder="t('accounts.fieldEmergencyTargetPlaceholder')" />
+      <UCheckbox v-model="accountForm.state.form.is_emergency_fund" :label="t('accounts.emergencyFundCheckbox')" class="sm:col-span-2" />
+      <UFormField v-if="accountForm.state.form.is_emergency_fund" :label="t('accounts.fieldEmergencyTarget')" class="sm:col-span-2">
+        <UInput v-model="accountForm.state.form.emergency_fund_target" type="number" :placeholder="t('accounts.fieldEmergencyTargetPlaceholder')" class="w-full" />
       </UFormField>
-      <UFormField :label="t('accounts.fieldNotes')">
-        <UTextarea v-model="accountForm.state.form.notes" :placeholder="t('accounts.fieldNotesPlaceholder')" />
+      <UFormField :label="t('accounts.fieldNotes')" class="sm:col-span-2">
+        <UTextarea v-model="accountForm.state.form.notes" :placeholder="t('accounts.fieldNotesPlaceholder')" class="w-full" />
       </UFormField>
     </EntityFormModal>
-
-    <AccountDetailPanel
-      :open="detailAccount !== null"
-      :account="detailAccount"
-      @update:open="(value) => { if (!value) detailAccountId = null }"
-    />
 
     <PageLoadingSkeleton v-if="initialLoading" />
 
     <template v-else-if="accountsStore.accounts.length > 0">
-      <StatCardRow>
-        <StatCard
-          :label="t('accounts.totalValue')"
-          :value="formatCurrency(totalValue)"
-          :note="t('accounts.totalValueNote', accountsStore.accounts.length)"
-        />
-        <StatCard
-          :label="t('accounts.change30d')"
-          :value="totalChange30d?.ratio == null ? '—' : formatPercent(totalChange30d.ratio)"
-          :value-color="totalChange30d?.delta == null ? 'default' : totalChange30d.delta >= 0 ? 'positive' : 'negative'"
-          :note="totalChange30d ? formatSignedCurrency(totalChange30d.delta) : undefined"
-          :note-color="totalChange30d?.delta == null ? 'muted' : totalChange30d.delta >= 0 ? 'positive' : 'negative'"
-        />
-        <StatCard
-          :label="t('accounts.emergencyFund')"
-          :value="emergencyAccounts.length > 0 ? formatCurrency(efCurrent) : '—'"
-          :note="emergencyAccounts.length > 0 ? t('accounts.emergencyFundNote', { pct: Math.round(efRatio * 100), target: formatCurrency(efTarget) }) : t('accounts.emergencyFundNoneSetUp')"
-        />
-      </StatCardRow>
-
-      <div class="flex flex-wrap items-end gap-4">
-        <UFormField :label="t('accounts.searchLabel')" class="w-64">
-          <UInput v-model="filters.search" :placeholder="t('accounts.searchPlaceholder')" />
-        </UFormField>
-        <UFormField :label="t('accounts.fieldType')" class="w-48">
-          <USelect
-            v-model="filters.type"
-            :items="[{ label: t('common.allTypes'), value: null }, ...accountTypeOptions]"
-            :placeholder="t('accounts.typeFilterPlaceholder')"
-          />
-        </UFormField>
+      <div class="flex flex-col gap-2">
+        <span class="text-xs tracking-wide text-muted uppercase">{{ t('accounts.heroKicker') }}</span>
+        <span class="font-heading text-[clamp(38px,5vw,60px)] leading-none font-extrabold tracking-tight">{{ formatCurrency(totalValue) }}</span>
+        <span class="text-[14.5px] font-semibold">
+          <template v-if="totalChange30d"><span :class="deltaColorClass(totalChange30d.delta)">{{ formatSignedCurrency(totalChange30d.delta) }}</span> <span class="font-medium text-muted">{{ t('accounts.heroNoteWithDelta', accountsStore.accounts.length) }}</span></template>
+          <span v-else class="font-medium text-muted">{{ t('accounts.heroNote', accountsStore.accounts.length) }}</span>
+        </span>
       </div>
 
-      <UTable
-        :data="filteredAccountRows"
-        :columns="accountColumns"
-        @select="(_e: Event, row: TableRow<AccountRow>) => (detailAccountId = row.original.account.id)"
-      >
-        <template #name-cell="{ row }: { row: TableRow<AccountRow> }">
-          <div class="flex flex-col gap-0.5">
-            <span class="flex items-center gap-2">
-              <span class="text-[15.5px] font-semibold whitespace-nowrap">{{ row.original.account.name }}</span>
-              <UBadge v-if="row.original.account.is_emergency_fund" variant="outline" size="sm">{{ t('accounts.emergencyFundBadge') }}</UBadge>
-            </span>
-            <span class="text-sm text-muted">
-              {{ accountTypeLabel(row.original.account.type) }}
-              <template v-if="row.original.account.institution"> · {{ row.original.account.institution }}</template>
-            </span>
+      <div class="flex flex-col gap-2.5">
+        <div v-for="group in groupedAccounts" :key="group.key" class="neu-surface overflow-hidden bg-default">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 px-5 py-4 text-left"
+            @click="toggleGroup(group.key)"
+          >
+            <UIcon
+              name="i-lucide-chevron-down"
+              class="size-3.5 flex-none text-muted transition-transform"
+              :class="group.open ? '' : '-rotate-90'"
+            />
+            <span class="text-[14.5px] font-bold tracking-tight">{{ group.label }}</span>
+            <span class="text-[13px] text-muted">{{ t('accounts.groupCount', group.accounts.length) }}</span>
+            <span class="flex-1" />
+            <span class="text-[15px] font-bold">{{ formatCurrency(group.total) }}</span>
+          </button>
+          <div v-if="group.open" class="flex flex-col px-5 pb-1.5">
+            <div
+              v-for="account in group.accounts"
+              :key="account.id"
+              role="button"
+              tabindex="0"
+              class="flex cursor-pointer items-center gap-3.5 border-t border-default py-3.5 text-left"
+              @click="openAccount(account)"
+              @keydown.enter="openAccount(account)"
+            >
+              <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span class="truncate text-[15px] font-semibold">{{ account.name }}</span>
+                <span class="text-[12.5px] text-muted">
+                  {{ accountTypeLabel(account.type) }}
+                  <template v-if="account.institution"> · {{ account.institution }}</template>
+                  <template v-if="account.is_emergency_fund"> · {{ t('accounts.emergencyFundBadge').toLowerCase() }}</template>
+                </span>
+              </span>
+              <span class="flex flex-none flex-col items-end gap-0.5">
+                <span class="text-[15.5px] font-bold whitespace-nowrap">{{ formatCurrency(valuationsStore.currentValue(account.id), account.currency) }}</span>
+                <span class="text-[12.5px] font-bold whitespace-nowrap" :class="deltaColorClass(valuationsStore.changeOverDays(account.id, 30)?.ratio ?? null)">
+                  {{ valuationsStore.changeOverDays(account.id, 30)?.ratio == null ? '—' : formatSignedCurrency(valuationsStore.changeOverDays(account.id, 30)!.delta, account.currency) }}
+                </span>
+              </span>
+              <UIcon name="i-lucide-chevron-right" class="size-3.5 flex-none text-muted" />
+            </div>
           </div>
-        </template>
-        <template #value-cell="{ row }: { row: TableRow<AccountRow> }">
-          <span class="font-heading text-[15.5px] font-extrabold whitespace-nowrap">
-            {{ formatCurrency(valuationsStore.currentValue(row.original.account.id), row.original.account.currency) }}
-          </span>
-        </template>
-        <template #change-cell="{ row }: { row: TableRow<AccountRow> }">
-          <span class="whitespace-nowrap" :class="deltaColorClass(row.original.change?.ratio ?? null)">
-            {{ row.original.change?.ratio == null ? '—' : formatPercent(row.original.change.ratio) }}
-          </span>
-        </template>
-        <template #updated-cell="{ row }: { row: TableRow<AccountRow> }">
-          <span class="whitespace-nowrap text-muted">{{ updatedLabel(row.original.account) }}</span>
-        </template>
-        <template #actions-cell="{ row }: { row: TableRow<AccountRow> }">
-          <EllipsisMenu :items="accountMenuItems(row.original.account)" />
-        </template>
-      </UTable>
+        </div>
+      </div>
     </template>
 
     <UEmpty

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { isTauri } from '@tauri-apps/api/core'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '@nuxt/ui/composables'
-import { SKINS, useThemeStore, type Skin } from '../stores/theme'
+import type { NavigationMenuItem } from '@nuxt/ui'
+import { useThemeStore } from '../stores/theme'
 import { LOCALES, useLocaleStore } from '../stores/locale'
 import { useCurrencyStore } from '../stores/currency'
 import { CURRENCIES } from '../api/types'
@@ -31,6 +32,34 @@ const authStore = useAuthStore()
 // Only the desktop shell can choose between a local sidecar and a remote
 // server — the self-hosted/browser build always just talks to VITE_API_URL.
 const isTauriApp = isTauri()
+
+type Category = 'appearance' | 'connection' | 'account' | 'danger'
+const activeCategory = ref<Category>('appearance')
+
+// `onSelect` sets the active category explicitly rather than relying on
+// UNavigationMenu's v-model alone — its items default to `type: 'link'`,
+// which without a `to` doesn't reliably drive modelValue on click. Likewise
+// `active` has to be set per item ourselves: with no `to`, the menu has no
+// route to match against, so nothing is ever marked active on its own —
+// there's no built-in "current section" indicator otherwise.
+function select(value: Category) {
+  return () => {
+    activeCategory.value = value
+  }
+}
+
+// Only the categories that actually have something to show — Connection is
+// desktop-only, Account only exists once auth is turned on for this instance.
+const categories = computed<NavigationMenuItem[]>(() => [
+  { label: t('settings.appearanceTitle'), icon: 'i-lucide-palette', value: 'appearance' },
+  ...(isTauriApp ? [{ label: t('settings.connectionTitle'), icon: 'i-lucide-server', value: 'connection' }] : []),
+  ...(authStore.authEnabled ? [{ label: t('settings.accountTitle'), icon: 'i-lucide-user', value: 'account' }] : []),
+  { label: t('settings.dangerZoneTitle'), icon: 'i-lucide-trash-2', value: 'danger' },
+].map((item) => ({
+  ...item,
+  active: item.value === activeCategory.value,
+  onSelect: select(item.value as Category),
+})))
 
 const {
   mode: pendingMode,
@@ -79,131 +108,119 @@ async function deleteAllData() {
 </script>
 
 <template>
-  <div class="mx-auto flex max-w-[760px] flex-col">
-    <div
-      v-if="isTauriApp"
-      class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6"
-    >
-      <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.connectionTitle') }}</span>
-        <span class="text-sm text-muted">{{ t('settings.connectionDescription') }}</span>
-      </div>
-      <div class="flex flex-col items-start gap-3">
-        <div class="w-full max-w-sm">
-          <ConnectionModeFields
-            v-model:mode="pendingMode"
-            v-model:server-url="pendingServerUrl"
-            :testing="testing"
-            :test-error="testError"
-            :test-ok="testOk"
-            @test="testConnection"
-            @reset-test="resetTest"
+  <div class="flex flex-col gap-8 sm:flex-row sm:items-start">
+    <UNavigationMenu
+      v-model="activeCategory"
+      :items="categories"
+      orientation="vertical"
+      type="single"
+      class="w-full flex-none sm:w-52"
+    />
+
+    <div class="min-w-0 max-w-[560px] flex-1">
+      <div v-if="activeCategory === 'appearance'" class="neu-surface flex flex-col divide-y divide-default bg-default">
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.appearanceTitle') }}</span>
+            <span class="text-[12.5px] text-muted">{{ t('settings.appearanceDescription') }}</span>
+          </span>
+          <div class="neu-inset flex flex-none">
+            <UButton size="sm" :variant="themeStore.mode === 'dark' ? 'solid' : 'ghost'" color="neutral" @click="themeStore.setMode('dark')">
+              {{ t('settings.dark') }}
+            </UButton>
+            <UButton size="sm" :variant="themeStore.mode === 'light' ? 'solid' : 'ghost'" color="neutral" @click="themeStore.setMode('light')">
+              {{ t('settings.light') }}
+            </UButton>
+          </div>
+        </div>
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.languageTitle') }}</span>
+            <span class="text-[12.5px] text-muted">{{ t('settings.languageDescription') }}</span>
+          </span>
+          <div class="neu-inset flex flex-none">
+            <UButton
+              v-for="locale in LOCALES"
+              :key="locale.value"
+              size="sm"
+              :variant="localeStore.locale === locale.value ? 'solid' : 'ghost'"
+              color="neutral"
+              @click="localeStore.setLocale(locale.value)"
+            >
+              {{ locale.label }}
+            </UButton>
+          </div>
+        </div>
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.currencyTitle') }}</span>
+            <span class="text-[12.5px] text-muted">{{ t('settings.currencyDescription') }}</span>
+          </span>
+          <USelect
+            :model-value="currencyStore.referenceCurrency"
+            :items="currencyOptions"
+            class="w-32 flex-none"
+            @update:model-value="currencyStore.setReferenceCurrency($event)"
           />
         </div>
+      </div>
 
-        <UButton
-          color="primary"
-          :loading="applying"
-          :disabled="pendingMode === 'remote' && !testOk"
-          @click="applyConnection"
-        >
-          {{ t('settings.saveAndRestart') }}
-        </UButton>
-        <span class="text-sm text-muted">{{ t('settings.switchingRestarts') }}</span>
+      <div v-else-if="activeCategory === 'connection'" class="neu-surface flex flex-col gap-4 bg-default p-5">
+        <span class="text-[12.5px] text-muted">{{ t('settings.connectionDescription') }}</span>
+        <ConnectionModeFields
+          v-model:mode="pendingMode"
+          v-model:server-url="pendingServerUrl"
+          :testing="testing"
+          :test-error="testError"
+          :test-ok="testOk"
+          @test="testConnection"
+          @reset-test="resetTest"
+        />
+        <div class="flex flex-col items-start gap-2">
+          <UButton
+            color="primary"
+            :loading="applying"
+            :disabled="pendingMode === 'remote' && !testOk"
+            @click="applyConnection"
+          >
+            {{ t('settings.saveAndRestart') }}
+          </UButton>
+          <span class="text-[12.5px] text-muted">{{ t('settings.switchingRestarts') }}</span>
+        </div>
       </div>
-    </div>
 
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
-      <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.themeTitle') }}</span>
-        <span class="text-sm text-muted">{{ t('settings.themeDescription') }}</span>
+      <div v-else-if="activeCategory === 'account'" class="flex flex-col gap-6">
+        <div class="neu-surface flex flex-col divide-y divide-default bg-default">
+          <div v-if="authStore.passwordEnabled" class="flex items-center gap-3.5 px-5 py-4">
+            <span class="flex-1 text-[14.5px] font-semibold">{{ t('settings.passwordLoginLabel') }}</span>
+            <span class="flex-none text-[13.5px] text-muted">{{ t('settings.passwordLoginValue') }}</span>
+          </div>
+          <div v-if="authStore.oidcEnabled" class="flex items-center gap-3.5 px-5 py-4">
+            <span class="flex-1 text-[14.5px] font-semibold">{{ t('settings.ssoLabel') }}</span>
+            <span class="flex-none text-[13.5px] text-muted">{{ authStore.oidcDisplayName }}</span>
+          </div>
+          <div class="flex items-center gap-3.5 px-5 py-4">
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="text-[14.5px] font-semibold">{{ t('settings.sessionTitle') }}</span>
+              <span class="text-[12.5px] text-muted">{{ t('settings.sessionDescription') }}</span>
+            </span>
+            <UButton color="neutral" variant="outline" class="flex-none" @click="authStore.logout()">
+              {{ t('settings.logOut') }}
+            </UButton>
+          </div>
+        </div>
       </div>
-      <URadioGroup
-        :model-value="themeStore.skin"
-        :items="SKINS"
-        variant="card"
-        indicator="hidden"
-        orientation="horizontal"
-        :ui="{ fieldset: 'flex-wrap gap-3', item: 'w-48 rounded-md', label: 'font-heading font-extrabold', description: 'text-sm' }"
-        @update:model-value="(value: Skin) => themeStore.setSkin(value)"
-      />
-    </div>
 
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
-      <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.appearanceTitle') }}</span>
-        <span class="text-sm text-muted">{{ t('settings.appearanceDescription') }}</span>
-      </div>
-      <div class="neu-inset flex w-max border border-default">
-        <UButton
-          size="sm"
-          :variant="themeStore.mode === 'dark' ? 'solid' : 'ghost'"
-          color="neutral"
-          @click="themeStore.setMode('dark')"
-        >
-          {{ t('settings.dark') }}
-        </UButton>
-        <UButton
-          size="sm"
-          :variant="themeStore.mode === 'light' ? 'solid' : 'ghost'"
-          color="neutral"
-          @click="themeStore.setMode('light')"
-        >
-          {{ t('settings.light') }}
-        </UButton>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
-      <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.languageTitle') }}</span>
-        <span class="text-sm text-muted">{{ t('settings.languageDescription') }}</span>
-      </div>
-      <div class="neu-inset flex w-max border border-default">
-        <UButton
-          v-for="locale in LOCALES"
-          :key="locale.value"
-          size="sm"
-          :variant="localeStore.locale === locale.value ? 'solid' : 'ghost'"
-          color="neutral"
-          @click="localeStore.setLocale(locale.value)"
-        >
-          {{ locale.label }}
-        </UButton>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
-      <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.currencyTitle') }}</span>
-        <span class="text-sm text-muted">{{ t('settings.currencyDescription') }}</span>
-      </div>
-      <USelect
-        :model-value="currencyStore.referenceCurrency"
-        :items="currencyOptions"
-        class="w-40"
-        @update:model-value="currencyStore.setReferenceCurrency($event)"
-      />
-    </div>
-
-    <div v-if="authStore.authEnabled" class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 border-b border-default py-6">
-      <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.sessionTitle') }}</span>
-        <span class="text-sm text-muted">{{ t('settings.sessionDescription') }}</span>
-      </div>
-      <div class="flex flex-col items-start gap-3">
-        <UButton color="neutral" variant="outline" @click="authStore.logout()">{{ t('settings.logOut') }}</UButton>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-8 py-6">
-      <div class="flex flex-col gap-1">
-        <span class="font-heading text-[16.5px] font-extrabold">{{ t('settings.dangerZoneTitle') }}</span>
-        <span class="text-sm text-muted">{{ t('settings.dangerZoneDescription') }}</span>
-      </div>
-      <div class="flex flex-col items-start gap-3">
-        <UButton color="rust" variant="outline" @click="deleteAllData">{{ t('settings.deleteAllData') }}</UButton>
-        <span class="text-sm text-muted">{{ t('settings.deleteAllDataDescription') }}</span>
+      <div v-else-if="activeCategory === 'danger'" class="neu-surface bg-default">
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold text-rust">{{ t('settings.deleteAllData') }}</span>
+            <span class="text-[12.5px] text-muted">{{ t('settings.deleteAllDataDescription') }}</span>
+          </span>
+          <UButton color="rust" variant="outline" class="flex-none" @click="deleteAllData">
+            {{ t('settings.deleteAllData') }}
+          </UButton>
+        </div>
       </div>
     </div>
   </div>
