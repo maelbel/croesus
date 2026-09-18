@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="Croesus" width="96" height="96" />
+<img src="assets/logo.svg" alt="Croesus" width="64" height="64" />
 
 # Croesus
 
@@ -19,6 +19,10 @@
 
 Self-hosted · Desktop (Windows/macOS/Linux) · Your data, your server
 
+<br/>
+
+<img src="assets/screenshots/dashboard.png" alt="Croesus dashboard — net worth over time, asset breakdown, and account list" width="100%" />
+
 </div>
 
 ---
@@ -29,6 +33,15 @@ estate, SCPI, crypto — and your debts, into a single net worth view over
 time. Run it as a self-hosted web app, or as a standalone desktop app with a
 local database. See [ROADMAP.md](./ROADMAP.md) for the full vision and where
 the project currently stands.
+
+### Contents
+
+[Why "Croesus"?](#why-croesus) · [Features](#features) ·
+[Screenshots](#screenshots) · [Architecture](#architecture) ·
+[Project structure](#project-structure) · [Prerequisites](#prerequisites) ·
+[Self-hosted deployment](#self-hosted-deployment-docker) ·
+[Local development](#local-development) ·
+[Stack](#stack) · [Contributing](#contributing) · [License](#license)
 
 ## Why "Croesus"?
 
@@ -63,6 +76,41 @@ means exactly one thing: **wealth, tracked over the long run.**
 - 🔓 **AGPL-3.0** — if someone runs a modified version of Croesus as a
   service, they owe the community those modifications back.
 
+## Screenshots
+
+<div align="center">
+
+<img src="assets/screenshots/accounts.png" alt="Accounts page — grouped by type, with per-account balances and 30-day change" width="100%" />
+
+<sub>Accounts, grouped by type — checking, savings, investment, and beyond</sub>
+
+</div>
+
+## Architecture
+
+Same Vue frontend, two ways to run the backend behind it:
+
+```mermaid
+flowchart LR
+    subgraph SH["Self-hosted (Docker)"]
+        direction LR
+        B1["Browser"] --> F1["Frontend\n(Vue 3 SPA)"]
+        F1 --> A1["Backend\n(FastAPI)"]
+        A1 --> D1[("PostgreSQL")]
+    end
+
+    subgraph DT["Desktop (Tauri)"]
+        direction LR
+        F2["Native window\n(same Vue 3 SPA)"] --> A2["Embedded sidecar\n(FastAPI)"]
+        A2 --> D2[("SQLite")]
+    end
+```
+
+The desktop app can also skip its embedded sidecar entirely and point at an
+existing self-hosted instance instead ("remote mode" — see
+[Desktop (Tauri)](#desktop-tauri) below) — same frontend, talking to someone
+else's backend over HTTPS.
+
 ## Project structure
 
 | Path                 | What's there                                                    |
@@ -81,7 +129,10 @@ means exactly one thing: **wealth, tracked over the long run.**
 | Desktop (Tauri)        | Rust stable (1.77.2+, via [rustup](https://rustup.rs)) + platform build deps, see below |
 | Self-hosted (Docker)   | Docker + Docker Compose                                                  |
 
-Desktop build deps, by platform:
+<details>
+<summary>Desktop build dependencies, by platform</summary>
+
+<br/>
 
 - **Linux**: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `librsvg2-dev`,
   `libgtk-3-dev`, `libayatana-appindicator3-dev`, `patchelf`,
@@ -92,6 +143,81 @@ Desktop build deps, by platform:
 
 To build Windows/macOS binaries, use CI (GitHub Actions) rather than building
 locally — there is no reliable cross-compilation path from Linux ARM.
+
+</details>
+
+## Self-hosted deployment (Docker)
+
+```bash
+pnpm setup
+```
+
+Walks you through generating `POSTGRES_PASSWORD`, enabling login by default
+(`ADMIN_USERNAME`/`ADMIN_PASSWORD` + a generated `JWT_SECRET` — needed if
+you want to connect to this instance from the desktop app's remote mode; you
+can opt out if you'd rather run without one), optionally setting up OIDC SSO
+(see below), and setting `CORS_ORIGINS` correctly if so, then runs
+`docker compose up -d --build`. Safe to re-run — it never overwrites a
+value you've already set in `.env`.
+
+By default this publishes the frontend on port `8080` and the API on port
+`8000` directly — no reverse proxy required to get started. `pnpm setup`
+defaults to requiring login; setting up `.env` by hand instead (below)
+leaves the API open with no login unless you set `ADMIN_USERNAME`/
+`ADMIN_PASSWORD` yourself.
+
+Prefer doing it by hand instead?
+
+```bash
+cp .env.example .env         # set a real POSTGRES_PASSWORD, and the rest as needed
+docker compose up -d --build
+```
+
+Running behind a reverse proxy (Traefik, Caddy, nginx...) instead? See
+[docs/REVERSE_PROXY.md](./docs/REVERSE_PROXY.md) for `docker-compose.override.yml`
+examples of each. Whatever you set
+`CORS_ORIGINS` to, make sure it still includes `tauri://localhost` (and
+`http://tauri.localhost` for Windows builds) if you want desktop remote mode
+to keep working — those are the origins a packaged desktop app is served
+from, and they're easy to drop when overriding the value for a custom
+domain.
+
+<details>
+<summary>Single Sign-On (OIDC)</summary>
+
+<br/>
+
+Croesus works with any OIDC-compliant provider — Authentik, Keycloak,
+Zitadel, or your own — via standard discovery (no provider-specific code).
+It's independent of `ADMIN_USERNAME`/`ADMIN_PASSWORD`: run OIDC alone, the
+password login alone, or both side by side.
+
+1. In your IdP, create an OIDC/OAuth2 provider and application for Croesus
+   (a "confidential"/server-side client, not public/SPA), with its redirect
+   URI set to this backend's own public URL + `/auth/oidc/callback` — e.g.
+   `https://api.example.com/auth/oidc/callback`.
+2. Set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and
+   `OIDC_REDIRECT_URI` (matching what you registered in step 1) in `.env` —
+   `pnpm setup` will prompt for these, or set them by hand per
+   `.env.example`. `OIDC_DISPLAY_NAME` controls the login button's label
+   (e.g. "Sign in with Authentik").
+3. Restart (`docker compose up -d --build`). The login screen picks it up
+   automatically — a password form, an SSO button, or both, depending on
+   what's configured.
+
+Access control is entirely up to your IdP: whoever it lets authenticate
+against the Croesus client is trusted — Croesus doesn't keep a separate
+allow-list on top. Scope who can sign in via your IdP's own
+application/policy bindings (e.g. Authentik's "Bindings" on the
+application, or Keycloak's client scopes/group membership).
+
+The desktop app's remote mode picks up SSO with no extra desktop-side
+config: it opens the sign-in flow in your system browser (some IdPs refuse
+to authenticate inside an embedded app window) and catches the redirect on
+a short-lived local port — no custom URL scheme or extra IdP configuration
+needed beyond the one redirect URI from step 1.
+
+</details>
 
 ## Local development
 
@@ -147,7 +273,7 @@ On first launch you'll be asked to choose Local or Remote. Instead of the
 local database, the desktop app can point at an existing self-hosted
 instance: pick "Remote" (or later, in Settings → Connection), enter that
 server's **backend API** URL, and restart. If the self-hosted instance has
-`ADMIN_USERNAME`/`ADMIN_PASSWORD` configured (see below), you'll be prompted
+`ADMIN_USERNAME`/`ADMIN_PASSWORD` configured (see above), you'll be prompted
 to log in.
 
 If your deployment serves the frontend and the API on separate hosts (e.g.
@@ -160,74 +286,6 @@ headers for API paths.
 If the app can't reach the backend, the screen it shows includes the
 sidecar's own log output — check there first (this only ever contains local
 output, never anything from a remote server you've connected to).
-
-## Self-hosted deployment (Docker)
-
-```bash
-pnpm setup
-```
-
-Walks you through generating `POSTGRES_PASSWORD`, enabling login by default
-(`ADMIN_USERNAME`/`ADMIN_PASSWORD` + a generated `JWT_SECRET` — needed if
-you want to connect to this instance from the desktop app's remote mode; you
-can opt out if you'd rather run without one), optionally setting up OIDC SSO
-(see below), and setting `CORS_ORIGINS` correctly if so, then runs
-`docker compose up -d --build`. Safe to re-run — it never overwrites a
-value you've already set in `.env`.
-
-By default this publishes the frontend on port `8080` and the API on port
-`8000` directly — no reverse proxy required to get started. `pnpm setup`
-defaults to requiring login; setting up `.env` by hand instead (below)
-leaves the API open with no login unless you set `ADMIN_USERNAME`/
-`ADMIN_PASSWORD` yourself.
-
-Prefer doing it by hand instead?
-
-```bash
-cp .env.example .env         # set a real POSTGRES_PASSWORD, and the rest as needed
-docker compose up -d --build
-```
-
-Running behind a reverse proxy (Traefik, Caddy, nginx...) instead? See
-[docs/REVERSE_PROXY.md](./docs/REVERSE_PROXY.md) for `docker-compose.override.yml`
-examples of each. Whatever you set
-`CORS_ORIGINS` to, make sure it still includes `tauri://localhost` (and
-`http://tauri.localhost` for Windows builds) if you want desktop remote mode
-to keep working — those are the origins a packaged desktop app is served
-from, and they're easy to drop when overriding the value for a custom
-domain.
-
-### Single Sign-On (OIDC)
-
-Croesus works with any OIDC-compliant provider — Authentik, Keycloak,
-Zitadel, or your own — via standard discovery (no provider-specific code).
-It's independent of `ADMIN_USERNAME`/`ADMIN_PASSWORD`: run OIDC alone, the
-password login alone, or both side by side.
-
-1. In your IdP, create an OIDC/OAuth2 provider and application for Croesus
-   (a "confidential"/server-side client, not public/SPA), with its redirect
-   URI set to this backend's own public URL + `/auth/oidc/callback` — e.g.
-   `https://api.example.com/auth/oidc/callback`.
-2. Set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and
-   `OIDC_REDIRECT_URI` (matching what you registered in step 1) in `.env` —
-   `pnpm setup` will prompt for these, or set them by hand per
-   `.env.example`. `OIDC_DISPLAY_NAME` controls the login button's label
-   (e.g. "Sign in with Authentik").
-3. Restart (`docker compose up -d --build`). The login screen picks it up
-   automatically — a password form, an SSO button, or both, depending on
-   what's configured.
-
-Access control is entirely up to your IdP: whoever it lets authenticate
-against the Croesus client is trusted — Croesus doesn't keep a separate
-allow-list on top. Scope who can sign in via your IdP's own
-application/policy bindings (e.g. Authentik's "Bindings" on the
-application, or Keycloak's client scopes/group membership).
-
-The desktop app's remote mode picks up SSO with no extra desktop-side
-config: it opens the sign-in flow in your system browser (some IdPs refuse
-to authenticate inside an embedded app window) and catches the redirect on
-a short-lived local port — no custom URL scheme or extra IdP configuration
-needed beyond the one redirect URI from step 1.
 
 ## Stack
 
