@@ -19,6 +19,10 @@
 
 Self-hosted · Desktop (Windows/macOS/Linux) · Your data, your server
 
+<br/>
+
+<img src="assets/screenshots/dashboard.png" alt="Croesus dashboard — net worth over time, asset breakdown, and account list" width="100%" />
+
 </div>
 
 ---
@@ -29,6 +33,15 @@ estate, SCPI, crypto — and your debts, into a single net worth view over
 time. Run it as a self-hosted web app, or as a standalone desktop app with a
 local database. See [ROADMAP.md](./ROADMAP.md) for the full vision and where
 the project currently stands.
+
+### Contents
+
+[Why "Croesus"?](#why-croesus) · [Features](#features) ·
+[Screenshots](#screenshots) · [Architecture](#architecture) ·
+[Project structure](#project-structure) · [Prerequisites](#prerequisites) ·
+[Local development](#local-development) ·
+[Self-hosted deployment](#self-hosted-deployment-docker) ·
+[Stack](#stack) · [Contributing](#contributing) · [License](#license)
 
 ## Why "Croesus"?
 
@@ -63,6 +76,41 @@ means exactly one thing: **wealth, tracked over the long run.**
 - 🔓 **AGPL-3.0** — if someone runs a modified version of Croesus as a
   service, they owe the community those modifications back.
 
+## Screenshots
+
+<div align="center">
+
+<img src="assets/screenshots/accounts.png" alt="Accounts page — grouped by type, with per-account balances and 30-day change" width="100%" />
+
+<sub>Accounts, grouped by type — checking, savings, investment, and beyond</sub>
+
+</div>
+
+## Architecture
+
+Same Vue frontend, two ways to run the backend behind it:
+
+```mermaid
+flowchart LR
+    subgraph SH["Self-hosted (Docker)"]
+        direction LR
+        B1["Browser"] --> F1["Frontend\n(Vue 3 SPA)"]
+        F1 --> A1["Backend\n(FastAPI)"]
+        A1 --> D1[("PostgreSQL")]
+    end
+
+    subgraph DT["Desktop (Tauri)"]
+        direction LR
+        F2["Native window\n(same Vue 3 SPA)"] --> A2["Embedded sidecar\n(FastAPI)"]
+        A2 --> D2[("SQLite")]
+    end
+```
+
+The desktop app can also skip its embedded sidecar entirely and point at an
+existing self-hosted instance instead ("remote mode" — see
+[Desktop (Tauri)](#desktop-tauri) below) — same frontend, talking to someone
+else's backend over HTTPS.
+
 ## Project structure
 
 | Path                 | What's there                                                    |
@@ -81,7 +129,10 @@ means exactly one thing: **wealth, tracked over the long run.**
 | Desktop (Tauri)        | Rust stable (1.77.2+, via [rustup](https://rustup.rs)) + platform build deps, see below |
 | Self-hosted (Docker)   | Docker + Docker Compose                                                  |
 
-Desktop build deps, by platform:
+<details>
+<summary>Desktop build dependencies, by platform</summary>
+
+<br/>
 
 - **Linux**: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `librsvg2-dev`,
   `libgtk-3-dev`, `libayatana-appindicator3-dev`, `patchelf`,
@@ -92,6 +143,8 @@ Desktop build deps, by platform:
 
 To build Windows/macOS binaries, use CI (GitHub Actions) rather than building
 locally — there is no reliable cross-compilation path from Linux ARM.
+
+</details>
 
 ## Local development
 
@@ -197,7 +250,10 @@ to keep working — those are the origins a packaged desktop app is served
 from, and they're easy to drop when overriding the value for a custom
 domain.
 
-### Single Sign-On (OIDC)
+<details>
+<summary>Single Sign-On (OIDC)</summary>
+
+<br/>
 
 Croesus works with any OIDC-compliant provider — Authentik, Keycloak,
 Zitadel, or your own — via standard discovery (no provider-specific code).
@@ -228,6 +284,8 @@ config: it opens the sign-in flow in your system browser (some IdPs refuse
 to authenticate inside an embedded app window) and catches the redirect on
 a short-lived local port — no custom URL scheme or extra IdP configuration
 needed beyond the one redirect URI from step 1.
+
+</details>
 
 ## Stack
 
