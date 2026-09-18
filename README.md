@@ -1,8 +1,9 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="Croesus" width="64" height="64" />
-
-# Croesus
+<h1>
+  <img src="assets/logo.svg" alt="" width="40" height="40" align="middle" />
+  Croesus
+</h1>
 
 **Open-source net worth tracking, without giving your financial data to anyone else.**
 
