@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAccountsStore } from '../stores/accounts'
@@ -7,17 +7,31 @@ import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useNetWorthStore } from '../stores/networth'
 import { useDashboardLayoutStore } from '../stores/dashboardLayout'
-import { formatCurrency, formatSignedCurrency } from '../lib/format'
-import { usePageAction } from '../composables/usePageAction'
-import StatCard from '../components/StatCard.vue'
-import StatCardRow from '../components/StatCardRow.vue'
+import { usePageAction, useSecondaryPageAction } from '../composables/usePageAction'
+import DashboardOnboarding from '../components/DashboardOnboarding.vue'
 import WidgetGrid from '../components/WidgetGrid.vue'
 import PageLoadingSkeleton from '../components/PageLoadingSkeleton.vue'
 
 const router = useRouter()
 const { t } = useI18n()
 
-usePageAction(() => t('dashboard.recordValuationAction'), () => router.push('/accounts'))
+// Delegates to WidgetGrid's own edit-mode/add-widget state rather than duplicating either at
+// the page level — a no-op if there's no grid mounted yet (no history recorded), which is a
+// rare enough edge case not to special-case. Matches the design's own dashboard header, which
+// puts "Edit layout"/"Done" right next to "Add widget" rather than in a second toolbar row.
+const widgetGrid = ref<InstanceType<typeof WidgetGrid> | null>(null)
+// Neither action has anything to act on once the grid is stacked/view-only on mobile (see
+// WidgetGrid.vue's isMobile fallback), so both hide there the same way they already hide when
+// there's nothing to add or no grid mounted yet.
+useSecondaryPageAction(
+  () =>
+    !widgetGrid.value || widgetGrid.value.isMobile ? '' : widgetGrid.value.editMode ? t('dashboardGrid.doneEditing') : t('dashboardGrid.editLayout'),
+  () => widgetGrid.value?.toggleEdit(),
+)
+usePageAction(
+  () => (widgetGrid.value?.hasAnythingToAdd && !widgetGrid.value.isMobile ? t('dashboardGrid.addWidget') : ''),
+  () => widgetGrid.value?.openAddMenu(),
+)
 const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
@@ -49,88 +63,12 @@ const hasHistory = computed(() => netWorthStore.history.length > 0)
   <div class="flex flex-col gap-9">
     <PageLoadingSkeleton v-if="initialLoading" :rows="6" />
 
-    <StatCardRow v-else-if="showOnboarding">
-      <div class="neu-surface bg-default flex flex-col gap-2.5 p-7">
-        <span class="font-heading text-[37px] leading-none font-extrabold text-primary">01</span>
-        <span class="font-heading text-lg font-extrabold">{{ t('dashboard.step1Heading') }}</span>
-        <p class="text-[15px] text-muted">
-          {{ t('dashboard.step1Description') }}
-        </p>
-        <UButton variant="outline" color="neutral" class="mt-1.5 self-start" @click="router.push('/accounts')">
-          {{ t('dashboard.step1Action') }}
-        </UButton>
-      </div>
-      <div class="neu-surface bg-default flex flex-col gap-2.5 p-7">
-        <span class="font-heading text-[37px] leading-none font-extrabold text-muted">02</span>
-        <span class="font-heading text-lg font-extrabold">{{ t('dashboard.step2Heading') }}</span>
-        <p class="text-[15px] text-muted">
-          {{ t('dashboard.step2Description') }}
-        </p>
-        <UButton variant="outline" color="neutral" class="mt-1.5 self-start" @click="router.push('/liabilities')">
-          {{ t('dashboard.step2Action') }}
-        </UButton>
-      </div>
-      <div class="neu-surface bg-default flex flex-col gap-2.5 p-7">
-        <span class="font-heading text-[37px] leading-none font-extrabold text-muted">03</span>
-        <span class="font-heading text-lg font-extrabold">{{ t('dashboard.step3Heading') }}</span>
-        <p class="text-[15px] text-muted">
-          {{ t('dashboard.step3Description') }}
-        </p>
-        <UButton variant="outline" color="neutral" class="mt-1.5 self-start" @click="router.push('/envelopes')">
-          {{ t('dashboard.step3Action') }}
-        </UButton>
-      </div>
-    </StatCardRow>
+    <DashboardOnboarding v-else-if="showOnboarding" />
 
     <template v-else>
-      <StatCardRow>
-        <StatCard
-          :label="t('dashboard.totalAssets')"
-          :value="formatCurrency(netWorthStore.current?.total_assets ?? 0)"
-          :note="
-            netWorthStore.assetsDelta30d === null
-              ? undefined
-              : t('dashboard.accountsNote', { delta: formatSignedCurrency(netWorthStore.assetsDelta30d) }, accountsStore.accounts.length)
-          "
-          :note-color="
-            netWorthStore.assetsDelta30d === null
-              ? 'muted'
-              : netWorthStore.assetsDelta30d >= 0
-                ? 'positive'
-                : 'negative'
-          "
-        />
-        <StatCard
-          :label="t('dashboard.totalLiabilities')"
-          :value="formatCurrency(netWorthStore.current?.total_liabilities ?? 0)"
-          value-color="negative"
-          :note="
-            netWorthStore.liabilitiesDelta30d === null
-              ? undefined
-              : t('dashboard.liabilitiesNote', { delta: formatSignedCurrency(netWorthStore.liabilitiesDelta30d) }, liabilitiesStore.liabilities.length)
-          "
-        />
-        <StatCard
-          :label="t('dashboard.netWorth')"
-          :value="formatCurrency(netWorthStore.current?.net_worth ?? 0)"
-          highlighted
-          :note="
-            netWorthStore.netWorthDelta30d === null
-              ? undefined
-              : t('dashboard.netWorthNote', { delta: formatSignedCurrency(netWorthStore.netWorthDelta30d) })
-          "
-          :note-color="
-            netWorthStore.netWorthDelta30d === null
-              ? 'muted'
-              : netWorthStore.netWorthDelta30d >= 0
-                ? 'positive'
-                : 'negative'
-          "
-        />
-      </StatCardRow>
-
       <WidgetGrid
         v-if="hasHistory"
+        ref="widgetGrid"
         :widgets="dashboardLayoutStore.widgets"
         @update:widgets="dashboardLayoutStore.save"
       />

@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { CatalogWidgetType, LegacyWidgetType, Widget } from '../api/types'
-import { CATALOG_WIDGET_TYPES, LEGACY_WIDGET_TYPES } from '../api/types'
+import type { GridItemHTMLElement, GridStack as GridStackCore } from 'gridstack'
+import { GridStack, type GridStackOptions, type GridStackWidget } from 'gridstack/dist/vue'
+import 'gridstack/dist/gridstack.css'
+import type { Widget, WidgetType } from '../api/types'
+import { CATALOG_WIDGET_TYPES, WIDGET_TYPES } from '../api/types'
 import { WIDGET_CATALOG } from '../lib/widgetCatalog'
 import { availableSources } from '../lib/widgetSources'
-import { GRID_COLS, clampSize, findSpot, nextPresetSize, settle } from '../lib/widgetGrid'
-import EllipsisMenu from './EllipsisMenu.vue'
-import AddCatalogWidgetModal from './AddCatalogWidgetModal.vue'
+import { nearestPresetSize } from '../lib/widgetGrid'
+import { clearTrendPeriod } from '../lib/trendPeriod'
+import { useIsMobile } from '../composables/useIsMobile'
+import { WIDGET_GRID_CONTEXT } from '../lib/widgetGridContext'
+import AddWidgetSlideover from './AddWidgetSlideover.vue'
+import WidgetCard from './WidgetCard.vue'
 
 const props = defineProps<{ widgets: Widget[] }>()
 const emit = defineEmits<{ 'update:widgets': [widgets: Widget[]] }>()
@@ -18,154 +24,185 @@ const { t } = useI18n()
 // way to discover "Add widget" would be to find "Edit layout" first, with
 // nothing on screen hinting that's the next step.
 const editMode = ref(props.widgets.length === 0)
+const slideoverOpen = ref(false)
 
-// Fixed row pitch (px) — every widget's height is always a whole multiple of
-// this, same as its width is always a whole number of the 12 columns.
-const ROW_HEIGHT = 110
-const GAP = 16
+// Below the app's breakpoint the grid falls back to a stacked, view-only layout (see the template)
+// — dragging/resizing a 12-column grid doesn't translate to a phone screen, so editing is hidden
+// entirely there rather than made to (badly) work. GridStack itself isn't even mounted on mobile.
+const isMobile = useIsMobile()
 
-const gridRef = ref<HTMLElement | null>(null)
-
-type DragMode = 'move' | 'resize'
-type DragGhost = { id: string; x: number; y: number; w: number; h: number }
-const dragGhost = ref<DragGhost | null>(null)
-
-// What actually gets rendered: the committed layout, except the widget
-// currently being dragged/resized shows its live (already-snapped) position
-// instead — nothing is emitted upstream until the gesture ends.
-const displayWidgets = computed(() =>
-  props.widgets.map((w) => (dragGhost.value?.id === w.id ? { ...w, ...dragGhost.value } : w)),
-)
-
-function gridArea(w: Widget) {
-  return `${w.y + 1} / ${w.x + 1} / span ${w.h} / span ${w.w}`
-}
-
-function beginDrag(mode: DragMode, widget: Widget, event: PointerEvent) {
-  if (!editMode.value) return
-  event.preventDefault()
-  const rect = gridRef.value!.getBoundingClientRect()
-  const startX = event.clientX
-  const startY = event.clientY
-  const orig = { x: widget.x, y: widget.y, w: widget.w, h: widget.h }
-  const pitchX = (rect.width + GAP) / GRID_COLS
-  const pitchY = ROW_HEIGHT + GAP
-
-  function onMove(e: PointerEvent) {
-    const dx = e.clientX - startX
-    const dy = e.clientY - startY
-    if (mode === 'move') {
-      const x = Math.min(GRID_COLS - orig.w, Math.max(0, orig.x + Math.round(dx / pitchX)))
-      const y = Math.max(0, orig.y + Math.round(dy / pitchY))
-      dragGhost.value = { id: widget.id, x, y, w: orig.w, h: orig.h }
-    } else {
-      // Only rendered for legacy widgets (see the template's resize handle) — catalog widgets
-      // resize by cycling their size presets instead (see cycleSize below).
-      const rawW = orig.w + Math.round(dx / pitchX)
-      const rawH = orig.h + Math.round(dy / pitchY)
-      const clamped = clampSize(widget.type as LegacyWidgetType, rawW, rawH)
-      const w = Math.min(clamped.w, GRID_COLS - orig.x)
-      dragGhost.value = { id: widget.id, x: orig.x, y: orig.y, w, h: clamped.h }
-    }
-  }
-
-  function onUp() {
-    window.removeEventListener('pointermove', onMove)
-    window.removeEventListener('pointerup', onUp)
-    const ghost = dragGhost.value
-    dragGhost.value = null
-    if (!ghost) return
-    const updated = props.widgets.map((w) => (w.id === ghost.id ? { ...w, x: ghost.x, y: ghost.y, w: ghost.w, h: ghost.h } : w))
-    emit('update:widgets', settle(updated, ghost.id))
-  }
-
-  window.addEventListener('pointermove', onMove)
-  window.addEventListener('pointerup', onUp, { once: true })
-}
-
-function removeWidget(widget: Widget) {
-  emit('update:widgets', settle(props.widgets.filter((w) => w.id !== widget.id)))
-}
-
-// Catalog widgets resize by cycling their preset `sizes` list instead of free-dragging (see the
-// roadmap's own "size preset" wording) — this is the ellipsis-menu equivalent of the free-drag
-// resize handle legacy widgets get.
-function cycleSize(widget: Widget) {
-  const sizes = WIDGET_CATALOG[widget.type].sizes
-  if (!sizes) return
-  const next = nextPresetSize(sizes, widget)
-  const updated = props.widgets.map((w) => (w.id === widget.id ? { ...w, w: next.w, h: next.h } : w))
-  emit('update:widgets', settle(updated, widget.id))
-}
-
-function widgetMenuItems(widget: Widget) {
-  const items = []
-  if (WIDGET_CATALOG[widget.type].sizes) {
-    items.push({ label: t('dashboardGrid.resizeWidget'), icon: 'i-lucide-scaling', onSelect: () => cycleSize(widget) })
-  }
-  items.push({ label: t('dashboardGrid.removeWidget'), icon: 'i-lucide-trash-2', color: 'rust' as const, onSelect: () => removeWidget(widget) })
-  return items
-}
-
-const availableLegacyTypes = computed<LegacyWidgetType[]>(() =>
-  LEGACY_WIDGET_TYPES.filter((type) => !props.widgets.some((w) => w.type === type)),
-)
-
-// Catalog kinds with at least one not-yet-used source left to add.
-const availableCatalogKinds = computed<CatalogWidgetType[]>(() =>
-  CATALOG_WIDGET_TYPES.filter((type) =>
-    availableSources(type).some((opt) => !props.widgets.some((w) => w.type === type && w.source === opt.value)),
+// Whether there's still at least one type (legacy) or (type, source) pair (catalog) left to add —
+// hides the "Add widget" button entirely once the board has one of everything.
+const hasAnythingToAdd = computed(() =>
+  WIDGET_TYPES.some((type) =>
+    (CATALOG_WIDGET_TYPES as readonly string[]).includes(type)
+      ? availableSources(type as (typeof CATALOG_WIDGET_TYPES)[number]).some(
+          (opt) => !props.widgets.some((w) => w.type === type && w.source === opt.value),
+        )
+      : !props.widgets.some((w) => w.type === type),
   ),
 )
 
-function addWidgetItems() {
-  const legacyItems = availableLegacyTypes.value.map((type) => ({
-    label: t(WIDGET_CATALOG[type].addLabelKey!),
-    onSelect: () => addLegacyWidget(type),
-  }))
-  const catalogItems = availableCatalogKinds.value.map((type) => ({
-    label: t(WIDGET_CATALOG[type].kickerKey),
-    onSelect: () => openCatalogModal(type),
-  }))
-  return [...legacyItems, ...catalogItems]
+// Lets the shared page header's own actions (see DashboardPage.vue) drive edit mode and the
+// add-widget slideover instead of duplicating either at the page level or rendering a second,
+// redundant toolbar here.
+defineExpose({
+  editMode,
+  hasAnythingToAdd,
+  isMobile,
+  toggleEdit: () => {
+    editMode.value = !editMode.value
+  },
+  openAddMenu: () => {
+    editMode.value = true
+    slideoverOpen.value = true
+  },
+})
+
+const GRID_COLS = 12
+const ROW_HEIGHT = 110
+const GAP = 16
+
+// Row-then-column order — irrelevant to the desktop grid (GridStack positions each item by its
+// own x/y regardless of source order) but exactly the order the mobile fallback stacks widgets in.
+const orderedWidgets = computed(() => [...props.widgets].sort((a, b) => a.y - b.y || a.x - b.x))
+
+// WidgetCard (rendered both directly for mobile and by GridStack for desktop — see the template)
+// reads everything reactive through this instead of GridStack's own non-reactive per-node props.
+provide(WIDGET_GRID_CONTEXT, {
+  widgets: computed(() => props.widgets),
+  editMode: computed(() => editMode.value && !isMobile.value),
+  removeWidget,
+})
+
+interface GridStackRef {
+  getGrid: () => GridStackCore | null
+}
+const gridRef = ref<GridStackRef | null>(null)
+
+// Legacy widgets resize continuously within their WIDGET_SIZE_BOUNDS (enforced natively by
+// GridStack's own minW/maxW/minH/maxH). Catalog widgets only have a handful of preset sizes, not a
+// continuous range — GridStack has no notion of "discrete sizes", so they get a continuous range
+// spanning their presets here, and onResizeStop below snaps the final size to the nearest one.
+function itemOptions(widget: Widget) {
+  const entry = WIDGET_CATALOG[widget.type]
+  const sizes = entry.sizes
+  return {
+    x: widget.x,
+    y: widget.y,
+    w: widget.w,
+    h: widget.h,
+    minW: sizes ? Math.min(...sizes.map(([w]) => w)) : entry.minW,
+    maxW: sizes ? Math.max(...sizes.map(([w]) => w)) : entry.maxW,
+    minH: sizes ? Math.min(...sizes.map(([, h]) => h)) : entry.minH,
+    maxH: sizes ? Math.max(...sizes.map(([, h]) => h)) : entry.maxH,
+  }
 }
 
-function addLegacyWidget(type: LegacyWidgetType) {
-  const catalog = WIDGET_CATALOG[type]
-  const w = Math.min(12, catalog.maxW!)
-  const h = Math.max(catalog.minH!, Math.min(catalog.maxH!, 3))
-  const spot = findSpot(props.widgets, w, h)
-  emit('update:widgets', [...props.widgets, { id: type, type, w, h, ...spot }])
+// GridStack.init() only reads `options` (including `children`, the initial widget snapshot) once
+// at mount — later adds/removes/resizes go through the imperative grid API below instead of
+// round-tripping through this object, which is why it's a plain const, not reactive.
+const gridOptions: GridStackOptions = {
+  column: GRID_COLS,
+  cellHeight: ROW_HEIGHT + GAP,
+  margin: GAP / 2,
+  float: false,
+  staticGrid: !editMode.value,
+  // GridStack's own drag-time auto-scroll (scroll:true, the default) miscomputes its scroll
+  // boundary when the page itself is the scroll container (no nested overflow:auto ancestor,
+  // which is our whole layout): it reads document.documentElement's own getBoundingClientRect(),
+  // whose top/bottom drift by -scrollY as the page scrolls, instead of treating it as the fixed
+  // viewport — so the "have we hit the bottom edge" check gets further wrong the more it scrolls,
+  // a runaway feedback loop that scrolls the page down while dragging up. GridStack's own resize
+  // auto-scroll (Utils.updateScrollResize) has an explicit fix for this exact documentElement case;
+  // its drag counterpart (_getClipping/_autoScrollTick) doesn't, so drag-time auto-scroll is
+  // disabled here rather than fought — resizing still auto-scrolls normally near an edge.
+  // The whole card is now the drag handle (no more dedicated grip icon); ListWidget's clickable
+  // rows use role="button" divs rather than real <button>s, so they'd otherwise be caught by
+  // GridStack's own drag-start detection (which only exempts genuine form/button elements).
+  draggable: { scroll: false, cancel: '[role="button"]' },
+  resizable: { handles: 'se' },
+  // Matches the old custom resize handle, always visible in edit mode rather than requiring a
+  // hover to discover it (this — not resizable.autoHide — is what actually controls that; GridStack
+  // derives resizable.autoHide from this option itself, overriding whatever's set there directly).
+  alwaysShowResizeHandle: true,
+  children: props.widgets.map((widget) => ({
+    ...itemOptions(widget),
+    id: widget.id,
+    component: 'WidgetCard',
+    props: { widgetId: widget.id },
+  })),
+}
+const gridComponents = { WidgetCard }
+
+watch(editMode, (on) => {
+  gridRef.value?.getGrid()?.setStatic(!on)
+})
+
+// The one place that turns GridStack's own live layout back into our Widget[] — called after
+// every drag/resize/add/removal settles, since GridStack (not our own props) is the source of
+// truth for x/y/w/h while the grid is mounted (float:false compaction can move widgets we didn't
+// directly touch).
+function syncFromGrid() {
+  const grid = gridRef.value?.getGrid()
+  if (!grid) return
+  // Read the live engine nodes, not grid.save() — save() is an export format that deliberately
+  // *deletes* w/h whenever they equal what it considers a default (w === minW, or h === 1, see
+  // GridStack's Utils.removeInternalForSave), so a widget resized down to exactly its minW or a
+  // 1-row height would silently come back with w/h missing here and fall through to the stale
+  // `?? w.w`/`?? w.h` prop value below — i.e. the resize would visibly apply, then get reverted
+  // right back on save. engine.nodes always holds the real, unstripped numbers.
+  const byId = new Map(grid.engine.nodes.filter((n) => n.id != null).map((n) => [n.id as string, n]))
+  const updated = props.widgets
+    .filter((w) => byId.has(w.id))
+    .map((w) => {
+      const n = byId.get(w.id)!
+      return { ...w, x: n.x ?? w.x, y: n.y ?? w.y, w: n.w ?? w.w, h: n.h ?? w.h }
+    })
+  emit('update:widgets', updated)
 }
 
-const catalogModalOpen = ref(false)
-const catalogModalKind = ref<CatalogWidgetType | null>(null)
-
-function openCatalogModal(kind: CatalogWidgetType | null = null) {
-  catalogModalKind.value = kind
-  catalogModalOpen.value = true
+function onSettled() {
+  syncFromGrid()
 }
 
-function addCatalogWidget({ type, source, w, h }: { type: CatalogWidgetType; source: string; w: number; h: number }) {
-  const spot = findSpot(props.widgets, w, h)
-  const id = `${type}:${source}`
-  emit('update:widgets', [...props.widgets, { id, type, source, w, h, ...spot }])
+// Resize ends free-form within the continuous minW/maxW/minH/maxH range set in itemOptions() —
+// for a catalog widget, snap it to whichever declared preset is closest before persisting, so the
+// stored size always matches one of WIDGET_CATALOG's exact presets.
+function onResizeStop(_event: Event, el: GridItemHTMLElement) {
+  const grid = gridRef.value?.getGrid()
+  const node = el.gridstackNode
+  if (grid && node?.id != null && node.w != null && node.h != null && node.x != null) {
+    const widget = props.widgets.find((w) => w.id === node.id)
+    const sizes = widget ? WIDGET_CATALOG[widget.type].sizes : undefined
+    if (widget && sizes) {
+      const next = nearestPresetSize(sizes, node.w, node.h, GRID_COLS - node.x, { w: widget.w, h: widget.h })
+      if (next.w !== node.w || next.h !== node.h) grid.update(el, { w: next.w, h: next.h })
+    }
+  }
+  syncFromGrid()
+}
+
+function removeWidget(widget: Widget) {
+  clearTrendPeriod(widget.id)
+  const grid = gridRef.value?.getGrid()
+  const node = grid?.engine.nodes.find((n) => n.id === widget.id)
+  if (grid && node?.el) grid.removeWidget(node.el, true, true)
+  syncFromGrid()
+}
+
+function addWidget({ type, source, w, h }: { type: WidgetType; source?: string; w: number; h: number }) {
+  const id = source ? `${type}:${source}` : type
+  const grid = gridRef.value?.getGrid()
+  const newWidget: GridStackWidget = { id, x: 0, y: 0, w, h, autoPosition: true, component: 'WidgetCard', props: { widgetId: id } }
+  const el = grid?.addWidget(newWidget)
+  const node = el?.gridstackNode
+  emit('update:widgets', [...props.widgets, { id, type, source, x: node?.x ?? 0, y: node?.y ?? 0, w: node?.w ?? w, h: node?.h ?? h }])
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-5">
-    <div class="flex items-center justify-end gap-2.5">
-      <UDropdownMenu v-if="editMode && addWidgetItems().length > 0" :items="addWidgetItems()" :content="{ side: 'bottom', align: 'end' }">
-        <UButton variant="outline" color="neutral" size="sm" icon="i-lucide-plus">
-          {{ t('dashboardGrid.addWidget') }}
-        </UButton>
-      </UDropdownMenu>
-      <UButton variant="outline" color="neutral" size="sm" @click="editMode = !editMode">
-        {{ editMode ? t('dashboardGrid.doneEditing') : t('dashboardGrid.editLayout') }}
-      </UButton>
-    </div>
-
     <UEmpty
       v-if="widgets.length === 0"
       icon="i-lucide-layout-dashboard"
@@ -175,76 +212,28 @@ function addCatalogWidget({ type, source, w, h }: { type: CatalogWidgetType; sou
       class="neu-inset"
     />
 
-    <div
-      v-else
-      ref="gridRef"
-      class="grid grid-cols-12 gap-4"
-      :class="editMode ? 'edit-grid-bg' : ''"
-      :style="{ gridAutoRows: `${ROW_HEIGHT}px` }"
-    >
-      <div
-        v-for="widget in displayWidgets"
-        :key="widget.id"
-        class="neu-surface relative flex flex-col overflow-hidden bg-default"
-        :class="[WIDGET_CATALOG[widget.type].compact ? '' : 'gap-4 p-5', dragGhost?.id === widget.id ? 'z-[5] shadow-lg' : '']"
-        :style="{ gridArea: gridArea(widget) }"
-      >
-        <div v-if="!WIDGET_CATALOG[widget.type].compact" class="flex items-start justify-between gap-4">
-          <div class="flex flex-col gap-1">
-            <span class="text-sm text-muted">{{ t(WIDGET_CATALOG[widget.type].kickerKey) }}</span>
-            <h2 class="text-[22px]">{{ WIDGET_CATALOG[widget.type].title(widget) }}</h2>
-          </div>
-          <div v-if="editMode" class="flex flex-none items-center gap-1">
-            <button
-              type="button"
-              class="cursor-grab touch-none rounded p-1.5 text-muted hover:bg-elevated"
-              @pointerdown="beginDrag('move', widget, $event)"
-            >
-              <UIcon name="i-lucide-grip-vertical" class="size-4" />
-            </button>
-            <EllipsisMenu :items="widgetMenuItems(widget)" size="xs" />
-          </div>
-        </div>
-
-        <div v-if="editMode && WIDGET_CATALOG[widget.type].compact" class="absolute top-1 right-1 z-[1] flex items-center gap-0.5 rounded bg-default/80">
-          <button
-            type="button"
-            class="cursor-grab touch-none rounded p-1 text-muted hover:bg-elevated"
-            @pointerdown="beginDrag('move', widget, $event)"
-          >
-            <UIcon name="i-lucide-grip-vertical" class="size-3.5" />
-          </button>
-          <EllipsisMenu :items="widgetMenuItems(widget)" size="xs" />
-        </div>
-
-        <div class="min-h-0 flex-1 overflow-auto">
-          <component :is="WIDGET_CATALOG[widget.type].component" v-bind="widget.source ? { source: widget.source } : {}" />
-        </div>
-
-        <button
-          v-if="editMode && !WIDGET_CATALOG[widget.type].sizes"
-          type="button"
-          class="absolute right-0 bottom-0 size-4 cursor-[nwse-resize] touch-none"
-          @pointerdown="beginDrag('resize', widget, $event)"
-        >
-          <UIcon name="i-lucide-move-diagonal-2" class="size-3.5 text-muted" />
-        </button>
-      </div>
+    <div v-else-if="isMobile" class="flex flex-col gap-4">
+      <WidgetCard v-for="widget in orderedWidgets" :key="widget.id" :widget-id="widget.id" />
     </div>
 
-    <AddCatalogWidgetModal
-      :open="catalogModalOpen"
-      :widgets="widgets"
-      :initial-kind="catalogModalKind"
-      @update:open="catalogModalOpen = $event"
-      @add="addCatalogWidget"
-    />
+    <GridStack v-else ref="gridRef" :options="gridOptions" :components="gridComponents" @dragstop="onSettled" @resizestop="onResizeStop" />
+
+    <AddWidgetSlideover :open="slideoverOpen" :widgets="widgets" @update:open="slideoverOpen = $event" @add="addWidget" />
   </div>
 </template>
 
 <style scoped>
-.edit-grid-bg {
-  background-image: radial-gradient(circle, var(--ui-border) 1px, transparent 1px);
-  background-size: calc((100% + 16px) / 12) 126px;
+:global(.grid-stack-placeholder > .placeholder-content) {
+  background: color-mix(in srgb, var(--ui-primary) 12%, transparent);
+  border: 1.5px dashed var(--ui-primary);
+  border-radius: 14px;
+}
+
+/* Swap GridStack's default diagonal-arrow resize icon for a grip-dot pattern, consistent with
+   the grip-vertical drag handle in WidgetCard.vue — and cancel its baked-in -45deg rotation,
+   which was meant for that arrow glyph, not this one. */
+:global(.grid-stack-item > .ui-resizable-se) {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="14" cy="6" r="1.3" fill="%23666"/><circle cx="10" cy="10" r="1.3" fill="%23666"/><circle cx="14" cy="10" r="1.3" fill="%23666"/><circle cx="6" cy="14" r="1.3" fill="%23666"/><circle cx="10" cy="14" r="1.3" fill="%23666"/><circle cx="14" cy="14" r="1.3" fill="%23666"/></svg>');
+  transform: none;
 }
 </style>

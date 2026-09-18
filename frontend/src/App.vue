@@ -165,6 +165,10 @@ const pageKicker = computed(
 const pageTitle = computed(
   () => pageTitleStore.title ?? (route.meta.title ? t(route.meta.title as string) : ''),
 )
+
+// Settings is a fixed nav + form column, not a grid that benefits from extra width — every
+// other route (dashboard, accounts, tables...) uses the shell's full width instead.
+const isNarrowPage = computed(() => route.meta.narrow === true)
 </script>
 
 <template>
@@ -203,13 +207,21 @@ const pageTitle = computed(
       <AppTopBar :links="links" :net-worth="netWorth" />
 
       <div class="min-w-0">
-        <main class="mx-auto max-w-[1360px] px-4 py-8 pb-16 sm:px-10">
+        <main class="mx-auto w-full px-4 py-8 pb-16 sm:px-10" :class="isNarrowPage ? 'max-w-[900px]' : ''">
           <div class="mb-8 flex flex-wrap items-end justify-between gap-4 sm:gap-6">
             <div class="flex flex-col gap-1.5">
               <span class="text-sm text-muted">{{ pageKicker }}</span>
               <h1 class="text-[37px] tracking-tight">{{ pageTitle }}</h1>
             </div>
             <div class="flex items-center gap-2.5">
+              <UButton
+                v-if="pageActionStore.secondaryLabel"
+                variant="outline"
+                color="neutral"
+                size="sm"
+                :label="pageActionStore.secondaryLabel"
+                @click="pageActionStore.secondaryAction?.()"
+              />
               <UButton
                 v-if="pageActionStore.label"
                 color="primary"

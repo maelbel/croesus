@@ -11,12 +11,15 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    AddCatalogWidgetModal: typeof import('./src/components/AddCatalogWidgetModal.vue')['default']
+    AddWidgetSlideover: typeof import('./src/components/AddWidgetSlideover.vue')['default']
     AppTopBar: typeof import('./src/components/AppTopBar.vue')['default']
     AssetsByClassWidget: typeof import('./src/components/widgets/AssetsByClassWidget.vue')['default']
+    BreakdownDonutWidget: typeof import('./src/components/widgets/BreakdownDonutWidget.vue')['default']
+    ChartTooltip: typeof import('./src/components/charts/ChartTooltip.vue')['default']
     CompositionChart: typeof import('./src/components/CompositionChart.vue')['default']
     ConfirmDialog: typeof import('./src/components/ConfirmDialog.vue')['default']
     ConnectionModeFields: typeof import('./src/components/ConnectionModeFields.vue')['default']
+    DashboardOnboarding: typeof import('./src/components/DashboardOnboarding.vue')['default']
     EllipsisMenu: typeof import('./src/components/EllipsisMenu.vue')['default']
     EntityFormModal: typeof import('./src/components/EntityFormModal.vue')['default']
     LiabilitiesVsAssetsWidget: typeof import('./src/components/widgets/LiabilitiesVsAssetsWidget.vue')['default']
@@ -29,9 +32,9 @@ declare module 'vue' {
     RecentValuationsWidget: typeof import('./src/components/widgets/RecentValuationsWidget.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    StatCard: typeof import('./src/components/StatCard.vue')['default']
     StatCardRow: typeof import('./src/components/StatCardRow.vue')['default']
     StatTileWidget: typeof import('./src/components/widgets/StatTileWidget.vue')['default']
+    TrendChartPeriodTabs: typeof import('./src/components/widgets/TrendChartPeriodTabs.vue')['default']
     TrendChartWidget: typeof import('./src/components/widgets/TrendChartWidget.vue')['default']
     UApp: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
     UBadge: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Badge.vue')['default']
@@ -47,10 +50,13 @@ declare module 'vue' {
     UNavigationMenu: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/NavigationMenu.vue')['default']
     USelect: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Select.vue')['default']
     USkeleton: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Skeleton.vue')['default']
+    USlideover: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Slideover.vue')['default']
     UTable: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Table.vue')['default']
     UTabs: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Tabs.vue')['default']
     UTextarea: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Textarea.vue')['default']
     UTooltip: typeof import('./node_modules/.pnpm/@nuxt+ui@4.10.0_57cd19d9475972ea6c7bb5b5278a25b1/node_modules/@nuxt/ui/dist/runtime/components/Tooltip.vue')['default']
+    WidgetCard: typeof import('./src/components/WidgetCard.vue')['default']
     WidgetGrid: typeof import('./src/components/WidgetGrid.vue')['default']
+    WidgetHeader: typeof import('./src/components/widgets/WidgetHeader.vue')['default']
   }
 }

@@ -57,7 +57,11 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: () => import('../pages/SettingsPage.vue'),
-      meta: { kicker: 'router.settings.kicker', title: 'router.settings.title' },
+      // Every other page uses the app's full-width shell (see App.vue), but settings' own
+      // content is a fixed nav + form column that was never designed to stretch — centering it
+      // in a capped-width column reads as intentional instead of leaving it stranded at the
+      // left edge of a much wider shell.
+      meta: { kicker: 'router.settings.kicker', title: 'router.settings.title', narrow: true },
     },
   ],
 })
@@ -67,6 +71,7 @@ const router = createRouter({
 // for why that races the next page's own call and can wipe its button).
 router.beforeEach(() => {
   usePageActionStore().clearPrimaryAction()
+  usePageActionStore().clearSecondaryAction()
   usePageTitleStore().clearTitle()
 })
 

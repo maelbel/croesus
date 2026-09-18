@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { TableColumn, TableRow } from '@nuxt/ui'
 import { useNetWorthStore } from '../stores/networth'
@@ -7,6 +7,10 @@ import { formatCurrency, formatSignedCurrency, deltaColorClass } from '../lib/fo
 
 const { t } = useI18n()
 const netWorthStore = useNetWorthStore()
+
+// Hovering a table row highlights its matching ring (and dims the rest) — the one visual link
+// between the two panes, same idea as BreakdownDonutWidget's slice/legend hover pairing.
+const hoveredYear = ref<string | null>(null)
 
 /** One point per calendar year — the last known net worth recorded in that year. */
 const yearlyNetWorth = computed(() => {
@@ -33,6 +37,7 @@ const rings = computed(() => {
     const isLatest = i === n - 1
     const fadePct = n > 1 ? Math.round(38 + 44 * (i / (n - 1))) : 0
     return {
+      year: y.year,
       r: 22 + 158 * Math.sqrt(Math.max(y.netWorth, 0) / vMax),
       w: Number((1.1 + 5.2 * (Math.abs(growth[i]) / gMax)).toFixed(2)),
       stroke: isLatest ? 'var(--ui-primary)' : `color-mix(in srgb, var(--ui-text) ${fadePct}%, transparent)`,
@@ -58,33 +63,48 @@ const ringsColumns = computed<TableColumn<RingRow>[]>(() => [
   { accessorKey: 'netWorth', header: t('netWorthRings.columnNetWorth'), meta: { class: { th: 'text-right', td: 'text-right' } } },
   { accessorKey: 'growth', header: t('netWorthRings.columnGrowth'), meta: { class: { th: 'text-right', td: 'text-right' } } },
 ])
+
+// The latest year's row gets a permanent tint so the table's own "current" marker doesn't
+// depend on hover — it also matches the primary-colored latest ring in the chart.
+const rowsMeta = {
+  class: { tr: (row: TableRow<RingRow>) => (row.original.isLatest ? 'bg-elevated/60' : undefined) },
+}
+
+function onRowHover(_e: Event, row: TableRow<RingRow> | null) {
+  hoveredYear.value = row ? row.original.year : null
+}
 </script>
 
 <template>
-  <div v-if="rings.items.length > 0" class="flex flex-col gap-7">
-    <div class="flex flex-wrap items-center gap-8">
-      <svg viewBox="0 0 380 380" style="width: 220px" class="block flex-none">
+  <div v-if="rings.items.length > 0" class="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
+    <div class="flex flex-col items-start gap-4 sm:w-1/2 sm:flex-row sm:items-center sm:gap-6">
+      <svg viewBox="0 0 380 380" style="width: 150px" class="block flex-none">
         <circle
-          v-for="(ring, i) in rings.items"
-          :key="i"
+          v-for="ring in rings.items"
+          :key="ring.year"
           cx="190"
           cy="190"
           :r="ring.r"
           fill="none"
           :stroke="ring.stroke"
           :stroke-width="ring.w"
-        />
+          :opacity="hoveredYear && hoveredYear !== ring.year ? 0.3 : 1"
+          class="transition-opacity"
+        >
+          <title>{{ ring.year }}</title>
+        </circle>
         <circle cx="190" cy="190" r="4" fill="var(--ui-primary)" />
       </svg>
-      <div class="flex min-w-[240px] flex-1 flex-col gap-2.5">
+
+      <div class="flex min-w-0 flex-col gap-2">
         <span
           v-if="rings.gain !== null"
-          class="font-heading text-[clamp(24px,2.6vw,32px)] leading-[1.1] font-extrabold tracking-tight"
+          class="font-heading text-[clamp(22px,2.6vw,30px)] leading-[1.1] font-extrabold tracking-tight"
           :class="deltaColorClass(rings.gain)"
         >
           {{ formatSignedCurrency(rings.gain) }}
         </span>
-        <span class="max-w-[40ch] text-[15px] text-muted">
+        <span class="max-w-[32ch] text-[13.5px] leading-snug text-muted">
           {{
             rings.items.length > 1
               ? t('netWorthRings.multiYear', rings.items.length)
@@ -94,13 +114,21 @@ const ringsColumns = computed<TableColumn<RingRow>[]>(() => [
       </div>
     </div>
 
-    <UTable :data="rings.rows" :columns="ringsColumns">
-      <template #netWorth-cell="{ row }: { row: TableRow<RingRow> }">
-        <span class="font-heading text-[16.5px] font-extrabold whitespace-nowrap">{{ formatCurrency(row.original.netWorth) }}</span>
-      </template>
-      <template #growth-cell="{ row }: { row: TableRow<RingRow> }">
-        <span class="whitespace-nowrap" :class="deltaColorClass(row.original.growth)">{{ formatSignedCurrency(row.original.growth) }}</span>
-      </template>
-    </UTable>
+    <div class="overflow-x-auto sm:w-1/2">
+      <UTable :data="rings.rows" :columns="ringsColumns" :meta="rowsMeta" :on-hover="onRowHover">
+        <template #year-cell="{ row }: { row: TableRow<RingRow> }">
+          <span class="inline-flex items-center gap-2 whitespace-nowrap">
+            <span class="size-1.5 flex-none rounded-full" :class="row.original.isLatest ? 'bg-primary' : 'bg-transparent'" />
+            <span :class="row.original.isLatest ? 'font-semibold' : undefined">{{ row.original.year }}</span>
+          </span>
+        </template>
+        <template #netWorth-cell="{ row }: { row: TableRow<RingRow> }">
+          <span class="font-heading text-[16.5px] font-extrabold whitespace-nowrap">{{ formatCurrency(row.original.netWorth) }}</span>
+        </template>
+        <template #growth-cell="{ row }: { row: TableRow<RingRow> }">
+          <span class="whitespace-nowrap" :class="deltaColorClass(row.original.growth)">{{ formatSignedCurrency(row.original.growth) }}</span>
+        </template>
+      </UTable>
+    </div>
   </div>
 </template>
