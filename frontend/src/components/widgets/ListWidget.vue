@@ -6,7 +6,7 @@ import { useLiabilitiesStore } from '../../stores/liabilities'
 import { useEnvelopesStore } from '../../stores/envelopes'
 import { useValuationsStore } from '../../stores/valuations'
 import { accountTypeLabel, liabilityTypeLabel, type Currency } from '../../api/types'
-import { formatCurrency, formatSignedCurrency, deltaColorClass } from '../../lib/format'
+import { formatCurrency, formatPercent, deltaColorClass } from '../../lib/format'
 import { paidRatio } from '../../lib/liabilityMath'
 
 const props = defineProps<{ source?: string }>()
@@ -23,7 +23,7 @@ type Row = {
   sub: string
   amount: number
   currency?: Currency
-  delta: number | null
+  deltaRatio: number | null
   go: () => void
 }
 
@@ -35,7 +35,7 @@ const rows = computed<Row[]>(() => {
       sub: accountTypeLabel(a.type),
       amount: valuationsStore.currentValue(a.id),
       currency: a.currency,
-      delta: valuationsStore.changeOverDays(a.id, 30)?.delta ?? null,
+      deltaRatio: valuationsStore.changeOverDays(a.id, 30)?.ratio ?? null,
       go: () => router.push({ name: 'account', params: { id: a.id } }),
     }))
   }
@@ -46,7 +46,7 @@ const rows = computed<Row[]>(() => {
       sub: `${liabilityTypeLabel(l.type)} · ${Math.round(paidRatio(l) * 100)}%`,
       amount: Number(l.remaining_amount),
       currency: l.currency,
-      delta: null,
+      deltaRatio: null,
       go: () => router.push({ name: 'liability', params: { id: l.id } }),
     }))
   }
@@ -59,7 +59,7 @@ const rows = computed<Row[]>(() => {
         name: e.name,
         sub: `${Math.round(pct * 100)}%`,
         amount: Number(e.current_amount),
-        delta: null,
+        deltaRatio: null,
         go: () => router.push({ name: 'envelope', params: { id: e.id } }),
       }
     })
@@ -80,14 +80,15 @@ const rows = computed<Row[]>(() => {
       @keydown.enter="row.go"
     >
       <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span class="truncate text-[14px] font-semibold">{{ row.name }}</span>
+        <span class="truncate text-[14.5px] font-semibold">{{ row.name }}</span>
         <span class="text-xs text-muted">{{ row.sub }}</span>
       </span>
-      <span class="flex flex-none flex-col items-end gap-0.5">
-        <span class="text-[14px] font-bold whitespace-nowrap">{{ formatCurrency(row.amount, row.currency) }}</span>
-        <span v-if="row.delta !== null" class="text-xs whitespace-nowrap" :class="deltaColorClass(row.delta)">
-          {{ formatSignedCurrency(row.delta, row.currency) }}
-        </span>
+      <span class="flex-none text-[14.5px] font-bold whitespace-nowrap">{{ formatCurrency(row.amount, row.currency) }}</span>
+      <span
+        class="w-[62px] flex-none text-right text-[13px] font-bold whitespace-nowrap"
+        :class="row.deltaRatio ? deltaColorClass(row.deltaRatio) : 'text-muted'"
+      >
+        {{ row.deltaRatio ? formatPercent(row.deltaRatio) : '—' }}
       </span>
     </div>
   </div>

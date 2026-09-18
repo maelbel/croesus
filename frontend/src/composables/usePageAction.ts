@@ -17,3 +17,11 @@ export function usePageAction(label: string | (() => string), action: () => void
   const resolveLabel = typeof label === 'function' ? label : () => label
   watchEffect(() => pageActionStore.setPrimaryAction(resolveLabel(), action))
 }
+
+/** A secondary button rendered just before the primary one (see `usePageAction`) — e.g. the
+ * dashboard's "Edit layout"/"Done" toggle next to its "Add widget" primary action. */
+export function useSecondaryPageAction(label: string | (() => string), action: () => void) {
+  const pageActionStore = usePageActionStore()
+  const resolveLabel = typeof label === 'function' ? label : () => label
+  watchEffect(() => pageActionStore.setSecondaryAction(resolveLabel(), action))
+}

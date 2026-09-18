@@ -1,4 +1,5 @@
 node_modules/
+frontend/.pnpm-store/
 frontend/dist/
 frontend/.env
 backend/.env

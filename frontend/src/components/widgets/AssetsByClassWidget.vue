@@ -1,31 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TableColumn, TableRow } from '@nuxt/ui'
-import { useAccountsStore } from '../../stores/accounts'
-import { useValuationsStore } from '../../stores/valuations'
-import { accountTypeLabel } from '../../api/types'
+import { assetsByClassBreakdown, type BreakdownSlice } from '../../lib/widgetSources'
 import { formatCurrency } from '../../lib/format'
 
-const accountsStore = useAccountsStore()
-const valuationsStore = useValuationsStore()
-
-const assetsByClass = computed(() => {
-  const totals = new Map<string, number>()
-  for (const account of accountsStore.accounts) {
-    const label = accountTypeLabel(account.type)
-    const value = valuationsStore.currentValue(account.id)
-    totals.set(label, (totals.get(label) ?? 0) + value)
-  }
-  const total = [...totals.values()].reduce((sum, v) => sum + v, 0)
-  return [...totals.entries()]
-    .map(([label, value]) => ({ label, value, pct: total > 0 ? value / total : 0 }))
-    .sort((a, b) => b.value - a.value)
-    .map((c, idx) => ({ ...c, fill: `var(--band-${(idx % 6) + 1})`, flex: Math.round(c.pct * 1000) }))
-})
+const assetsByClass = computed(() =>
+  assetsByClassBreakdown().map((c) => ({ ...c, flex: Math.round(c.pct * 1000) })),
+)
 
 const cairnClasses = computed(() => [...assetsByClass.value].reverse())
 
-type AssetClassRow = { label: string; value: number; pct: number; fill: string; flex: number }
+type AssetClassRow = BreakdownSlice & { flex: number }
 
 const assetClassColumns: TableColumn<AssetClassRow>[] = [
   { accessorKey: 'fill', header: '', meta: { class: { td: 'w-3.5' } } },

@@ -17,6 +17,9 @@ importers:
       '@tauri-apps/plugin-process':
         specifier: ^2.3.1
         version: 2.3.1
+      gridstack:
+        specifier: ^13.3.0
+        version: 13.3.0
       pinia:
         specifier: ^4.0.2
         version: 4.0.2(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.41(typescript@6.0.3))
@@ -1524,6 +1527,9 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  gridstack@13.3.0:
+    resolution: {integrity: sha512-1tqFd3/hb3CSOJWFG8aFleCGWT6Gqx/hnjRT78ocnixp0XPk5Aa6Uxkm0qn9VHFwLrEdOFb+ZXtQZT+a/IdS3g==}
 
   h3@1.15.11:
     resolution: {integrity: sha512-L3THSe2MPeBwgIZVSH5zLdBBU90TOxarvhK9d04IDY2AmVS8j2Jz2LIWtwsGOU3lu2I5jCN7FNvVfY2+XyF+mg==}
@@ -4089,6 +4095,8 @@ snapshots:
       is-glob: 4.0.3
 
   graceful-fs@4.2.11: {}
+
+  gridstack@13.3.0: {}
 
   h3@1.15.11:
     dependencies:
