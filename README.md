@@ -39,8 +39,8 @@ the project currently stands.
 [Why "Croesus"?](#why-croesus) · [Features](#features) ·
 [Screenshots](#screenshots) · [Architecture](#architecture) ·
 [Project structure](#project-structure) · [Prerequisites](#prerequisites) ·
-[Local development](#local-development) ·
 [Self-hosted deployment](#self-hosted-deployment-docker) ·
+[Local development](#local-development) ·
 [Stack](#stack) · [Contributing](#contributing) · [License](#license)
 
 ## Why "Croesus"?
@@ -146,74 +146,6 @@ locally — there is no reliable cross-compilation path from Linux ARM.
 
 </details>
 
-## Local development
-
-Want everything (backend, frontend, and the desktop sidecar) set up in one
-shot? Run:
-
-```bash
-pnpm setup:dev
-```
-
-It checks for the tools above, installs both the root and `frontend/`
-dependencies (they have separate lockfiles), and builds the sidecar binary.
-The sections below are the same steps broken out individually, if you only
-need one piece or want to see what's happening.
-
-### Backend
-
-```bash
-cd backend
-cp .env.example .env        # defaults to SQLite, nothing to change to get started
-uv sync
-uv run alembic upgrade head
-uv run uvicorn app.main:app --reload
-```
-
-API available at http://localhost:8000 (interactive docs at `/docs`).
-
-### Frontend
-
-```bash
-cd frontend
-cp .env.example .env
-pnpm install
-pnpm dev
-```
-
-App available at http://localhost:5173.
-
-### Desktop (Tauri)
-
-Run `pnpm setup:dev` first (see above), then:
-
-```bash
-pnpm tauri dev   # launches the frontend + a native window
-```
-
-The desktop app runs fully standalone: the sidecar binary embeds the backend
-and serves it on `localhost:8000` against a SQLite database in the OS's
-per-user app data directory — no Docker/Postgres required. Re-run
-`build-sidecar.sh` after backend code changes.
-
-On first launch you'll be asked to choose Local or Remote. Instead of the
-local database, the desktop app can point at an existing self-hosted
-instance: pick "Remote" (or later, in Settings → Connection), enter that
-server's **backend API** URL, and restart. If the self-hosted instance has
-`ADMIN_USERNAME`/`ADMIN_PASSWORD` configured (see below), you'll be prompted
-to log in.
-
-If your deployment serves the frontend and the API on separate hosts (e.g.
-behind a reverse proxy with `app.example.com` routed to the frontend and
-`api.example.com` routed to the backend), make sure you enter the **API**
-host here — pointing the desktop app at the frontend's URL will fail with a
-CORS/404-looking error, since the frontend server doesn't proxy or set CORS
-headers for API paths.
-
-If the app can't reach the backend, the screen it shows includes the
-sidecar's own log output — check there first (this only ever contains local
-output, never anything from a remote server you've connected to).
-
 ## Self-hosted deployment (Docker)
 
 ```bash
@@ -286,6 +218,74 @@ a short-lived local port — no custom URL scheme or extra IdP configuration
 needed beyond the one redirect URI from step 1.
 
 </details>
+
+## Local development
+
+Want everything (backend, frontend, and the desktop sidecar) set up in one
+shot? Run:
+
+```bash
+pnpm setup:dev
+```
+
+It checks for the tools above, installs both the root and `frontend/`
+dependencies (they have separate lockfiles), and builds the sidecar binary.
+The sections below are the same steps broken out individually, if you only
+need one piece or want to see what's happening.
+
+### Backend
+
+```bash
+cd backend
+cp .env.example .env        # defaults to SQLite, nothing to change to get started
+uv sync
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload
+```
+
+API available at http://localhost:8000 (interactive docs at `/docs`).
+
+### Frontend
+
+```bash
+cd frontend
+cp .env.example .env
+pnpm install
+pnpm dev
+```
+
+App available at http://localhost:5173.
+
+### Desktop (Tauri)
+
+Run `pnpm setup:dev` first (see above), then:
+
+```bash
+pnpm tauri dev   # launches the frontend + a native window
+```
+
+The desktop app runs fully standalone: the sidecar binary embeds the backend
+and serves it on `localhost:8000` against a SQLite database in the OS's
+per-user app data directory — no Docker/Postgres required. Re-run
+`build-sidecar.sh` after backend code changes.
+
+On first launch you'll be asked to choose Local or Remote. Instead of the
+local database, the desktop app can point at an existing self-hosted
+instance: pick "Remote" (or later, in Settings → Connection), enter that
+server's **backend API** URL, and restart. If the self-hosted instance has
+`ADMIN_USERNAME`/`ADMIN_PASSWORD` configured (see above), you'll be prompted
+to log in.
+
+If your deployment serves the frontend and the API on separate hosts (e.g.
+behind a reverse proxy with `app.example.com` routed to the frontend and
+`api.example.com` routed to the backend), make sure you enter the **API**
+host here — pointing the desktop app at the frontend's URL will fail with a
+CORS/404-looking error, since the frontend server doesn't proxy or set CORS
+headers for API paths.
+
+If the app can't reach the backend, the screen it shows includes the
+sidecar's own log output — check there first (this only ever contains local
+output, never anything from a remote server you've connected to).
 
 ## Stack
 
