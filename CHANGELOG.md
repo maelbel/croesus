@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.4.0](https://github.com/maelbel/croesus/compare/v1.3.0...v1.4.0) (2026-09-19)
+
+
+### Features
+
+* add a data-source-bound dashboard widget catalog ([#57](https://github.com/maelbel/croesus/issues/57)) ([53ef8b9](https://github.com/maelbel/croesus/commit/53ef8b93ebc0c1046f85de6dfc240dbff7418f87))
+* add a drag-and-resize dashboard widget grid ([#56](https://github.com/maelbel/croesus/issues/56)) ([3130dfe](https://github.com/maelbel/croesus/commit/3130dfe13abf2a7b77d85583190eb80a49dbd008))
+* add an About section to Settings with an update-available indicator ([#66](https://github.com/maelbel/croesus/issues/66)) ([4e12790](https://github.com/maelbel/croesus/commit/4e1279065ebee4a9beafdc79e80c615830a50c7c))
+* apply migrations and seed sample data in setup:dev ([#65](https://github.com/maelbel/croesus/issues/65)) ([c8700de](https://github.com/maelbel/croesus/commit/c8700de069246472acb4e2cd6c1b188d1dcae7cf))
+* **backend:** make dev seed data more complete ([#62](https://github.com/maelbel/croesus/issues/62)) ([cb0336d](https://github.com/maelbel/croesus/commit/cb0336d03ec30a05e224a0d7a5a2dd44ad1fe230))
+* **backend:** seed a predefined dashboard layout covering every widget ([#64](https://github.com/maelbel/croesus/issues/64)) ([ba922a9](https://github.com/maelbel/croesus/commit/ba922a9febb2b852b491b74a2cad5ecd9111c117))
+* **frontend:** expand dashboard widget catalog and rework the widget grid shell ([#59](https://github.com/maelbel/croesus/issues/59)) ([999392a](https://github.com/maelbel/croesus/commit/999392a6e9c51fb84a1c11985720cb63a450dbf6))
+* **frontend:** prompt for the first dashboard widget when the board is empty ([#58](https://github.com/maelbel/croesus/issues/58)) ([41db0d4](https://github.com/maelbel/croesus/commit/41db0d48200a2115e7d56ef8d4e97f3759228b28))
+* **frontend:** rework the frontend around the Croesus App v6 design ([#55](https://github.com/maelbel/croesus/issues/55)) ([4817ab2](https://github.com/maelbel/croesus/commit/4817ab2f196b45baa4361d47bfaa7b0bbad7e229))
+
+
+### Bug Fixes
+
+* **frontend:** align page title with header action button ([#61](https://github.com/maelbel/croesus/issues/61)) ([a51e4a7](https://github.com/maelbel/croesus/commit/a51e4a76f7739d1dc613866a24511fc395696aa7))
+* **frontend:** widget UX improvements ([#63](https://github.com/maelbel/croesus/issues/63)) ([b2af740](https://github.com/maelbel/croesus/commit/b2af74063288cd24e97ae3c1bbd633e9c2300a52))
+
+
+### Documentation
+
+* redesign README with real screenshots and an architecture diagram ([#60](https://github.com/maelbel/croesus/issues/60)) ([0d8669c](https://github.com/maelbel/croesus/commit/0d8669c07ba5e2064705fbea970eaee0f578d3e3))
+* update roadmap from the v6 design exploration ([#53](https://github.com/maelbel/croesus/issues/53)) ([81beb4a](https://github.com/maelbel/croesus/commit/81beb4a11caa52807f776847c04b8b5d5ab34b9d))
+
 ## [1.3.0](https://github.com/maelbel/croesus/compare/v1.2.0...v1.3.0) (2026-09-16)
 
 
