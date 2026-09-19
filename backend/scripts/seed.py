@@ -1,8 +1,9 @@
 """Fill the database with realistic sample data for local/dev use.
 
-Wipes existing accounts/assets/valuations/liabilities/envelopes and replaces
-them with a fixed, reproducible sample net worth (same output every run).
-Never run this against a real/production database — it deletes data.
+Wipes existing accounts/assets/valuations/liabilities/envelopes/dashboard
+layout and replaces them with a fixed, reproducible sample net worth (same
+output every run). Never run this against a real/production database — it
+deletes data.
 
 Usage:
     uv run python scripts/seed.py --yes
@@ -26,6 +27,7 @@ from app.core.database import SessionLocal
 from app.models.account import Account, AccountType
 from app.models.asset import Asset, AssetClass
 from app.models.currency import Currency
+from app.models.dashboard_layout import DashboardLayout
 from app.models.envelope import Envelope
 from app.models.liability import Liability, LiabilityType
 from app.models.valuation import Valuation
@@ -36,6 +38,29 @@ MIN_HISTORY_MONTHS = 12
 MAX_HISTORY_MONTHS = 60
 DAYS_PER_MONTH = 30.4368
 RECENT_DAILY_DAYS = 45
+
+# One of every widget type (legacy and catalog alike), sized within each kind's own resize bounds
+# (frontend's WIDGET_SIZE_BOUNDS/WIDGET_CATALOG) and bound only to fixed sources — never an
+# account/liability id, which this script doesn't know until the accounts below are flushed. Lets
+# a fresh `pnpm seed:dev` board exercise every widget against real sample data immediately, instead
+# of starting from the migration's smaller product-default layout and adding the rest by hand.
+DASHBOARD_WIDGETS = [
+    {"id": "statTile:net_worth", "type": "statTile", "source": "net_worth", "x": 0, "y": 0, "w": 4, "h": 1},
+    {"id": "statTile:total_debt", "type": "statTile", "source": "total_debt", "x": 4, "y": 0, "w": 4, "h": 1},
+    {"id": "statTile:emergency_fund", "type": "statTile", "source": "emergency_fund", "x": 8, "y": 0, "w": 4, "h": 1},
+    # Net worth trend chart + debt payoff side by side, then the two "assets by class" views (the
+    # bars/table and its donut) paired right below — trendChart keeps its original minW (6) here
+    # since it only shares the row with one other 6-wide widget, avoiding any crowding of its
+    # period-tab buttons against the title.
+    {"id": "trendChart:net_worth", "type": "trendChart", "source": "net_worth", "x": 0, "y": 1, "w": 6, "h": 3},
+    {"id": "payoffStatus:debt_payoff", "type": "payoffStatus", "source": "debt_payoff", "x": 6, "y": 1, "w": 6, "h": 3},
+    {"id": "assetsByClass", "type": "assetsByClass", "x": 0, "y": 4, "w": 6, "h": 4},
+    {"id": "breakdownDonut:assets_by_class", "type": "breakdownDonut", "source": "assets_by_class", "x": 6, "y": 4, "w": 6, "h": 3},
+    {"id": "liabilitiesVsAssets", "type": "liabilitiesVsAssets", "x": 0, "y": 8, "w": 12, "h": 3},
+    {"id": "netWorthRings", "type": "netWorthRings", "x": 0, "y": 11, "w": 6, "h": 4},
+    {"id": "composition", "type": "composition", "x": 6, "y": 11, "w": 6, "h": 4},
+    {"id": "recentValuations", "type": "recentValuations", "x": 0, "y": 15, "w": 12, "h": 4},
+]
 
 
 def months_since(start: date, today: date) -> int:
@@ -87,6 +112,7 @@ def seed() -> None:
         db.query(Account).delete()
         db.query(Liability).delete()
         db.query(Envelope).delete()
+        db.query(DashboardLayout).delete()
 
         today = datetime.now(UTC).date()
         now = datetime.now(UTC)
@@ -344,11 +370,14 @@ def seed() -> None:
         ]
         db.add_all(envelopes)
 
+        db.add(DashboardLayout(id=1, widgets=DASHBOARD_WIDGETS))
+
         db.commit()
 
         print(
             f"Seeded {len(accounts)} accounts, {n_valuations} valuations, "
-            f"{len(assets)} assets, {len(liabilities)} liabilities, {len(envelopes)} envelopes."
+            f"{len(assets)} assets, {len(liabilities)} liabilities, {len(envelopes)} envelopes, "
+            f"{len(DASHBOARD_WIDGETS)} dashboard widgets."
         )
     finally:
         db.close()

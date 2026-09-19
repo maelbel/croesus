@@ -9,7 +9,7 @@ import type { LegacyWidgetType } from '../api/types'
 export const WIDGET_SIZE_BOUNDS: Record<LegacyWidgetType, { minW: number; maxW: number; minH: number; maxH: number }> = {
   netWorthRings: { minW: 6, maxW: 12, minH: 3, maxH: 6 },
   composition: { minW: 6, maxW: 12, minH: 2, maxH: 5 },
-  assetsByClass: { minW: 6, maxW: 12, minH: 4, maxH: 5 },
+  assetsByClass: { minW: 4, maxW: 12, minH: 4, maxH: 5 },
   liabilitiesVsAssets: { minW: 4, maxW: 12, minH: 2, maxH: 5 },
   recentValuations: { minW: 6, maxW: 12, minH: 2, maxH: 6 },
 }
