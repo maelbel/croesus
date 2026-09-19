@@ -137,7 +137,7 @@ export const WIDGET_CATALOG: Record<WidgetType, WidgetCatalogEntry> = {
     headerExtra: TrendChartPeriodTabs,
     icon: 'i-lucide-trending-up',
     descKey: 'dashboardGrid.descTrendChart',
-    minW: 6,
+    minW: 4,
     maxW: 12,
     minH: 3,
     maxH: 3,

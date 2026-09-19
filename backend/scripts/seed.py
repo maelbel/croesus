@@ -48,18 +48,16 @@ DASHBOARD_WIDGETS = [
     {"id": "statTile:net_worth", "type": "statTile", "source": "net_worth", "x": 0, "y": 0, "w": 4, "h": 1},
     {"id": "statTile:total_debt", "type": "statTile", "source": "total_debt", "x": 4, "y": 0, "w": 4, "h": 1},
     {"id": "statTile:emergency_fund", "type": "statTile", "source": "emergency_fund", "x": 8, "y": 0, "w": 4, "h": 1},
-    # Net worth trend chart + debt payoff side by side, then the two "assets by class" views (the
-    # bars/table and its donut) paired right below — trendChart keeps its original minW (6) here
-    # since it only shares the row with one other 6-wide widget, avoiding any crowding of its
-    # period-tab buttons against the title.
-    {"id": "trendChart:net_worth", "type": "trendChart", "source": "net_worth", "x": 0, "y": 1, "w": 6, "h": 3},
-    {"id": "payoffStatus:debt_payoff", "type": "payoffStatus", "source": "debt_payoff", "x": 6, "y": 1, "w": 6, "h": 3},
-    {"id": "assetsByClass", "type": "assetsByClass", "x": 0, "y": 4, "w": 6, "h": 4},
-    {"id": "breakdownDonut:assets_by_class", "type": "breakdownDonut", "source": "assets_by_class", "x": 6, "y": 4, "w": 6, "h": 3},
-    {"id": "liabilitiesVsAssets", "type": "liabilitiesVsAssets", "x": 0, "y": 8, "w": 12, "h": 3},
-    {"id": "netWorthRings", "type": "netWorthRings", "x": 0, "y": 11, "w": 6, "h": 4},
-    {"id": "composition", "type": "composition", "x": 6, "y": 11, "w": 6, "h": 4},
-    {"id": "recentValuations", "type": "recentValuations", "x": 0, "y": 15, "w": 12, "h": 4},
+    # Net worth trend chart, debt payoff and the assets-by-class donut side by side, in that order
+    # — all 3 have a fixed height of 3, so the row lines up evenly with no mismatch.
+    {"id": "trendChart:net_worth", "type": "trendChart", "source": "net_worth", "x": 0, "y": 1, "w": 4, "h": 3},
+    {"id": "payoffStatus:debt_payoff", "type": "payoffStatus", "source": "debt_payoff", "x": 4, "y": 1, "w": 4, "h": 3},
+    {"id": "breakdownDonut:assets_by_class", "type": "breakdownDonut", "source": "assets_by_class", "x": 8, "y": 1, "w": 4, "h": 3},
+    {"id": "assetsByClass", "type": "assetsByClass", "x": 0, "y": 4, "w": 8, "h": 4},
+    {"id": "liabilitiesVsAssets", "type": "liabilitiesVsAssets", "x": 8, "y": 4, "w": 4, "h": 4},
+    {"id": "netWorthRings", "type": "netWorthRings", "x": 0, "y": 8, "w": 6, "h": 4},
+    {"id": "composition", "type": "composition", "x": 6, "y": 8, "w": 6, "h": 4},
+    {"id": "recentValuations", "type": "recentValuations", "x": 0, "y": 12, "w": 12, "h": 4},
 ]
 
 
