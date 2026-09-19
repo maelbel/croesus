@@ -229,9 +229,12 @@ pnpm setup:dev
 ```
 
 It checks for the tools above, installs both the root and `frontend/`
-dependencies (they have separate lockfiles), and builds the sidecar binary.
-The sections below are the same steps broken out individually, if you only
-need one piece or want to see what's happening.
+dependencies (they have separate lockfiles), builds the sidecar binary, applies
+backend migrations, and — only on a brand-new local database — seeds it with
+sample data (see `backend/scripts/seed.py`); re-running it later leaves an
+existing local database untouched. The sections below are the same steps
+broken out individually, if you only need one piece or want to see what's
+happening.
 
 ### Backend
 
