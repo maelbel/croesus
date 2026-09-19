@@ -12,6 +12,8 @@ import { useAccountsStore } from '../stores/accounts'
 import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useAuthStore } from '../stores/auth'
+import { useUpdateCheckStore } from '../stores/updateCheck'
+import { resolveBaseUrl } from '../api/client'
 import { useConnectionForm, useApplyConnection } from '../composables/useConnectionForm'
 import { useConfirm } from '../composables/useConfirm'
 import ConnectionModeFields from '../components/ConnectionModeFields.vue'
@@ -28,12 +30,13 @@ const accountsStore = useAccountsStore()
 const liabilitiesStore = useLiabilitiesStore()
 const envelopesStore = useEnvelopesStore()
 const authStore = useAuthStore()
+const updateCheckStore = useUpdateCheckStore()
 
 // Only the desktop shell can choose between a local sidecar and a remote
 // server — the self-hosted/browser build always just talks to VITE_API_URL.
 const isTauriApp = isTauri()
 
-type Category = 'appearance' | 'connection' | 'account' | 'danger'
+type Category = 'appearance' | 'connection' | 'account' | 'danger' | 'about'
 const activeCategory = ref<Category>('appearance')
 
 // `onSelect` sets the active category explicitly rather than relying on
@@ -55,10 +58,17 @@ const categories = computed<NavigationMenuItem[]>(() => [
   ...(isTauriApp ? [{ label: t('settings.connectionTitle'), icon: 'i-lucide-server', value: 'connection' }] : []),
   ...(authStore.authEnabled ? [{ label: t('settings.accountTitle'), icon: 'i-lucide-user', value: 'account' }] : []),
   { label: t('settings.dangerZoneTitle'), icon: 'i-lucide-trash-2', value: 'danger' },
-].map((item) => ({
+  { label: t('settings.aboutTitle'), icon: 'i-lucide-info', value: 'about' },
+].map((item): NavigationMenuItem => ({
   ...item,
   active: item.value === activeCategory.value,
   onSelect: select(item.value as Category),
+  // A trailing icon (rather than a text badge) reads as a quiet "something's here"
+  // hint next to About, not a number to parse — matches how little attention an
+  // available update needs before you've actually opened the section.
+  ...(item.value === 'about' && updateCheckStore.updateAvailable
+    ? { trailingIcon: 'i-lucide-arrow-up-circle' }
+    : {}),
 })))
 
 const {
@@ -220,6 +230,66 @@ async function deleteAllData() {
           <UButton color="rust" variant="outline" class="flex-none" @click="deleteAllData">
             {{ t('settings.deleteAllData') }}
           </UButton>
+        </div>
+      </div>
+
+      <div v-else-if="activeCategory === 'about'" class="neu-surface flex flex-col divide-y divide-default bg-default">
+        <!-- Desktop already has this in the Connection section above (with a form to change it) —
+             self-hosted/browser mode never shows which backend it's actually talking to anywhere
+             else, so it belongs here instead of being omitted for that build. -->
+        <div v-if="!isTauriApp" class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.selfHostedInstanceTitle') }}</span>
+            <span class="truncate text-[12.5px] text-muted">{{ t('settings.selfHostedInstanceDescription') }}</span>
+          </span>
+          <span class="flex-none truncate text-[13.5px] text-muted">{{ resolveBaseUrl() }}</span>
+        </div>
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.versionTitle') }}</span>
+            <span class="text-[12.5px] text-muted">
+              {{
+                updateCheckStore.updateAvailable && updateCheckStore.latestRelease
+                  ? t('settings.versionUpdateAvailable', { version: updateCheckStore.latestRelease.version })
+                  : t('settings.versionUpToDate')
+              }}
+            </span>
+          </span>
+          <UButton
+            v-if="updateCheckStore.updateAvailable && updateCheckStore.latestRelease"
+            :to="updateCheckStore.latestRelease.url"
+            target="_blank"
+            color="primary"
+            size="sm"
+            class="flex-none"
+          >
+            {{ t('settings.viewRelease') }}
+          </UButton>
+          <span v-else class="flex-none font-heading text-[14.5px] font-extrabold">v{{ updateCheckStore.currentVersion }}</span>
+        </div>
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.sourceCodeTitle') }}</span>
+            <span class="text-[12.5px] text-muted">{{ t('settings.sourceCodeDescription') }}</span>
+          </span>
+          <UButton to="https://github.com/maelbel/croesus" target="_blank" color="neutral" variant="outline" size="sm" class="flex-none">
+            {{ t('settings.viewOnGithub') }}
+          </UButton>
+        </div>
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.reportIssueTitle') }}</span>
+            <span class="text-[12.5px] text-muted">{{ t('settings.reportIssueDescription') }}</span>
+          </span>
+          <UButton to="https://github.com/maelbel/croesus/issues/new" target="_blank" color="neutral" variant="outline" size="sm" class="flex-none">
+            {{ t('settings.reportIssue') }}
+          </UButton>
+        </div>
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.dataSourcesTitle') }}</span>
+            <span class="text-[12.5px] text-muted [text-wrap:pretty]">{{ t('settings.dataSourcesDescription') }}</span>
+          </span>
         </div>
       </div>
     </div>

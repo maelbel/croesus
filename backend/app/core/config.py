@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     # Frankfurter (ECB rates) only updates ~once/day, so a long TTL is fine.
     fx_rate_cache_ttl_minutes: int = 720
 
+    # Periodically checks GitHub for a newer Croesus release, surfaced as an "update available"
+    # indicator in Settings -> About. Disable for an air-gapped self-hosted instance, or one that
+    # just doesn't want the outbound call.
+    update_check_enabled: bool = True
+    # GitHub releases are infrequent, so a long TTL is fine.
+    update_check_cache_ttl_minutes: int = 720
+
     @property
     def password_enabled(self) -> bool:
         return bool(self.admin_username and self.admin_password)
