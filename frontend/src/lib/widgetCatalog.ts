@@ -42,29 +42,22 @@ export interface WidgetCatalogEntry {
    * trend chart uses this, for its period tabs (the design puts them in the header row next to
    * the kicker, not inside the chart body). */
   headerExtra?: Component
-  /** Legacy widgets resize by free continuous drag, clamped to this box. */
-  minW?: number
-  maxW?: number
-  minH?: number
-  maxH?: number
-  /** Catalog widgets resize by cycling through this preset list instead (see the roadmap's own
-   * "size preset" wording, and the design's own per-kind `sizes` list this mirrors). */
-  sizes?: [number, number][]
+  /** Every widget resizes by free continuous drag, clamped to this box — min === max on an axis
+   * (e.g. every chart-like catalog kind's height) just means that axis doesn't resize at all. */
+  minW: number
+  maxW: number
+  minH: number
+  maxH: number
   /** Icon + one-line description shown for this kind in the "Add widget" picker's first step. */
   icon: string
   descKey: string
 }
 
-/** The add-widget wizard's step-2 size list for any widget type — a catalog kind's own `sizes`
- * preset list unchanged, or (for the 5 legacy kinds, which don't have one) a synthesized min/mid/
- * max trio from their free-drag WIDGET_SIZE_BOUNDS. This only picks the widget's starting size —
- * legacy widgets stay freely resizable afterward — so every type gets the same wizard shape
- * instead of legacy widgets skipping the step entirely. */
+/** The add-widget wizard's step-2 size list for any widget type: a synthesized min/mid/max trio
+ * from its free-drag bounds. This only picks the widget's starting size — every widget stays
+ * freely resizable afterward within those same bounds. */
 export function pickerSizes(type: WidgetType): [number, number][] {
-  const entry = WIDGET_CATALOG[type]
-  if (entry.sizes) return entry.sizes
-  const { minW, maxW, minH, maxH } = entry
-  if (minW === undefined || maxW === undefined || minH === undefined || maxH === undefined) return []
+  const { minW, maxW, minH, maxH } = WIDGET_CATALOG[type]
   const presets: [number, number][] = [
     [minW, minH],
     [Math.round((minW + maxW) / 2), Math.round((minH + maxH) / 2)],
@@ -131,11 +124,10 @@ export const WIDGET_CATALOG: Record<WidgetType, WidgetCatalogEntry> = {
     variant: 'compact',
     icon: 'i-lucide-gauge',
     descKey: 'dashboardGrid.descStatTile',
-    sizes: [
-      [4, 1],
-      [6, 1],
-      [6, 2],
-    ],
+    minW: 4,
+    maxW: 6,
+    minH: 1,
+    maxH: 2,
   },
   trendChart: {
     component: TrendChartWidget,
@@ -145,11 +137,10 @@ export const WIDGET_CATALOG: Record<WidgetType, WidgetCatalogEntry> = {
     headerExtra: TrendChartPeriodTabs,
     icon: 'i-lucide-trending-up',
     descKey: 'dashboardGrid.descTrendChart',
-    sizes: [
-      [6, 3],
-      [8, 3],
-      [12, 3],
-    ],
+    minW: 6,
+    maxW: 12,
+    minH: 3,
+    maxH: 3,
   },
   breakdownDonut: {
     component: BreakdownDonutWidget,
@@ -159,10 +150,10 @@ export const WIDGET_CATALOG: Record<WidgetType, WidgetCatalogEntry> = {
     subtitle: (widget) => breakdownSubtitle(widget.source),
     icon: 'i-lucide-chart-pie',
     descKey: 'dashboardGrid.descBreakdownDonut',
-    sizes: [
-      [4, 3],
-      [6, 3],
-    ],
+    minW: 4,
+    maxW: 6,
+    minH: 3,
+    maxH: 3,
   },
   list: {
     component: ListWidget,
@@ -172,11 +163,10 @@ export const WIDGET_CATALOG: Record<WidgetType, WidgetCatalogEntry> = {
     subtitle: (widget) => listSubtitle(widget.source),
     icon: 'i-lucide-list',
     descKey: 'dashboardGrid.descList',
-    sizes: [
-      [6, 3],
-      [7, 3],
-      [12, 3],
-    ],
+    minW: 6,
+    maxW: 12,
+    minH: 3,
+    maxH: 3,
   },
   payoffStatus: {
     component: PayoffStatusWidget,
@@ -186,9 +176,9 @@ export const WIDGET_CATALOG: Record<WidgetType, WidgetCatalogEntry> = {
     subtitle: (widget) => payoffSubtitle(widget.source),
     icon: 'i-lucide-flag',
     descKey: 'dashboardGrid.descPayoffStatus',
-    sizes: [
-      [5, 3],
-      [6, 3],
-    ],
+    minW: 5,
+    maxW: 6,
+    minH: 3,
+    maxH: 3,
   },
 }
