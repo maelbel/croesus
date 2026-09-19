@@ -14,7 +14,7 @@ piped through `docker compose exec -T`.
 
 import random
 import sys
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -34,27 +34,48 @@ random.seed(42)
 
 MIN_HISTORY_MONTHS = 12
 MAX_HISTORY_MONTHS = 60
+DAYS_PER_MONTH = 30.4368
+RECENT_DAILY_DAYS = 45
 
 
 def months_since(start: date, today: date) -> int:
     return (today.year - start.year) * 12 + (today.month - start.month)
 
 
-def monthly_valuations(start: date, months: int, start_value: Decimal, drift: float, noise: float) -> list[tuple[date, Decimal]]:
-    """A `months`-long series of month-end valuations following a smooth
-    exponential trend with bounded noise wiggle around it.
+def valuation_series(
+    history_start: date, today: date, start_value: Decimal, drift: float, noise: float
+) -> list[tuple[date, Decimal]]:
+    """A series of valuations from `history_start` to `today` following a smooth
+    exponential trend with bounded noise wiggle around it: one point per month
+    for the older history, then one point per day for the most recent
+    `RECENT_DAILY_DAYS` days, so the chart's short-range tabs (1D/1W/1M) have
+    real data instead of a single sparse monthly point.
 
-    Noise is applied against the trend rather than compounded month-over-month,
+    Noise is applied against the trend rather than compounded step-over-step,
     so a long history (several years) can't random-walk into runaway or
-    near-zero values the way compounding per-step noise would.
+    near-zero values the way compounding per-step noise would. Daily noise is
+    a fraction of monthly noise — day-to-day wiggle is smaller than the
+    month-to-month re-appraisal swings the base `noise` models.
     """
+
+    def trend(elapsed_days: int) -> float:
+        return float(start_value) * (1 + drift) ** (elapsed_days / DAYS_PER_MONTH)
+
     out = []
-    d = start
-    for i in range(months):
-        trend = float(start_value) * (1 + drift) ** i
-        value = trend * (1 + random.uniform(-noise, noise))
+    daily_start = today - timedelta(days=RECENT_DAILY_DAYS - 1)
+
+    d = history_start
+    while d < daily_start:
+        value = trend((d - history_start).days) * (1 + random.uniform(-noise, noise))
         out.append((d, Decimal(str(round(value, 2)))))
         d = d + relativedelta(months=1)
+
+    d = daily_start
+    while d <= today:
+        value = trend((d - history_start).days) * (1 + random.uniform(-noise * 0.3, noise * 0.3))
+        out.append((d, Decimal(str(round(value, 2)))))
+        d = d + timedelta(days=1)
+
     return out
 
 
@@ -173,7 +194,7 @@ def seed() -> None:
         for account, start_value, drift, noise in valuation_plan:
             history_months = max(MIN_HISTORY_MONTHS, min(MAX_HISTORY_MONTHS, months_since(account.opened_at, today)))
             history_start = (today - relativedelta(months=history_months - 1)).replace(day=1)
-            for d, value in monthly_valuations(history_start, history_months, start_value, drift, noise):
+            for d, value in valuation_series(history_start, today, start_value, drift, noise):
                 db.add(Valuation(account_id=account.id, date=d, value=value))
                 n_valuations += 1
 
