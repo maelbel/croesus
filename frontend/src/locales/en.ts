@@ -402,5 +402,11 @@ export default {
     sourceCodeTitle: 'Source code',
     sourceCodeDescription: 'Croesus is open source, licensed under AGPL-3.0.',
     viewOnGithub: 'View on GitHub',
+    reportIssueTitle: 'Report an issue',
+    reportIssueDescription: 'Found a bug, or have a feature request?',
+    reportIssue: 'Open an issue',
+    dataSourcesTitle: 'Data sources',
+    dataSourcesDescription:
+      'Exchange rates via Frankfurter (ECB reference rates). Stock and ETF prices via Yahoo Finance. Crypto prices via CoinGecko.',
   },
 }

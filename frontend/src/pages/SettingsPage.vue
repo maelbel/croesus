@@ -276,6 +276,21 @@ async function deleteAllData() {
             {{ t('settings.viewOnGithub') }}
           </UButton>
         </div>
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.reportIssueTitle') }}</span>
+            <span class="text-[12.5px] text-muted">{{ t('settings.reportIssueDescription') }}</span>
+          </span>
+          <UButton to="https://github.com/maelbel/croesus/issues/new" target="_blank" color="neutral" variant="outline" size="sm" class="flex-none">
+            {{ t('settings.reportIssue') }}
+          </UButton>
+        </div>
+        <div class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.dataSourcesTitle') }}</span>
+            <span class="text-[12.5px] text-muted [text-wrap:pretty]">{{ t('settings.dataSourcesDescription') }}</span>
+          </span>
+        </div>
       </div>
     </div>
   </div>
