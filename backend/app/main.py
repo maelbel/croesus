@@ -18,6 +18,7 @@ from app.api.routes import (
     fx,
     liabilities,
     valuations,
+    version,
 )
 from app.core import oidc
 from app.core.config import DEFAULT_JWT_SECRET, get_settings
@@ -158,6 +159,7 @@ app.include_router(envelopes.router)
 app.include_router(dashboard.router)
 app.include_router(dashboard_layout.router)
 app.include_router(fx.router)
+app.include_router(version.router)
 
 
 @app.get("/health")

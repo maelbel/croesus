@@ -1,10 +1,19 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import ui from '@nuxt/ui/vite'
 import appConfig from './app.config.ts'
 
+const { version } = JSON.parse(readFileSync('./package.json', 'utf-8'))
+
 // https://vite.dev/config/
 export default defineConfig({
+  // Baked in at build time (not read at runtime) so Settings -> About can show it without a
+  // round trip — release-please keeps this file's version in lockstep with the backend/desktop
+  // ones, so it's the same version across all 3 for any given release.
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   plugins: [
     vue(),
     ui({

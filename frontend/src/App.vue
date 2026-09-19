@@ -15,6 +15,7 @@ import { useValuationsStore } from './stores/valuations'
 import { useAssetsStore } from './stores/assets'
 import { useConnectionStore } from './stores/connection'
 import { useAuthStore } from './stores/auth'
+import { useUpdateCheckStore } from './stores/updateCheck'
 import { usePageActionStore } from './stores/pageActions'
 import { usePageTitleStore } from './stores/pageTitle'
 import { useLocaleStore } from './stores/locale'
@@ -38,6 +39,7 @@ const valuationsStore = useValuationsStore()
 const assetsStore = useAssetsStore()
 const connectionStore = useConnectionStore()
 const authStore = useAuthStore()
+const updateCheckStore = useUpdateCheckStore()
 const pageActionStore = usePageActionStore()
 const pageTitleStore = usePageTitleStore()
 const localeStore = useLocaleStore()
@@ -76,6 +78,7 @@ function loadData() {
   fxRatesStore.fetchRates(currencyStore.referenceCurrency)
   valuationsStore.fetchAll()
   assetsStore.fetchAll()
+  updateCheckStore.check()
 }
 
 async function bootAfterConnectionDecided() {
