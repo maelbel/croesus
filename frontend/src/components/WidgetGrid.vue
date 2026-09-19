@@ -84,19 +84,23 @@ const gridRef = ref<GridStackRef | null>(null)
 // GridStack's own minW/maxW/minH/maxH). Catalog widgets only have a handful of preset sizes, not a
 // continuous range — GridStack has no notion of "discrete sizes", so they get a continuous range
 // spanning their presets here, and onResizeStop below snaps the final size to the nearest one.
-function itemOptions(widget: Widget) {
-  const entry = WIDGET_CATALOG[widget.type]
+//
+// GridStack reads these directly off each node at resize-start time (defaulting to minW/minH: 1,
+// maxW/maxH: Infinity when absent) — there's no grid-wide fallback, so every place a node is
+// created (the initial `children` snapshot below, and addWidget()) must supply them itself.
+function sizeBounds(type: WidgetType) {
+  const entry = WIDGET_CATALOG[type]
   const sizes = entry.sizes
   return {
-    x: widget.x,
-    y: widget.y,
-    w: widget.w,
-    h: widget.h,
     minW: sizes ? Math.min(...sizes.map(([w]) => w)) : entry.minW,
     maxW: sizes ? Math.max(...sizes.map(([w]) => w)) : entry.maxW,
     minH: sizes ? Math.min(...sizes.map(([, h]) => h)) : entry.minH,
     maxH: sizes ? Math.max(...sizes.map(([, h]) => h)) : entry.maxH,
   }
+}
+
+function itemOptions(widget: Widget) {
+  return { x: widget.x, y: widget.y, w: widget.w, h: widget.h, ...sizeBounds(widget.type) }
 }
 
 // GridStack.init() only reads `options` (including `children`, the initial widget snapshot) once
@@ -194,7 +198,17 @@ function removeWidget(widget: Widget) {
 function addWidget({ type, source, w, h }: { type: WidgetType; source?: string; w: number; h: number }) {
   const id = source ? `${type}:${source}` : type
   const grid = gridRef.value?.getGrid()
-  const newWidget: GridStackWidget = { id, x: 0, y: 0, w, h, autoPosition: true, component: 'WidgetCard', props: { widgetId: id } }
+  const newWidget: GridStackWidget = {
+    id,
+    x: 0,
+    y: 0,
+    w,
+    h,
+    autoPosition: true,
+    component: 'WidgetCard',
+    props: { widgetId: id },
+    ...sizeBounds(type),
+  }
   const el = grid?.addWidget(newWidget)
   const node = el?.gridstackNode
   emit('update:widgets', [...props.widgets, { id, type, source, x: node?.x ?? 0, y: node?.y ?? 0, w: node?.w ?? w, h: node?.h ?? h }])
