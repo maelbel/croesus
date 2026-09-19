@@ -154,6 +154,7 @@ export default {
     trendChartAriaLabel: 'Value over time',
     sparklineAriaLabel: 'Recent trend',
     breakdownDonutAriaLabel: 'Breakdown by category',
+    breakdownDonutOtherLabel: 'Other',
     descNetWorthRings: 'One ring per year, growth at a glance.',
     descComposition: 'How assets and liabilities stack up over time.',
     descAssetsByClass: 'A breakdown of assets by class.',

@@ -154,6 +154,7 @@ export default {
     trendChartAriaLabel: 'Valeur dans le temps',
     sparklineAriaLabel: 'Tendance récente',
     breakdownDonutAriaLabel: 'Répartition par catégorie',
+    breakdownDonutOtherLabel: 'Autres',
     descNetWorthRings: 'Un anneau par année, la croissance en un coup d\'œil.',
     descComposition: "Comment actifs et passifs s'empilent dans le temps.",
     descAssetsByClass: "Une répartition des actifs par classe.",

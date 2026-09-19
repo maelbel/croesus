@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { assetsByClassBreakdown } from '../../lib/widgetSources'
+import { assetsByClassBreakdown, type BreakdownSlice } from '../../lib/widgetSources'
 import { donutSegments } from '../../lib/svgChart'
+
+const MAX_SLICES = 6
 
 const props = defineProps<{ source?: string }>()
 
@@ -24,13 +26,29 @@ const PALETTE = [
 
 const breakdown = computed(() => (props.source === 'assets_by_class' ? assetsByClassBreakdown() : []))
 
+// Beyond MAX_SLICES classes, folding the tail into one "Other" bucket keeps the ring and legend
+// percentages summing to 100% — silently dropping them past the 6th (the previous behavior) left
+// their share missing from the ring with nothing to show for it.
+const items = computed<BreakdownSlice[]>(() => {
+  const all = breakdown.value
+  if (all.length <= MAX_SLICES) return all
+  const top = all.slice(0, MAX_SLICES - 1)
+  const rest = all.slice(MAX_SLICES - 1)
+  const other: BreakdownSlice = {
+    label: t('dashboardGrid.breakdownDonutOtherLabel'),
+    value: rest.reduce((sum, s) => sum + s.value, 0),
+    pct: rest.reduce((sum, s) => sum + s.pct, 0),
+    fill: '',
+  }
+  return [...top, other]
+})
+
 const slices = computed(() => {
-  const items = breakdown.value.slice(0, 6)
   const segments = donutSegments(
-    items.map((s) => s.pct),
+    items.value.map((s) => s.pct),
     R,
   )
-  return items.map((slice, idx) => ({ ...slice, fill: PALETTE[idx], ...segments[idx] }))
+  return items.value.map((slice, idx) => ({ ...slice, fill: PALETTE[idx], ...segments[idx] }))
 })
 
 // Hovering a slice or its legend row highlights both — the legend already carries every label
