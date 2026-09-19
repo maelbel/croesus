@@ -45,21 +45,21 @@ RECENT_DAILY_DAYS = 45
 # a fresh `pnpm seed:dev` board exercise every widget against real sample data immediately, instead
 # of starting from the migration's smaller product-default layout and adding the rest by hand.
 DASHBOARD_WIDGETS = [
-    # Net worth, debt payoff and assets by class side by side, in that order — the 3 stat tiles
-    # stack in the first column (3 rows, exactly matching debt payoff's own fixed height) rather
-    # than spanning the full width above it, since that column would otherwise sit mostly empty
-    # next to its much taller row-mates.
     {"id": "statTile:net_worth", "type": "statTile", "source": "net_worth", "x": 0, "y": 0, "w": 4, "h": 1},
-    {"id": "statTile:total_debt", "type": "statTile", "source": "total_debt", "x": 0, "y": 1, "w": 4, "h": 1},
-    {"id": "statTile:emergency_fund", "type": "statTile", "source": "emergency_fund", "x": 0, "y": 2, "w": 4, "h": 1},
-    {"id": "payoffStatus:debt_payoff", "type": "payoffStatus", "source": "debt_payoff", "x": 4, "y": 0, "w": 4, "h": 3},
-    {"id": "assetsByClass", "type": "assetsByClass", "x": 8, "y": 0, "w": 4, "h": 4},
-    {"id": "liabilitiesVsAssets", "type": "liabilitiesVsAssets", "x": 0, "y": 4, "w": 6, "h": 3},
+    {"id": "statTile:total_debt", "type": "statTile", "source": "total_debt", "x": 4, "y": 0, "w": 4, "h": 1},
+    {"id": "statTile:emergency_fund", "type": "statTile", "source": "emergency_fund", "x": 8, "y": 0, "w": 4, "h": 1},
+    # Net worth trend chart + debt payoff side by side, then the two "assets by class" views (the
+    # bars/table and its donut) paired right below — trendChart keeps its original minW (6) here
+    # since it only shares the row with one other 6-wide widget, avoiding any crowding of its
+    # period-tab buttons against the title.
+    {"id": "trendChart:net_worth", "type": "trendChart", "source": "net_worth", "x": 0, "y": 1, "w": 6, "h": 3},
+    {"id": "payoffStatus:debt_payoff", "type": "payoffStatus", "source": "debt_payoff", "x": 6, "y": 1, "w": 6, "h": 3},
+    {"id": "assetsByClass", "type": "assetsByClass", "x": 0, "y": 4, "w": 6, "h": 4},
     {"id": "breakdownDonut:assets_by_class", "type": "breakdownDonut", "source": "assets_by_class", "x": 6, "y": 4, "w": 6, "h": 3},
-    {"id": "netWorthRings", "type": "netWorthRings", "x": 0, "y": 7, "w": 6, "h": 4},
-    {"id": "composition", "type": "composition", "x": 6, "y": 7, "w": 6, "h": 4},
-    {"id": "trendChart:net_worth", "type": "trendChart", "source": "net_worth", "x": 0, "y": 11, "w": 12, "h": 3},
-    {"id": "recentValuations", "type": "recentValuations", "x": 0, "y": 14, "w": 12, "h": 4},
+    {"id": "liabilitiesVsAssets", "type": "liabilitiesVsAssets", "x": 0, "y": 8, "w": 12, "h": 3},
+    {"id": "netWorthRings", "type": "netWorthRings", "x": 0, "y": 11, "w": 6, "h": 4},
+    {"id": "composition", "type": "composition", "x": 6, "y": 11, "w": 6, "h": 4},
+    {"id": "recentValuations", "type": "recentValuations", "x": 0, "y": 15, "w": 12, "h": 4},
 ]
 
 
