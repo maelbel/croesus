@@ -98,6 +98,8 @@ export default {
     liabilitiesVsAssetsKicker: 'Set against them',
     liabilitiesVsAssetsHeading: 'Liabilities vs. assets',
     liabilitiesVsAssets: 'Liabilities · {value} · {pct}% of assets',
+    liabilitiesVsAssetsAssetsLegend: 'Assets',
+    liabilitiesVsAssetsLiabilitiesLegend: 'Liabilities',
     recentValuationsKicker: 'Recent valuations',
     recentValuationsHeading: 'Month by month',
     columnDate: 'Date',
@@ -152,6 +154,7 @@ export default {
     trendChartAriaLabel: 'Value over time',
     sparklineAriaLabel: 'Recent trend',
     breakdownDonutAriaLabel: 'Breakdown by category',
+    breakdownDonutOtherLabel: 'Other',
     descNetWorthRings: 'One ring per year, growth at a glance.',
     descComposition: 'How assets and liabilities stack up over time.',
     descAssetsByClass: 'A breakdown of assets by class.',
@@ -320,6 +323,8 @@ export default {
   },
   compositionChart: {
     liabilitiesLegend: 'Liabilities',
+    totalLabel: 'Total',
+    insufficientData: 'One valuation on record so far — this chart needs at least two to draw a trend.',
   },
   netWorthRings: {
     multiYear:

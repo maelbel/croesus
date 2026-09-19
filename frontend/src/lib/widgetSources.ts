@@ -4,6 +4,7 @@ import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useValuationsStore } from '../stores/valuations'
 import { useNetWorthStore } from '../stores/networth'
+import { useFxRatesStore } from '../stores/fxRates'
 import type { CatalogWidgetType, Currency, NetWorthHistoryPoint } from '../api/types'
 import { accountTypeLabel } from '../api/types'
 import { paidRatio } from './liabilityMath'
@@ -199,11 +200,15 @@ export interface BreakdownSlice {
 export function assetsByClassBreakdown(): BreakdownSlice[] {
   const accountsStore = useAccountsStore()
   const valuationsStore = useValuationsStore()
+  const fxRatesStore = useFxRatesStore()
 
   const totals = new Map<string, number>()
   for (const account of accountsStore.accounts) {
     const label = accountTypeLabel(account.type)
-    const value = valuationsStore.currentValue(account.id)
+    // currentValue() is in the account's own currency — convert before summing, same as
+    // AccountsPage.vue/LiabilitiesPage.vue, or a foreign-currency account's class is undercounted
+    // (or overcounted) against every other class's reference-currency total.
+    const value = fxRatesStore.convert(valuationsStore.currentValue(account.id), account.currency)
     totals.set(label, (totals.get(label) ?? 0) + value)
   }
   const total = [...totals.values()].reduce((sum, v) => sum + v, 0)

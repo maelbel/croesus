@@ -73,7 +73,11 @@ const chart = computed(() => {
 
   const latest = built.points[n - 1].value
   const first = built.points[0].value
-  const ratio = first !== 0 ? (latest - first) / first : null
+  // A percent change is only meaningful against a strictly positive baseline — net worth can
+  // legitimately be zero or negative early in its history (before enough assets exist to offset
+  // a liability, e.g. right after taking out a loan), and dividing by that baseline produces a
+  // sign-flipped, wildly oversized ratio (e.g. "-234%") rather than anything a reader could use.
+  const ratio = first > 0 ? (latest - first) / first : null
 
   return { ...built, dates: list.map((p) => p.date), xLabels, latest, ratio }
 })

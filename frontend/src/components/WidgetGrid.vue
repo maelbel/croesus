@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { GridItemHTMLElement, GridStack as GridStackCore } from 'gridstack'
+import type { GridStack as GridStackCore } from 'gridstack'
 import { GridStack, type GridStackOptions, type GridStackWidget } from 'gridstack/dist/vue'
 import 'gridstack/dist/gridstack.css'
 import type { Widget, WidgetType } from '../api/types'
 import { CATALOG_WIDGET_TYPES, WIDGET_TYPES } from '../api/types'
 import { WIDGET_CATALOG } from '../lib/widgetCatalog'
 import { availableSources } from '../lib/widgetSources'
-import { nearestPresetSize } from '../lib/widgetGrid'
 import { clearTrendPeriod } from '../lib/trendPeriod'
 import { useIsMobile } from '../composables/useIsMobile'
 import { WIDGET_GRID_CONTEXT } from '../lib/widgetGridContext'
@@ -80,23 +79,18 @@ interface GridStackRef {
 }
 const gridRef = ref<GridStackRef | null>(null)
 
-// Legacy widgets resize continuously within their WIDGET_SIZE_BOUNDS (enforced natively by
-// GridStack's own minW/maxW/minH/maxH). Catalog widgets only have a handful of preset sizes, not a
-// continuous range — GridStack has no notion of "discrete sizes", so they get a continuous range
-// spanning their presets here, and onResizeStop below snaps the final size to the nearest one.
+// Every widget resizes by free continuous drag within its catalog entry's minW/maxW/minH/maxH,
+// enforced natively by GridStack. GridStack reads these directly off each node at resize-start
+// time (defaulting to minW/minH: 1, maxW/maxH: Infinity when absent) — there's no grid-wide
+// fallback, so every place a node is created (the initial `children` snapshot below, and
+// addWidget()) must supply them itself.
+function sizeBounds(type: WidgetType) {
+  const { minW, maxW, minH, maxH } = WIDGET_CATALOG[type]
+  return { minW, maxW, minH, maxH }
+}
+
 function itemOptions(widget: Widget) {
-  const entry = WIDGET_CATALOG[widget.type]
-  const sizes = entry.sizes
-  return {
-    x: widget.x,
-    y: widget.y,
-    w: widget.w,
-    h: widget.h,
-    minW: sizes ? Math.min(...sizes.map(([w]) => w)) : entry.minW,
-    maxW: sizes ? Math.max(...sizes.map(([w]) => w)) : entry.maxW,
-    minH: sizes ? Math.min(...sizes.map(([, h]) => h)) : entry.minH,
-    maxH: sizes ? Math.max(...sizes.map(([, h]) => h)) : entry.maxH,
-  }
+  return { x: widget.x, y: widget.y, w: widget.w, h: widget.h, ...sizeBounds(widget.type) }
 }
 
 // GridStack.init() only reads `options` (including `children`, the initial widget snapshot) once
@@ -166,23 +160,6 @@ function onSettled() {
   syncFromGrid()
 }
 
-// Resize ends free-form within the continuous minW/maxW/minH/maxH range set in itemOptions() —
-// for a catalog widget, snap it to whichever declared preset is closest before persisting, so the
-// stored size always matches one of WIDGET_CATALOG's exact presets.
-function onResizeStop(_event: Event, el: GridItemHTMLElement) {
-  const grid = gridRef.value?.getGrid()
-  const node = el.gridstackNode
-  if (grid && node?.id != null && node.w != null && node.h != null && node.x != null) {
-    const widget = props.widgets.find((w) => w.id === node.id)
-    const sizes = widget ? WIDGET_CATALOG[widget.type].sizes : undefined
-    if (widget && sizes) {
-      const next = nearestPresetSize(sizes, node.w, node.h, GRID_COLS - node.x, { w: widget.w, h: widget.h })
-      if (next.w !== node.w || next.h !== node.h) grid.update(el, { w: next.w, h: next.h })
-    }
-  }
-  syncFromGrid()
-}
-
 function removeWidget(widget: Widget) {
   clearTrendPeriod(widget.id)
   const grid = gridRef.value?.getGrid()
@@ -194,7 +171,17 @@ function removeWidget(widget: Widget) {
 function addWidget({ type, source, w, h }: { type: WidgetType; source?: string; w: number; h: number }) {
   const id = source ? `${type}:${source}` : type
   const grid = gridRef.value?.getGrid()
-  const newWidget: GridStackWidget = { id, x: 0, y: 0, w, h, autoPosition: true, component: 'WidgetCard', props: { widgetId: id } }
+  const newWidget: GridStackWidget = {
+    id,
+    x: 0,
+    y: 0,
+    w,
+    h,
+    autoPosition: true,
+    component: 'WidgetCard',
+    props: { widgetId: id },
+    ...sizeBounds(type),
+  }
   const el = grid?.addWidget(newWidget)
   const node = el?.gridstackNode
   emit('update:widgets', [...props.widgets, { id, type, source, x: node?.x ?? 0, y: node?.y ?? 0, w: node?.w ?? w, h: node?.h ?? h }])
@@ -216,7 +203,7 @@ function addWidget({ type, source, w, h }: { type: WidgetType; source?: string; 
       <WidgetCard v-for="widget in orderedWidgets" :key="widget.id" :widget-id="widget.id" />
     </div>
 
-    <GridStack v-else ref="gridRef" :options="gridOptions" :components="gridComponents" @dragstop="onSettled" @resizestop="onResizeStop" />
+    <GridStack v-else ref="gridRef" :options="gridOptions" :components="gridComponents" @dragstop="onSettled" @resizestop="onSettled" />
 
     <AddWidgetSlideover :open="slideoverOpen" :widgets="widgets" @update:open="slideoverOpen = $event" @add="addWidget" />
   </div>
@@ -231,9 +218,19 @@ function addWidget({ type, source, w, h }: { type: WidgetType; source?: string; 
 
 /* Swap GridStack's default diagonal-arrow resize icon for a grip-dot pattern, consistent with
    the grip-vertical drag handle in WidgetCard.vue — and cancel its baked-in -45deg rotation,
-   which was meant for that arrow glyph, not this one. */
+   which was meant for that arrow glyph, not this one. GridStack also ships this handle (and the
+   dragging/resizing state below) with a z-index (100/101, 10000 while active) it inherited from
+   jQuery-UI, wildly outside this app's own scale (see app.config.ts's z-index policy: z-10 header,
+   z-20 modal/slideover, z-30 popover) — high enough to render on top of an open slideover instead
+   of staying with ordinary page content underneath it. Cap both well under z-10. */
 :global(.grid-stack-item > .ui-resizable-se) {
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="14" cy="6" r="1.3" fill="%23666"/><circle cx="10" cy="10" r="1.3" fill="%23666"/><circle cx="14" cy="10" r="1.3" fill="%23666"/><circle cx="6" cy="14" r="1.3" fill="%23666"/><circle cx="10" cy="14" r="1.3" fill="%23666"/><circle cx="14" cy="14" r="1.3" fill="%23666"/></svg>');
   transform: none;
+  z-index: 1;
+}
+
+:global(.ui-resizable-resizing),
+:global(.ui-draggable-dragging) {
+  z-index: 5;
 }
 </style>

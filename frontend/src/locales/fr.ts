@@ -98,6 +98,8 @@ export default {
     liabilitiesVsAssetsKicker: 'En regard',
     liabilitiesVsAssetsHeading: 'Passifs et actifs',
     liabilitiesVsAssets: 'Passifs · {value} · {pct}% des actifs',
+    liabilitiesVsAssetsAssetsLegend: 'Actifs',
+    liabilitiesVsAssetsLiabilitiesLegend: 'Passifs',
     recentValuationsKicker: 'Valorisations récentes',
     recentValuationsHeading: 'Mois par mois',
     columnDate: 'Date',
@@ -152,6 +154,7 @@ export default {
     trendChartAriaLabel: 'Valeur dans le temps',
     sparklineAriaLabel: 'Tendance récente',
     breakdownDonutAriaLabel: 'Répartition par catégorie',
+    breakdownDonutOtherLabel: 'Autres',
     descNetWorthRings: 'Un anneau par année, la croissance en un coup d\'œil.',
     descComposition: "Comment actifs et passifs s'empilent dans le temps.",
     descAssetsByClass: "Une répartition des actifs par classe.",
@@ -318,6 +321,8 @@ export default {
   },
   compositionChart: {
     liabilitiesLegend: 'Passifs',
+    totalLabel: 'Total',
+    insufficientData: "Une seule valorisation enregistrée pour l'instant — il en faut au moins deux pour tracer une tendance.",
   },
   netWorthRings: {
     multiYear:

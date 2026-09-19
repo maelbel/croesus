@@ -52,6 +52,25 @@ export function formatCurrency(value: number | string, currency?: Currency): str
   return currencyFormatter(currency).format(Number(value))
 }
 
+const currencyRoundedFormatters = new Map<string, Intl.NumberFormat>()
+function currencyRoundedFormatter(currency?: Currency): Intl.NumberFormat {
+  const code = currency ?? useCurrencyStore().referenceCurrency
+  const locale = intlLocale()
+  const key = `${locale}:${code}`
+  let formatter = currencyRoundedFormatters.get(key)
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: code, maximumFractionDigits: 0 })
+    currencyRoundedFormatters.set(key, formatter)
+  }
+  return formatter
+}
+
+/** Whole-unit currency, no cents — for chart annotations (axis labels, hover tooltips) where
+ * exact-to-the-cent precision only adds visual noise a glance doesn't need. */
+export function formatCurrencyRounded(value: number | string, currency?: Currency): string {
+  return currencyRoundedFormatter(currency).format(Number(value))
+}
+
 export function formatSignedCurrency(value: number, currency?: Currency): string {
   const formatted = currencyFormatter(currency).format(Math.abs(value))
   if (value > 0) return `+${formatted}`

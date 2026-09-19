@@ -100,7 +100,10 @@ export default {
     slideover: {
       slots: {
         overlay: 'z-20',
-        content: 'z-20',
+        // AddWidgetSlideover's picker rows are plain native <button> elements, not Reka-UI
+        // primitives — Chromium browsers give those a pointer cursor by default, but Firefox
+        // doesn't, so cover every button inside any slideover here rather than per-usage.
+        content: 'z-20 [&_button]:cursor-pointer',
       },
     },
     // Every list table (Accounts, Liabilities, Dashboard, account detail

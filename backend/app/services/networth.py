@@ -57,8 +57,11 @@ def get_net_worth_history(db: Session, reference_currency: str | None = None) ->
     applied uniformly across the whole history — not the rate on each
     valuation's actual date.
 
-    v1 limitation: liabilities are treated as a constant (current remaining
-    balance), since there's no liability history over time yet.
+    v1 limitation: each liability contributes its current remaining_amount
+    (not amortized backward over time) to every historical point on or
+    after its own start_date, and is excluded entirely before that date —
+    still not a real balance-over-time, but no longer subtracts a loan's
+    present-day balance from dates that precede the loan's existence.
     """
     reference_currency = reference_currency or get_settings().reference_currency
 
@@ -91,14 +94,26 @@ def get_net_worth_history(db: Session, reference_currency: str | None = None) ->
     pivot = pivot.sort_index().ffill()
     total_assets_by_date = pivot.sum(axis=1)
 
-    total_liabilities = get_total_liabilities(db, reference_currency)
+    # (start_date, converted remaining_amount) per liability, so a loan only counts against
+    # history points on or after it actually started — get_total_liabilities() has no date
+    # filter at all, which would otherwise subtract every loan's present-day balance even from
+    # dates years before it existed.
+    liability_balances = [
+        (liability.start_date, fx.convert(db, liability.remaining_amount, liability.currency, reference_currency))
+        for liability in db.query(Liability).all()
+    ]
 
     history = []
     for d, assets in total_assets_by_date.items():
+        history_date = d if isinstance(d, date) else pd.Timestamp(d).date()
         total_assets = Decimal(str(round(assets, 2)))
+        total_liabilities = sum(
+            (amount for start_date, amount in liability_balances if start_date <= history_date),
+            Decimal(0),
+        )
         history.append(
             {
-                "date": d.isoformat() if isinstance(d, date) else str(d),
+                "date": history_date.isoformat(),
                 "total_assets": total_assets,
                 "total_liabilities": total_liabilities,
                 "net_worth": total_assets - total_liabilities,
