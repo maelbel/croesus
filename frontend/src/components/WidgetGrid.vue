@@ -218,9 +218,19 @@ function addWidget({ type, source, w, h }: { type: WidgetType; source?: string; 
 
 /* Swap GridStack's default diagonal-arrow resize icon for a grip-dot pattern, consistent with
    the grip-vertical drag handle in WidgetCard.vue — and cancel its baked-in -45deg rotation,
-   which was meant for that arrow glyph, not this one. */
+   which was meant for that arrow glyph, not this one. GridStack also ships this handle (and the
+   dragging/resizing state below) with a z-index (100/101, 10000 while active) it inherited from
+   jQuery-UI, wildly outside this app's own scale (see app.config.ts's z-index policy: z-10 header,
+   z-20 modal/slideover, z-30 popover) — high enough to render on top of an open slideover instead
+   of staying with ordinary page content underneath it. Cap both well under z-10. */
 :global(.grid-stack-item > .ui-resizable-se) {
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="14" cy="6" r="1.3" fill="%23666"/><circle cx="10" cy="10" r="1.3" fill="%23666"/><circle cx="14" cy="10" r="1.3" fill="%23666"/><circle cx="6" cy="14" r="1.3" fill="%23666"/><circle cx="10" cy="14" r="1.3" fill="%23666"/><circle cx="14" cy="14" r="1.3" fill="%23666"/></svg>');
   transform: none;
+  z-index: 1;
+}
+
+:global(.ui-resizable-resizing),
+:global(.ui-draggable-dragging) {
+  z-index: 5;
 }
 </style>
