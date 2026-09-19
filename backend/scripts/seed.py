@@ -48,14 +48,14 @@ DASHBOARD_WIDGETS = [
     {"id": "statTile:net_worth", "type": "statTile", "source": "net_worth", "x": 0, "y": 0, "w": 4, "h": 1},
     {"id": "statTile:total_debt", "type": "statTile", "source": "total_debt", "x": 4, "y": 0, "w": 4, "h": 1},
     {"id": "statTile:emergency_fund", "type": "statTile", "source": "emergency_fund", "x": 8, "y": 0, "w": 4, "h": 1},
-    {"id": "netWorthRings", "type": "netWorthRings", "x": 0, "y": 1, "w": 12, "h": 4},
-    {"id": "composition", "type": "composition", "x": 0, "y": 5, "w": 12, "h": 3},
-    {"id": "assetsByClass", "type": "assetsByClass", "x": 0, "y": 8, "w": 8, "h": 4},
-    {"id": "liabilitiesVsAssets", "type": "liabilitiesVsAssets", "x": 8, "y": 8, "w": 4, "h": 4},
-    {"id": "breakdownDonut:assets_by_class", "type": "breakdownDonut", "source": "assets_by_class", "x": 0, "y": 12, "w": 6, "h": 3},
-    {"id": "payoffStatus:debt_payoff", "type": "payoffStatus", "source": "debt_payoff", "x": 6, "y": 12, "w": 6, "h": 3},
-    {"id": "trendChart:net_worth", "type": "trendChart", "source": "net_worth", "x": 0, "y": 15, "w": 12, "h": 3},
-    {"id": "recentValuations", "type": "recentValuations", "x": 0, "y": 18, "w": 12, "h": 4},
+    {"id": "netWorthRings", "type": "netWorthRings", "x": 0, "y": 1, "w": 6, "h": 4},
+    {"id": "composition", "type": "composition", "x": 6, "y": 1, "w": 6, "h": 4},
+    {"id": "assetsByClass", "type": "assetsByClass", "x": 0, "y": 5, "w": 8, "h": 4},
+    {"id": "liabilitiesVsAssets", "type": "liabilitiesVsAssets", "x": 8, "y": 5, "w": 4, "h": 4},
+    {"id": "breakdownDonut:assets_by_class", "type": "breakdownDonut", "source": "assets_by_class", "x": 0, "y": 9, "w": 6, "h": 3},
+    {"id": "payoffStatus:debt_payoff", "type": "payoffStatus", "source": "debt_payoff", "x": 6, "y": 9, "w": 6, "h": 3},
+    {"id": "trendChart:net_worth", "type": "trendChart", "source": "net_worth", "x": 0, "y": 12, "w": 12, "h": 3},
+    {"id": "recentValuations", "type": "recentValuations", "x": 0, "y": 15, "w": 12, "h": 4},
 ]
 
 
