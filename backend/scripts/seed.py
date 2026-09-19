@@ -14,7 +14,7 @@ piped through `docker compose exec -T`.
 
 import random
 import sys
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -32,16 +32,50 @@ from app.models.valuation import Valuation
 
 random.seed(42)
 
+MIN_HISTORY_MONTHS = 12
+MAX_HISTORY_MONTHS = 60
+DAYS_PER_MONTH = 30.4368
+RECENT_DAILY_DAYS = 45
 
-def monthly_valuations(start: date, months: int, start_value: Decimal, drift: float, noise: float) -> list[tuple[date, Decimal]]:
-    """A `months`-long series of month-end valuations with a gentle up-trend."""
+
+def months_since(start: date, today: date) -> int:
+    return (today.year - start.year) * 12 + (today.month - start.month)
+
+
+def valuation_series(
+    history_start: date, today: date, start_value: Decimal, drift: float, noise: float
+) -> list[tuple[date, Decimal]]:
+    """A series of valuations from `history_start` to `today` following a smooth
+    exponential trend with bounded noise wiggle around it: one point per month
+    for the older history, then one point per day for the most recent
+    `RECENT_DAILY_DAYS` days, so the chart's short-range tabs (1D/1W/1M) have
+    real data instead of a single sparse monthly point.
+
+    Noise is applied against the trend rather than compounded step-over-step,
+    so a long history (several years) can't random-walk into runaway or
+    near-zero values the way compounding per-step noise would. Daily noise is
+    a fraction of monthly noise — day-to-day wiggle is smaller than the
+    month-to-month re-appraisal swings the base `noise` models.
+    """
+
+    def trend(elapsed_days: int) -> float:
+        return float(start_value) * (1 + drift) ** (elapsed_days / DAYS_PER_MONTH)
+
     out = []
-    value = float(start_value)
-    d = start
-    for _ in range(months):
-        value *= 1 + drift + random.uniform(-noise, noise)
+    daily_start = today - timedelta(days=RECENT_DAILY_DAYS - 1)
+
+    d = history_start
+    while d < daily_start:
+        value = trend((d - history_start).days) * (1 + random.uniform(-noise, noise))
         out.append((d, Decimal(str(round(value, 2)))))
         d = d + relativedelta(months=1)
+
+    d = daily_start
+    while d <= today:
+        value = trend((d - history_start).days) * (1 + random.uniform(-noise * 0.3, noise * 0.3))
+        out.append((d, Decimal(str(round(value, 2)))))
+        d = d + timedelta(days=1)
+
     return out
 
 
@@ -55,8 +89,7 @@ def seed() -> None:
         db.query(Envelope).delete()
 
         today = datetime.now(UTC).date()
-        history_start = today - relativedelta(months=11)
-        history_start = history_start.replace(day=1)
+        now = datetime.now(UTC)
 
         accounts = [
             Account(
@@ -72,6 +105,12 @@ def seed() -> None:
                 opened_at=date(2018, 3, 1),
                 is_emergency_fund=True,
                 emergency_fund_target=Decimal("10000.00"),
+            ),
+            Account(
+                name="LDDS",
+                type=AccountType.REGULATED_SAVINGS,
+                institution="Caisse d'Épargne",
+                opened_at=date(2019, 5, 1),
             ),
             Account(
                 name="PEA",
@@ -110,6 +149,26 @@ def seed() -> None:
                 institution="Corum",
                 opened_at=date(2023, 1, 12),
             ),
+            Account(
+                name="Coffre-fort (or physique)",
+                type=AccountType.OTHER,
+                opened_at=date(2020, 11, 1),
+                notes="Lingots détenus en coffre bancaire",
+            ),
+            Account(
+                name="Compte épargne Londres",
+                type=AccountType.OTHER,
+                currency=Currency.GBP,
+                institution="Monzo",
+                opened_at=date(2022, 3, 15),
+            ),
+            Account(
+                name="Compte épargne Zurich",
+                type=AccountType.OTHER,
+                currency=Currency.CHF,
+                institution="UBS",
+                opened_at=date(2023, 9, 1),
+            ),
         ]
         db.add_all(accounts)
         db.flush()
@@ -120,121 +179,176 @@ def seed() -> None:
         valuation_plan = [
             (by_name["Compte courant"], Decimal(2200), 0.005, 0.15),
             (by_name["Livret A"], Decimal(8500), 0.0025, 0.01),
+            (by_name["LDDS"], Decimal(6000), 0.003, 0.01),
             (by_name["PEA"], Decimal(14000), 0.012, 0.04),
             (by_name["Assurance-vie"], Decimal(22000), 0.006, 0.02),
             (by_name["Compte-titres"], Decimal(6000), 0.015, 0.06),
             (by_name["Portefeuille crypto"], Decimal(3000), 0.02, 0.18),
             (by_name["Résidence principale"], Decimal(310000), 0.002, 0.0),
             (by_name["SCPI Corum"], Decimal(9000), 0.004, 0.01),
+            (by_name["Coffre-fort (or physique)"], Decimal(15000), 0.004, 0.02),
+            (by_name["Compte épargne Londres"], Decimal(4000), 0.003, 0.02),
+            (by_name["Compte épargne Zurich"], Decimal(5000), 0.002, 0.015),
         ]
+        n_valuations = 0
         for account, start_value, drift, noise in valuation_plan:
-            for d, value in monthly_valuations(history_start, 12, start_value, drift, noise):
+            history_months = max(MIN_HISTORY_MONTHS, min(MAX_HISTORY_MONTHS, months_since(account.opened_at, today)))
+            history_start = (today - relativedelta(months=history_months - 1)).replace(day=1)
+            for d, value in valuation_series(history_start, today, start_value, drift, noise):
                 db.add(Valuation(account_id=account.id, date=d, value=value))
+                n_valuations += 1
 
-        db.add_all(
-            [
-                Asset(
-                    account_id=by_name["PEA"].id,
-                    name="Amundi MSCI World",
-                    symbol="CW8.PA",
-                    asset_class=AssetClass.ETF,
-                    quantity=Decimal("42.5"),
-                    unit_cost=Decimal("410.20"),
-                ),
-                Asset(
-                    account_id=by_name["PEA"].id,
-                    name="BNP Paribas",
-                    symbol="BNP.PA",
-                    asset_class=AssetClass.STOCK,
-                    quantity=Decimal(15),
-                    unit_cost=Decimal("58.30"),
-                ),
-                Asset(
-                    account_id=by_name["Compte-titres"].id,
-                    name="S&P 500 UCITS ETF",
-                    symbol="500.PA",
-                    asset_class=AssetClass.ETF,
-                    quantity=Decimal("8.2"),
-                    unit_cost=Decimal("520.00"),
-                ),
-                Asset(
-                    account_id=by_name["Portefeuille crypto"].id,
-                    name="Bitcoin",
-                    symbol="BTC",
-                    asset_class=AssetClass.CRYPTO,
-                    quantity=Decimal("0.045"),
-                    unit_cost=Decimal("38000.00"),
-                ),
-                Asset(
-                    account_id=by_name["Portefeuille crypto"].id,
-                    name="Ethereum",
-                    symbol="ETH",
-                    asset_class=AssetClass.CRYPTO,
-                    quantity=Decimal("1.2"),
-                    unit_cost=Decimal("2400.00"),
-                ),
-            ]
-        )
+        assets = [
+            Asset(
+                account_id=by_name["PEA"].id,
+                name="Amundi MSCI World",
+                symbol="CW8.PA",
+                asset_class=AssetClass.ETF,
+                quantity=Decimal("42.5"),
+                unit_cost=Decimal("410.20"),
+                current_price=Decimal("452.10"),
+                price_updated_at=now,
+            ),
+            Asset(
+                account_id=by_name["PEA"].id,
+                name="BNP Paribas",
+                symbol="BNP.PA",
+                asset_class=AssetClass.STOCK,
+                quantity=Decimal(15),
+                unit_cost=Decimal("58.30"),
+                current_price=Decimal("64.85"),
+                price_updated_at=now,
+            ),
+            Asset(
+                account_id=by_name["Compte-titres"].id,
+                name="S&P 500 UCITS ETF",
+                symbol="500.PA",
+                asset_class=AssetClass.ETF,
+                quantity=Decimal("8.2"),
+                unit_cost=Decimal("520.00"),
+                current_price=Decimal("560.40"),
+                price_updated_at=now,
+            ),
+            Asset(
+                account_id=by_name["Portefeuille crypto"].id,
+                name="Bitcoin",
+                symbol="BTC",
+                asset_class=AssetClass.CRYPTO,
+                quantity=Decimal("0.045"),
+                unit_cost=Decimal("38000.00"),
+                current_price=Decimal("58000.00"),
+                price_updated_at=now,
+            ),
+            Asset(
+                account_id=by_name["Portefeuille crypto"].id,
+                name="Ethereum",
+                symbol="ETH",
+                asset_class=AssetClass.CRYPTO,
+                quantity=Decimal("1.2"),
+                unit_cost=Decimal("2400.00"),
+                current_price=Decimal("3100.00"),
+                price_updated_at=now,
+            ),
+            Asset(
+                account_id=by_name["Assurance-vie"].id,
+                name="Fonds Euro Sécurité",
+                asset_class=AssetClass.FUND,
+                quantity=Decimal("500.000"),
+                unit_cost=Decimal("37.00"),
+                current_price=Decimal("37.85"),
+                price_updated_at=now,
+            ),
+            Asset(
+                account_id=by_name["Coffre-fort (or physique)"].id,
+                name="Lingots d'or (1kg)",
+                asset_class=AssetClass.OTHER,
+                quantity=Decimal(6),
+                unit_cost=Decimal("2450.00"),
+                current_price=Decimal("2600.00"),
+                price_updated_at=now,
+            ),
+        ]
+        db.add_all(assets)
 
-        db.add_all(
-            [
-                Liability(
-                    name="Crédit immobilier",
-                    type=LiabilityType.MORTGAGE,
-                    initial_amount=Decimal("280000.00"),
-                    remaining_amount=Decimal("241500.00"),
-                    monthly_payment=Decimal("1180.00"),
-                    interest_rate=Decimal("3.150"),
-                    start_date=date(2022, 7, 1),
-                    end_date=date(2047, 7, 1),
-                ),
-                Liability(
-                    name="Prêt auto",
-                    type=LiabilityType.CONSUMER_LOAN,
-                    currency=Currency.USD,
-                    initial_amount=Decimal("18000.00"),
-                    remaining_amount=Decimal("6400.00"),
-                    monthly_payment=Decimal("410.00"),
-                    interest_rate=Decimal("2.900"),
-                    start_date=date(2023, 4, 1),
-                    end_date=date(2027, 4, 1),
-                ),
-            ]
-        )
+        liabilities = [
+            Liability(
+                name="Crédit immobilier",
+                type=LiabilityType.MORTGAGE,
+                initial_amount=Decimal("280000.00"),
+                remaining_amount=Decimal("241500.00"),
+                monthly_payment=Decimal("1180.00"),
+                interest_rate=Decimal("3.150"),
+                start_date=date(2022, 7, 1),
+                end_date=date(2047, 7, 1),
+            ),
+            Liability(
+                name="Prêt auto",
+                type=LiabilityType.CONSUMER_LOAN,
+                currency=Currency.USD,
+                initial_amount=Decimal("18000.00"),
+                remaining_amount=Decimal("6400.00"),
+                monthly_payment=Decimal("410.00"),
+                interest_rate=Decimal("2.900"),
+                start_date=date(2023, 4, 1),
+                end_date=date(2027, 4, 1),
+            ),
+            Liability(
+                name="Prêt personnel",
+                type=LiabilityType.OTHER,
+                initial_amount=Decimal("8000.00"),
+                remaining_amount=Decimal("3200.00"),
+                monthly_payment=Decimal("220.00"),
+                interest_rate=Decimal("5.900"),
+                start_date=date(2023, 6, 1),
+                end_date=date(2026, 6, 1),
+            ),
+        ]
+        db.add_all(liabilities)
 
-        db.add_all(
-            [
-                Envelope(
-                    name="Fonds d'urgence",
-                    target_amount=Decimal("10000.00"),
-                    current_amount=Decimal("8500.00"),
-                    color="#22c55e",
-                    icon="shield",
-                ),
-                Envelope(
-                    name="Vacances",
-                    target_amount=Decimal("3000.00"),
-                    current_amount=Decimal("1150.00"),
-                    color="#3b82f6",
-                    icon="plane",
-                ),
-                Envelope(
-                    name="Travaux maison",
-                    target_amount=Decimal("15000.00"),
-                    current_amount=Decimal("4200.00"),
-                    color="#f97316",
-                    icon="hammer",
-                ),
-            ]
-        )
+        envelopes = [
+            Envelope(
+                name="Fonds d'urgence",
+                target_amount=Decimal("10000.00"),
+                current_amount=Decimal("8500.00"),
+                color="#22c55e",
+                icon="shield",
+            ),
+            Envelope(
+                name="Vacances",
+                target_amount=Decimal("3000.00"),
+                current_amount=Decimal("1150.00"),
+                color="#3b82f6",
+                icon="plane",
+            ),
+            Envelope(
+                name="Travaux maison",
+                target_amount=Decimal("15000.00"),
+                current_amount=Decimal("4200.00"),
+                color="#f97316",
+                icon="hammer",
+            ),
+            Envelope(
+                name="Nouvelle voiture",
+                target_amount=Decimal("20000.00"),
+                current_amount=Decimal("0.00"),
+                color="#a855f7",
+                icon="car",
+            ),
+            Envelope(
+                name="Cadeaux de Noël",
+                target_amount=Decimal("500.00"),
+                current_amount=Decimal("680.00"),
+                color="#ef4444",
+                icon="gift",
+            ),
+        ]
+        db.add_all(envelopes)
 
         db.commit()
 
-        n_accounts = len(accounts)
-        n_valuations = db.query(Valuation).count()
         print(
-            f"Seeded {n_accounts} accounts, {n_valuations} valuations, "
-            f"5 assets, 2 liabilities, 3 envelopes."
+            f"Seeded {len(accounts)} accounts, {n_valuations} valuations, "
+            f"{len(assets)} assets, {len(liabilities)} liabilities, {len(envelopes)} envelopes."
         )
     finally:
         db.close()
