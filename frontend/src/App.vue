@@ -211,7 +211,7 @@ const isNarrowPage = computed(() => route.meta.narrow === true)
           <div class="mb-8 flex flex-wrap items-end justify-between gap-4 sm:gap-6">
             <div class="flex flex-col gap-1.5">
               <span class="text-sm text-muted">{{ pageKicker }}</span>
-              <h1 class="text-[37px] tracking-tight">{{ pageTitle }}</h1>
+              <h1 class="text-[37px] leading-none tracking-tight">{{ pageTitle }}</h1>
             </div>
             <div class="flex items-center gap-2.5">
               <UButton
