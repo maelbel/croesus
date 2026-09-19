@@ -98,6 +98,8 @@ export default {
     liabilitiesVsAssetsKicker: 'Set against them',
     liabilitiesVsAssetsHeading: 'Liabilities vs. assets',
     liabilitiesVsAssets: 'Liabilities · {value} · {pct}% of assets',
+    liabilitiesVsAssetsAssetsLegend: 'Assets',
+    liabilitiesVsAssetsLiabilitiesLegend: 'Liabilities',
     recentValuationsKicker: 'Recent valuations',
     recentValuationsHeading: 'Month by month',
     columnDate: 'Date',
@@ -320,6 +322,8 @@ export default {
   },
   compositionChart: {
     liabilitiesLegend: 'Liabilities',
+    totalLabel: 'Total',
+    insufficientData: 'One valuation on record so far — this chart needs at least two to draw a trend.',
   },
   netWorthRings: {
     multiYear:

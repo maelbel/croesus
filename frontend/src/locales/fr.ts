@@ -98,6 +98,8 @@ export default {
     liabilitiesVsAssetsKicker: 'En regard',
     liabilitiesVsAssetsHeading: 'Passifs et actifs',
     liabilitiesVsAssets: 'Passifs · {value} · {pct}% des actifs',
+    liabilitiesVsAssetsAssetsLegend: 'Actifs',
+    liabilitiesVsAssetsLiabilitiesLegend: 'Passifs',
     recentValuationsKicker: 'Valorisations récentes',
     recentValuationsHeading: 'Mois par mois',
     columnDate: 'Date',
@@ -318,6 +320,8 @@ export default {
   },
   compositionChart: {
     liabilitiesLegend: 'Passifs',
+    totalLabel: 'Total',
+    insufficientData: "Une seule valorisation enregistrée pour l'instant — il en faut au moins deux pour tracer une tendance.",
   },
   netWorthRings: {
     multiYear:
