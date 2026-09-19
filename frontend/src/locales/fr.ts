@@ -391,6 +391,8 @@ export default {
     deleteAllFailedTitle: "{count} élément sur {total} n'a pas pu être supprimé | {count} éléments sur {total} n'ont pas pu être supprimés",
     deleteAllFailedDescription: 'Vérifiez votre connexion et réessayez.',
     aboutTitle: 'À propos',
+    selfHostedInstanceTitle: 'Instance auto-hébergée',
+    selfHostedInstanceDescription: 'Le serveur auquel cette application est connectée.',
     versionTitle: 'Version',
     versionUpToDate: 'Vous avez la dernière version.',
     versionUpdateAvailable: '{version} est disponible.',

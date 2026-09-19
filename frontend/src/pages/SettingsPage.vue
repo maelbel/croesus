@@ -13,6 +13,7 @@ import { useLiabilitiesStore } from '../stores/liabilities'
 import { useEnvelopesStore } from '../stores/envelopes'
 import { useAuthStore } from '../stores/auth'
 import { useUpdateCheckStore } from '../stores/updateCheck'
+import { resolveBaseUrl } from '../api/client'
 import { useConnectionForm, useApplyConnection } from '../composables/useConnectionForm'
 import { useConfirm } from '../composables/useConfirm'
 import ConnectionModeFields from '../components/ConnectionModeFields.vue'
@@ -233,6 +234,16 @@ async function deleteAllData() {
       </div>
 
       <div v-else-if="activeCategory === 'about'" class="neu-surface flex flex-col divide-y divide-default bg-default">
+        <!-- Desktop already has this in the Connection section above (with a form to change it) —
+             self-hosted/browser mode never shows which backend it's actually talking to anywhere
+             else, so it belongs here instead of being omitted for that build. -->
+        <div v-if="!isTauriApp" class="flex items-center gap-3.5 px-5 py-4">
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[14.5px] font-semibold">{{ t('settings.selfHostedInstanceTitle') }}</span>
+            <span class="truncate text-[12.5px] text-muted">{{ t('settings.selfHostedInstanceDescription') }}</span>
+          </span>
+          <span class="flex-none truncate text-[13.5px] text-muted">{{ resolveBaseUrl() }}</span>
+        </div>
         <div class="flex items-center gap-3.5 px-5 py-4">
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
             <span class="text-[14.5px] font-semibold">{{ t('settings.versionTitle') }}</span>

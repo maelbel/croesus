@@ -392,6 +392,8 @@ export default {
     deleteAllFailedTitle: "{count} of {total} item couldn't be deleted | {count} of {total} items couldn't be deleted",
     deleteAllFailedDescription: 'Check your connection and try again.',
     aboutTitle: 'About',
+    selfHostedInstanceTitle: 'Self-hosted instance',
+    selfHostedInstanceDescription: 'The backend this app is talking to.',
     versionTitle: 'Version',
     versionUpToDate: "You're on the latest version.",
     versionUpdateAvailable: '{version} is available.',
