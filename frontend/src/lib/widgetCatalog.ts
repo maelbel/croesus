@@ -176,7 +176,7 @@ export const WIDGET_CATALOG: Record<WidgetType, WidgetCatalogEntry> = {
     subtitle: (widget) => payoffSubtitle(widget.source),
     icon: 'i-lucide-flag',
     descKey: 'dashboardGrid.descPayoffStatus',
-    minW: 5,
+    minW: 4,
     maxW: 6,
     minH: 3,
     maxH: 3,
