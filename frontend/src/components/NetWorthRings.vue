@@ -76,8 +76,8 @@ function onRowHover(_e: Event, row: TableRow<RingRow> | null) {
 </script>
 
 <template>
-  <div v-if="rings.items.length > 0" class="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
-    <div class="flex flex-col items-start gap-4 sm:w-1/2 sm:flex-row sm:items-center sm:gap-6">
+  <div v-if="rings.items.length > 0" class="flex h-full min-h-0 flex-col gap-6 sm:flex-row sm:gap-8">
+    <div class="flex flex-none flex-col items-start gap-4 sm:w-1/2 sm:flex-row sm:items-center sm:gap-6 sm:self-center">
       <svg viewBox="0 0 380 380" style="width: 150px" class="block flex-none">
         <circle
           v-for="ring in rings.items"
@@ -114,7 +114,7 @@ function onRowHover(_e: Event, row: TableRow<RingRow> | null) {
       </div>
     </div>
 
-    <div class="overflow-x-auto sm:w-1/2">
+    <div class="min-h-0 overflow-x-auto overflow-y-auto sm:w-1/2 sm:flex-1 sm:self-stretch">
       <UTable :data="rings.rows" :columns="ringsColumns" :meta="rowsMeta" :on-hover="onRowHover">
         <template #year-cell="{ row }: { row: TableRow<RingRow> }">
           <span class="inline-flex items-center gap-2 whitespace-nowrap">
