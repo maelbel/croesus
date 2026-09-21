@@ -6,6 +6,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.routes import (
@@ -23,6 +26,7 @@ from app.api.routes import (
 from app.core import oidc
 from app.core.config import DEFAULT_JWT_SECRET, get_settings
 from app.core.database import SessionLocal
+from app.core.rate_limit import limiter
 from app.core.security import decode_access_token, hash_password
 from app.models.user import User
 from app.services.pricing import refresh_all_asset_prices
@@ -118,6 +122,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Croesus API", version="0.1.0", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 async def require_auth(request: Request, call_next):
@@ -139,8 +145,13 @@ async def require_auth(request: Request, call_next):
 
 # Added before CORSMiddleware so CORS ends up as the outermost middleware —
 # otherwise a 401 short-circuit here would skip CORS headers entirely and
-# browsers would surface a CORS error instead of the actual 401.
+# browsers would surface a CORS error instead of the actual 401. Same reasoning applies to
+# SlowAPIMiddleware below: a 429 should still carry CORS headers.
 app.add_middleware(BaseHTTPMiddleware, dispatch=require_auth)
+
+# Required for @limiter.limit(...) (see app/api/routes/auth.py) to attach rate-limit headers and
+# be caught by the RateLimitExceeded handler registered above.
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
