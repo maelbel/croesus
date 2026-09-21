@@ -210,3 +210,19 @@ services:
 
 Then reload nginx (`nginx -t && systemctl reload nginx`) and rebuild Croesus
 (`docker compose up -d --build`) to pick up the new `VITE_API_URL`.
+
+## A note on login rate limiting
+
+`/auth/login` and `/auth/oidc/callback` are throttled per client IP
+(`RATE_LIMIT_AUTH_PER_MINUTE`, see `.env.example`) as brute-force protection
+for the admin account. The backend deliberately does not trust
+`X-Forwarded-For` — it has no way to know whether it's actually sitting
+behind a proxy that sets that header honestly, and trusting it
+unconditionally would let a direct, un-proxied attacker spoof a different IP
+on every request to dodge the limit entirely. Practical effect: once you put
+a reverse proxy in front (all three examples above set `X-Forwarded-For`),
+every client shares one bucket — the proxy's IP — from the backend's point
+of view. That's an acceptable trade-off for Croesus's single-admin threat
+model; if you want precise per-client throttling on top of a proxy you
+trust, enforce it at the proxy instead (e.g. Traefik's rate-limit
+middleware, or an nginx `limit_req` zone).

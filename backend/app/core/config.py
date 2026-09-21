@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     admin_password: str | None = None
     jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_expires_minutes: int = 60
+    # Per-client-IP throttle on /auth/login and /auth/oidc/callback (see app/core/rate_limit.py) —
+    # brute-force protection for the single admin account. High enough that a real user
+    # mistyping their password a few times, or the desktop app's OIDC redirect flow, is never
+    # affected.
+    rate_limit_auth_per_minute: int = 10
 
     oidc_issuer: str | None = None
     oidc_client_id: str | None = None

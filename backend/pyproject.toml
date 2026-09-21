@@ -19,6 +19,7 @@ dependencies = [
     "uvicorn[standard]>=0.52.1",
     "httpx>=0.28.1",
     "apscheduler>=3.11.3",
+    "slowapi>=0.1.10",
 ]
 
 [tool.uv]

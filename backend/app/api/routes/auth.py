@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 import httpx
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.core import oidc
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.rate_limit import auth_rate_limit, limiter
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
 from app.schemas.auth import AuthStatus, LoginRequest, TokenResponse
@@ -38,7 +39,8 @@ def auth_status():
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit(auth_rate_limit)
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
     if not get_settings().password_enabled:
         raise HTTPException(status_code=404, detail="Password login is not enabled on this instance")
 
@@ -83,7 +85,9 @@ async def oidc_login(redirect_uri: str = Query(...)):
 
 
 @router.get("/oidc/callback")
+@limiter.limit(auth_rate_limit)
 async def oidc_callback(
+    request: Request,
     code: str = Query(...),
     state: str = Query(...),
     db: Session = Depends(get_db),
