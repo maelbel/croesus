@@ -64,6 +64,8 @@ means exactly one thing: **wealth, tracked over the long run.**
 - 💹 **Automatic price tracking** — give a stock, ETF, fund, or crypto
   holding a symbol and its market value (and the account it's in) updates
   itself from Yahoo Finance/CoinGecko, on a schedule or on demand.
+  Multi-currency accounts are converted to your reference currency using
+  exchange rates from Frankfurter (ECB daily rates).
 - 🆘 **Emergency fund tracking** — a target goal with a progress bar, not
   just another line in a spreadsheet.
 - ✉️ **Budget envelopes** — YNAB-style allocation buckets, kept distinct from
