@@ -303,6 +303,9 @@ Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for the
 workflow and commit message conventions. Releases are fully automated; see
 [docs/RELEASING.md](./docs/RELEASING.md) if you're a maintainer.
 
+Found a security issue? See [SECURITY.md](./SECURITY.md) for how to report
+it privately.
+
 ## License
 
 [AGPL-3.0-or-later](./LICENSE)
