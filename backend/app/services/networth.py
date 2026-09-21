@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 from decimal import Decimal
 
@@ -9,20 +10,34 @@ from app.models.liability import Liability
 from app.models.valuation import Valuation
 from app.services import fx
 
+logger = logging.getLogger(__name__)
 
-def get_total_liabilities(db: Session, reference_currency: str | None = None) -> Decimal:
+
+def get_total_liabilities(db: Session, reference_currency: str | None = None) -> tuple[Decimal, list[int]]:
+    """Returns (total, unconverted_liability_ids). A liability whose currency has no available FX
+    rate (see fx.FxRateUnavailableError) is excluded from the total — never fabricated as 1:1 —
+    and its id is reported so the caller can surface that the total is partial."""
     reference_currency = reference_currency or get_settings().reference_currency
     liabilities = db.query(Liability).all()
-    return sum(
-        (fx.convert(db, liability.remaining_amount, liability.currency, reference_currency) for liability in liabilities),
-        Decimal(0),
-    )
+    total = Decimal(0)
+    unconverted: list[int] = []
+    for liability in liabilities:
+        try:
+            total += fx.convert(db, liability.remaining_amount, liability.currency, reference_currency)
+        except fx.FxRateUnavailableError:
+            unconverted.append(liability.id)
+    return total, unconverted
 
 
 def get_current_net_worth(db: Session, reference_currency: str | None = None) -> dict:
     """Latest known valuation of each account, minus total liabilities. All
     values converted into reference_currency (default: settings.reference_currency)
-    from each account's/liability's own currency, using the current spot FX rate."""
+    from each account's/liability's own currency, using the current spot FX rate.
+
+    An account or liability whose currency has no available FX rate (see
+    fx.FxRateUnavailableError) is excluded from the totals rather than fabricated as a 1:1
+    conversion, and reported in unconverted_accounts/unconverted_liabilities so the caller knows
+    the figures are partial rather than silently wrong."""
     reference_currency = reference_currency or get_settings().reference_currency
 
     latest_per_account = (
@@ -33,18 +48,24 @@ def get_current_net_worth(db: Session, reference_currency: str | None = None) ->
     )
     seen: set[int] = set()
     total_assets = Decimal(0)
+    unconverted_accounts: list[int] = []
     for valuation in latest_per_account:
         if valuation.account_id in seen:
             continue
         seen.add(valuation.account_id)
-        total_assets += fx.convert(db, valuation.value, valuation.account.currency, reference_currency)
+        try:
+            total_assets += fx.convert(db, valuation.value, valuation.account.currency, reference_currency)
+        except fx.FxRateUnavailableError:
+            unconverted_accounts.append(valuation.account_id)
 
-    total_liabilities = get_total_liabilities(db, reference_currency)
+    total_liabilities, unconverted_liabilities = get_total_liabilities(db, reference_currency)
 
     return {
         "total_assets": total_assets,
         "total_liabilities": total_liabilities,
         "net_worth": total_assets - total_liabilities,
+        "unconverted_accounts": unconverted_accounts,
+        "unconverted_liabilities": unconverted_liabilities,
     }
 
 
@@ -62,6 +83,13 @@ def get_net_worth_history(db: Session, reference_currency: str | None = None) ->
     after its own start_date, and is excluded entirely before that date —
     still not a real balance-over-time, but no longer subtracts a loan's
     present-day balance from dates that precede the loan's existence.
+
+    v1 limitation: a valuation or liability whose currency has no available FX rate (see
+    fx.FxRateUnavailableError) is dropped from the reconstruction entirely — excluded from every
+    date's total, logged as a warning — rather than fabricated as a 1:1 conversion. This history
+    endpoint returns a bare list (see GET /dashboard/net-worth/history), so unlike
+    get_current_net_worth there is no per-point field reporting which ones were dropped; check the
+    logs if a history curve looks lower than expected during an FX outage.
     """
     reference_currency = reference_currency or get_settings().reference_currency
 
@@ -77,16 +105,22 @@ def get_net_worth_history(db: Session, reference_currency: str | None = None) ->
     if not valuations:
         return []
 
-    df = pd.DataFrame(
-        [
-            {
-                "date": v.date,
-                "account_id": v.account_id,
-                "value": float(fx.convert(db, v.value, v.account.currency, reference_currency)),
-            }
-            for v in valuations
-        ]
-    )
+    rows = []
+    for v in valuations:
+        try:
+            value = float(fx.convert(db, v.value, v.account.currency, reference_currency))
+        except fx.FxRateUnavailableError:
+            logger.warning(
+                "Dropping valuation %s (account %s, %s) from net worth history: no FX rate available",
+                v.id, v.account_id, v.account.currency,
+            )
+            continue
+        rows.append({"date": v.date, "account_id": v.account_id, "value": value})
+
+    if not rows:
+        return []
+
+    df = pd.DataFrame(rows)
 
     pivot = df.pivot_table(
         index="date", columns="account_id", values="value", aggfunc="last"
@@ -98,10 +132,17 @@ def get_net_worth_history(db: Session, reference_currency: str | None = None) ->
     # history points on or after it actually started — get_total_liabilities() has no date
     # filter at all, which would otherwise subtract every loan's present-day balance even from
     # dates years before it existed.
-    liability_balances = [
-        (liability.start_date, fx.convert(db, liability.remaining_amount, liability.currency, reference_currency))
-        for liability in db.query(Liability).all()
-    ]
+    liability_balances = []
+    for liability in db.query(Liability).all():
+        try:
+            amount = fx.convert(db, liability.remaining_amount, liability.currency, reference_currency)
+        except fx.FxRateUnavailableError:
+            logger.warning(
+                "Dropping liability %s (%s) from net worth history: no FX rate available",
+                liability.id, liability.currency,
+            )
+            continue
+        liability_balances.append((liability.start_date, amount))
 
     history = []
     for d, assets in total_assets_by_date.items():

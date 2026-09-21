@@ -160,6 +160,11 @@ export interface NetWorth {
   total_assets: number
   total_liabilities: number
   net_worth: number
+  /** Account/liability ids excluded from the totals above because no FX rate was available for
+   * their currency (see backend/app/services/fx.py's FxRateUnavailableError) — the backend never
+   * fabricates a 1:1 rate, so a non-empty list here means these totals are a partial figure. */
+  unconverted_accounts: number[]
+  unconverted_liabilities: number[]
 }
 
 export interface NetWorthHistoryPoint {
