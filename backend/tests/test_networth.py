@@ -10,6 +10,7 @@ from app.models import (
     Valuation,
 )
 from app.services import networth
+from app.services.fx import FxRateUnavailableError
 
 
 def _account(db, name="Checking", currency=Currency.EUR, type_=AccountType.CHECKING) -> Account:
@@ -38,6 +39,35 @@ def _liability(db, remaining: str, start_date: date, currency=Currency.EUR) -> L
     db.add(liability)
     db.flush()
     return liability
+
+
+class TestGetTotalLiabilities:
+    def test_returns_total_and_no_unconverted_ids_when_all_convert(self, db_session):
+        _liability(db_session, "1000", start_date=date(2020, 1, 1))
+        _liability(db_session, "500", start_date=date(2020, 1, 1))
+        db_session.commit()
+
+        total, unconverted = networth.get_total_liabilities(db_session, reference_currency="EUR")
+
+        assert total == Decimal(1500)
+        assert unconverted == []
+
+    def test_excludes_and_reports_a_liability_with_no_fx_rate_available(self, db_session, monkeypatch):
+        _liability(db_session, "1000", start_date=date(2020, 1, 1), currency=Currency.EUR)
+        unavailable = _liability(db_session, "500", start_date=date(2020, 1, 1), currency=Currency.USD)
+        db_session.commit()
+
+        def get_rate(db, from_currency, to_currency, ttl_minutes=None):
+            if from_currency == "USD":
+                raise FxRateUnavailableError("no rate")
+            return Decimal(1)
+
+        monkeypatch.setattr(networth.fx, "get_rate", get_rate)
+
+        total, unconverted = networth.get_total_liabilities(db_session, reference_currency="EUR")
+
+        assert total == Decimal(1000)
+        assert unconverted == [unavailable.id]
 
 
 class TestGetCurrentNetWorth:
@@ -101,7 +131,50 @@ class TestGetCurrentNetWorth:
             "total_assets": Decimal(0),
             "total_liabilities": Decimal(0),
             "net_worth": Decimal(0),
+            "unconverted_accounts": [],
+            "unconverted_liabilities": [],
         }
+
+    def test_account_with_no_fx_rate_available_is_excluded_and_reported_not_fabricated(self, db_session, monkeypatch):
+        eur_account = _account(db_session, name="EUR checking", currency=Currency.EUR)
+        usd_account = _account(db_session, name="USD checking", currency=Currency.USD)
+        _valuation(db_session, eur_account, "1000", date(2026, 1, 1))
+        usd_valuation = _valuation(db_session, usd_account, "500", date(2026, 1, 1))
+        db_session.commit()
+
+        def get_rate(db, from_currency, to_currency, ttl_minutes=None):
+            if from_currency == "USD":
+                raise FxRateUnavailableError("no rate")
+            return Decimal(1)
+
+        monkeypatch.setattr(networth.fx, "get_rate", get_rate)
+
+        result = networth.get_current_net_worth(db_session, reference_currency="EUR")
+
+        # The EUR account still counts; the USD account is excluded rather than
+        # summed in as if 1 USD = 1 EUR, and its account id is reported.
+        assert result["total_assets"] == Decimal(1000)
+        assert result["unconverted_accounts"] == [usd_valuation.account_id]
+        assert result["unconverted_liabilities"] == []
+
+    def test_liability_with_no_fx_rate_available_is_excluded_and_reported_not_fabricated(self, db_session, monkeypatch):
+        account = _account(db_session, currency=Currency.EUR)
+        _valuation(db_session, account, "5000", date(2026, 1, 1))
+        liability = _liability(db_session, "1500", start_date=date(2020, 1, 1), currency=Currency.USD)
+        db_session.commit()
+
+        def get_rate(db, from_currency, to_currency, ttl_minutes=None):
+            if from_currency == "USD":
+                raise FxRateUnavailableError("no rate")
+            return Decimal(1)
+
+        monkeypatch.setattr(networth.fx, "get_rate", get_rate)
+
+        result = networth.get_current_net_worth(db_session, reference_currency="EUR")
+
+        assert result["total_liabilities"] == Decimal(0)
+        assert result["net_worth"] == Decimal(5000)
+        assert result["unconverted_liabilities"] == [liability.id]
 
 
 class TestGetNetWorthHistory:
@@ -148,3 +221,34 @@ class TestGetNetWorthHistory:
         history = networth.get_net_worth_history(db_session, reference_currency="EUR")
 
         assert history[0]["total_assets"] == Decimal("50.00")
+
+    def test_valuation_with_no_fx_rate_available_is_dropped_not_fabricated(self, db_session, monkeypatch):
+        eur_account = _account(db_session, name="EUR checking", currency=Currency.EUR)
+        usd_account = _account(db_session, name="USD checking", currency=Currency.USD)
+        _valuation(db_session, eur_account, "1000", date(2026, 1, 1))
+        _valuation(db_session, usd_account, "500", date(2026, 1, 1))
+        db_session.commit()
+
+        def get_rate(db, from_currency, to_currency, ttl_minutes=None):
+            if from_currency == "USD":
+                raise FxRateUnavailableError("no rate")
+            return Decimal(1)
+
+        monkeypatch.setattr(networth.fx, "get_rate", get_rate)
+
+        history = networth.get_net_worth_history(db_session, reference_currency="EUR")
+
+        # The USD account's valuation is dropped entirely rather than counted as if 1 USD = 1 EUR.
+        assert history[0]["total_assets"] == Decimal("1000.00")
+
+    def test_returns_empty_when_every_valuation_is_unconvertible(self, db_session, monkeypatch):
+        account = _account(db_session, currency=Currency.USD)
+        _valuation(db_session, account, "500", date(2026, 1, 1))
+        db_session.commit()
+
+        def always_unavailable(db, from_currency, to_currency, ttl_minutes=None):
+            raise FxRateUnavailableError("no rate")
+
+        monkeypatch.setattr(networth.fx, "get_rate", always_unavailable)
+
+        assert networth.get_net_worth_history(db_session, reference_currency="EUR") == []

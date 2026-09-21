@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+import pytest
+
 from app.models.fx_rate_cache import FxRateCache
 from app.services import fx
 
@@ -46,13 +48,11 @@ class TestGetRate:
         assert cached_gbp is not None
         assert cached_gbp.rate == Decimal("0.85")
 
-    def test_fetch_failure_without_any_cache_falls_back_to_1to1(self, db_session, monkeypatch):
-        # Documents the current, undesirable fallback: a total provider outage
-        # with nothing cached yet converts as if 1 EUR = 1 USD, silently.
-        # Tracked for a real fix by issue #69.
+    def test_fetch_failure_without_any_cache_raises_instead_of_fabricating_1to1(self, db_session, monkeypatch):
         monkeypatch.setattr(fx, "_fetch_rates_from", _unreachable)
 
-        assert fx.get_rate(db_session, "EUR", "USD", ttl_minutes=720) == Decimal(1)
+        with pytest.raises(fx.FxRateUnavailableError):
+            fx.get_rate(db_session, "EUR", "USD", ttl_minutes=720)
 
     def test_fetch_failure_with_a_stale_cache_entry_returns_the_stale_rate_not_1to1(self, db_session, monkeypatch):
         _fresh(db_session, "EUR", "USD", "1.05", age=timedelta(days=30))
@@ -60,12 +60,30 @@ class TestGetRate:
 
         assert fx.get_rate(db_session, "EUR", "USD", ttl_minutes=720) == Decimal("1.05")
 
+    def test_successful_fetch_missing_the_requested_quote_raises_instead_of_fabricating_1to1(self, db_session, monkeypatch):
+        # Defensive case: Frankfurter's response for this base didn't include the requested
+        # quote currency at all (shouldn't normally happen — every SUPPORTED_CURRENCIES symbol
+        # is requested — but must not silently become 1:1 either).
+        monkeypatch.setattr(fx, "_fetch_rates_from", lambda base: {"GBP": Decimal("0.85")})
+
+        with pytest.raises(fx.FxRateUnavailableError):
+            fx.get_rate(db_session, "EUR", "USD", ttl_minutes=720)
+
 
 class TestConvert:
     def test_multiplies_amount_by_the_resolved_rate(self, db_session, monkeypatch):
         monkeypatch.setattr(fx, "get_rate", lambda *a, **k: Decimal(2))
 
         assert fx.convert(db_session, Decimal(50), "EUR", "USD") == Decimal(100)
+
+    def test_propagates_fx_rate_unavailable(self, db_session, monkeypatch):
+        def unavailable(*_a, **_k):
+            raise fx.FxRateUnavailableError("no rate")
+
+        monkeypatch.setattr(fx, "get_rate", unavailable)
+
+        with pytest.raises(fx.FxRateUnavailableError):
+            fx.convert(db_session, Decimal(50), "EUR", "USD")
 
 
 class TestGetRatesTo:
@@ -77,3 +95,16 @@ class TestGetRatesTo:
         assert "EUR" not in rates
         assert all(rate == Decimal(3) for rate in rates.values())
         assert len(rates) == len(fx.SUPPORTED_CURRENCIES) - 1
+
+    def test_omits_a_currency_whose_rate_is_unavailable_instead_of_failing_the_whole_panel(self, db_session, monkeypatch):
+        def get_rate(db, currency, target, ttl_minutes=None):
+            if currency == "GBP":
+                raise fx.FxRateUnavailableError("no rate")
+            return Decimal(3)
+
+        monkeypatch.setattr(fx, "get_rate", get_rate)
+
+        rates = fx.get_rates_to(db_session, "EUR")
+
+        assert "GBP" not in rates
+        assert len(rates) == len(fx.SUPPORTED_CURRENCIES) - 2
