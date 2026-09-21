@@ -13,7 +13,7 @@ See [README.md](./README.md) for local dev setup (backend, frontend, desktop).
 2. Create a branch off `main`: `git checkout -b feat/short-description`.
 3. Make your change. Keep PRs focused — one logical change per PR.
 4. Before opening a PR, run locally:
-   - Backend: `cd backend && uv run ruff check .`
+   - Backend: `cd backend && uv run ruff check . && uv run pytest`
    - Frontend: `cd frontend && pnpm lint && pnpm build`
    - Desktop (if you touched `src-tauri/`): `cargo check --manifest-path src-tauri/Cargo.toml`
 5. Open a PR against `main`. CI runs the same checks automatically.
