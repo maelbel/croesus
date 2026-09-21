@@ -111,7 +111,11 @@ Two target usage modes:
       French + English
 - [x] Multi-currency — per-account currency, conversion to a reference
       currency for the consolidated net worth view (supersedes the earlier
-      "EUR only" non-goal)
+      "EUR only" non-goal). Exchange rates from Frankfurter
+      (api.frankfurter.dev, ECB daily reference rates) — keyless, no signup
+      required, same convention as Phase 2's Yahoo Finance/CoinGecko pricing.
+      Cached locally (FxRateCache) the same way PriceCache avoids
+      re-hitting Yahoo/CoinGecko
 
 ## Phase 4 — Customizable dashboard
 
