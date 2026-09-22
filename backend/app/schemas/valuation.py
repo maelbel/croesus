@@ -26,4 +26,5 @@ class ValuationRead(ValuationBase):
 
     id: int
     account_id: int
+    fully_priced: bool
     created_at: datetime
