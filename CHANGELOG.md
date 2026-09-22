@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.4.1](https://github.com/maelbel/croesus/compare/v1.4.0...v1.4.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **backend:** flag account valuations that blend cost basis into a priced total ([#83](https://github.com/maelbel/croesus/issues/83)) ([cd71c5f](https://github.com/maelbel/croesus/commit/cd71c5fbf568b5b11629343023236c694d4c7354)), closes [#81](https://github.com/maelbel/croesus/issues/81)
+* **backend:** rate-limit /auth/login and /auth/oidc/callback ([#77](https://github.com/maelbel/croesus/issues/77)) ([effcd46](https://github.com/maelbel/croesus/commit/effcd460a7b8bb2a3cf61828d8ccafdf876e05fe)), closes [#70](https://github.com/maelbel/croesus/issues/70)
+* **backend:** stop silently fabricating a 1:1 FX rate on total provider failure ([#75](https://github.com/maelbel/croesus/issues/75)) ([fe0593b](https://github.com/maelbel/croesus/commit/fe0593b49b65c1783eeff70dfeeebc3a59554128)), closes [#69](https://github.com/maelbel/croesus/issues/69)
+
+
+### Documentation
+
+* add SECURITY.md with a vulnerability disclosure process ([#79](https://github.com/maelbel/croesus/issues/79)) ([6b63cf2](https://github.com/maelbel/croesus/commit/6b63cf2bcf11619b5bf07ae3f79eab8ce7086a0f)), closes [#72](https://github.com/maelbel/croesus/issues/72)
+* document Frankfurter as the FX rate source for multi-currency ([#78](https://github.com/maelbel/croesus/issues/78)) ([3755583](https://github.com/maelbel/croesus/commit/3755583277be85805ef4cc5d7bf056c1353cf2ca)), closes [#71](https://github.com/maelbel/croesus/issues/71)
+
 ## [1.4.0](https://github.com/maelbel/croesus/compare/v1.3.0...v1.4.0) (2026-09-19)
 
 
