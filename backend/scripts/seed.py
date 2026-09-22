@@ -30,6 +30,7 @@ from app.models.currency import Currency
 from app.models.dashboard_layout import DashboardLayout
 from app.models.envelope import Envelope
 from app.models.liability import Liability, LiabilityType
+from app.models.liability_balance import LiabilityBalance
 from app.models.valuation import Valuation
 
 random.seed(42)
@@ -102,12 +103,31 @@ def valuation_series(
     return out
 
 
+def liability_balance_series(
+    start_date: date, today: date, initial: Decimal, remaining: Decimal
+) -> list[tuple[date, Decimal]]:
+    """Quarterly snapshots linearly interpolating from `initial` (at start_date) down to
+    `remaining` (today) — a plausible-looking declining balance for the demo/dev history chart,
+    not a real amortization schedule."""
+    out = []
+    total_days = max((today - start_date).days, 1)
+    d = start_date
+    while d < today:
+        elapsed = (d - start_date).days
+        value = initial + (remaining - initial) * Decimal(elapsed) / Decimal(total_days)
+        out.append((d, value.quantize(Decimal("0.01"))))
+        d = d + relativedelta(months=3)
+    out.append((today, remaining))
+    return out
+
+
 def seed() -> None:
     db = SessionLocal()
     try:
         db.query(Valuation).delete()
         db.query(Asset).delete()
         db.query(Account).delete()
+        db.query(LiabilityBalance).delete()
         db.query(Liability).delete()
         db.query(Envelope).delete()
         db.query(DashboardLayout).delete()
@@ -328,6 +348,15 @@ def seed() -> None:
             ),
         ]
         db.add_all(liabilities)
+        db.flush()
+
+        mortgage = next(liability for liability in liabilities if liability.name == "Crédit immobilier")
+        n_liability_balances = 0
+        for d, value in liability_balance_series(
+            mortgage.start_date, today, mortgage.initial_amount, mortgage.remaining_amount
+        ):
+            db.add(LiabilityBalance(liability_id=mortgage.id, date=d, remaining_amount=value))
+            n_liability_balances += 1
 
         envelopes = [
             Envelope(
@@ -374,8 +403,8 @@ def seed() -> None:
 
         print(
             f"Seeded {len(accounts)} accounts, {n_valuations} valuations, "
-            f"{len(assets)} assets, {len(liabilities)} liabilities, {len(envelopes)} envelopes, "
-            f"{len(DASHBOARD_WIDGETS)} dashboard widgets."
+            f"{len(assets)} assets, {len(liabilities)} liabilities ({n_liability_balances} balance entries), "
+            f"{len(envelopes)} envelopes, {len(DASHBOARD_WIDGETS)} dashboard widgets."
         )
     finally:
         db.close()

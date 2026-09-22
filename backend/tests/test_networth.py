@@ -6,6 +6,7 @@ from app.models import (
     AccountType,
     Currency,
     Liability,
+    LiabilityBalance,
     LiabilityType,
     Valuation,
 )
@@ -27,7 +28,7 @@ def _valuation(db, account: Account, value: str, on_date: date) -> Valuation:
     return valuation
 
 
-def _liability(db, remaining: str, start_date: date, currency=Currency.EUR) -> Liability:
+def _liability(db, remaining: str, start_date: date | None, currency=Currency.EUR) -> Liability:
     liability = Liability(
         name="Loan",
         type=LiabilityType.CONSUMER_LOAN,
@@ -39,6 +40,13 @@ def _liability(db, remaining: str, start_date: date, currency=Currency.EUR) -> L
     db.add(liability)
     db.flush()
     return liability
+
+
+def _liability_balance(db, liability: Liability, remaining: str, on_date: date) -> LiabilityBalance:
+    balance = LiabilityBalance(liability_id=liability.id, date=on_date, remaining_amount=Decimal(remaining))
+    db.add(balance)
+    db.flush()
+    return balance
 
 
 class TestGetTotalLiabilities:
@@ -211,6 +219,53 @@ class TestGetNetWorthHistory:
         assert history["2026-01-01"]["net_worth"] == Decimal("1000.00")
         assert history["2026-06-01"]["total_liabilities"] == Decimal(300)
         assert history["2026-06-01"]["net_worth"] == Decimal("700.00")
+
+    def test_a_liability_with_recorded_balance_history_reflects_the_balance_at_each_date(self, db_session):
+        # The bug this closes: a liability paid down over time used to subtract *today's*
+        # balance from every past history point. With real LiabilityBalance entries, each
+        # reported date should reflect what was actually owed as of that date.
+        account = _account(db_session)
+        _valuation(db_session, account, "1000", date(2026, 1, 1))
+        _valuation(db_session, account, "1000", date(2026, 3, 1))
+        _valuation(db_session, account, "1000", date(2026, 6, 1))
+        loan = _liability(db_session, "250", start_date=date(2026, 1, 1))
+        _liability_balance(db_session, loan, "300", date(2026, 1, 1))
+        _liability_balance(db_session, loan, "275", date(2026, 3, 1))
+        _liability_balance(db_session, loan, "250", date(2026, 6, 1))
+        db_session.commit()
+
+        history = {h["date"]: h for h in networth.get_net_worth_history(db_session, reference_currency="EUR")}
+
+        assert history["2026-01-01"]["total_liabilities"] == Decimal(300)
+        assert history["2026-03-01"]["total_liabilities"] == Decimal(275)
+        assert history["2026-06-01"]["total_liabilities"] == Decimal(250)
+
+    def test_a_liability_balance_between_two_valuation_dates_is_forward_filled(self, db_session):
+        account = _account(db_session)
+        _valuation(db_session, account, "1000", date(2026, 1, 1))
+        _valuation(db_session, account, "1000", date(2026, 6, 1))
+        loan = _liability(db_session, "250", start_date=date(2026, 1, 1))
+        _liability_balance(db_session, loan, "300", date(2026, 1, 1))
+        _liability_balance(db_session, loan, "250", date(2026, 4, 15))  # no valuation on this date
+
+        db_session.commit()
+
+        history = {h["date"]: h for h in networth.get_net_worth_history(db_session, reference_currency="EUR")}
+
+        assert history["2026-01-01"]["total_liabilities"] == Decimal(300)
+        assert history["2026-06-01"]["total_liabilities"] == Decimal(250)
+
+    def test_a_liability_with_no_start_date_and_no_history_applies_from_the_earliest_date(self, db_session):
+        # Previously crashed: `None <= history_date` on a liability with no recorded balances
+        # and no start_date.
+        account = _account(db_session)
+        _valuation(db_session, account, "1000", date(2026, 1, 1))
+        _liability(db_session, "300", start_date=None)
+        db_session.commit()
+
+        history = {h["date"]: h for h in networth.get_net_worth_history(db_session, reference_currency="EUR")}
+
+        assert history["2026-01-01"]["total_liabilities"] == Decimal(300)
 
     def test_converts_each_valuation_using_its_own_account_currency(self, db_session, monkeypatch):
         account = _account(db_session, currency=Currency.USD)

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import get_settings
 from app.models.liability import Liability
+from app.models.liability_balance import LiabilityBalance
 from app.models.valuation import Valuation
 from app.services import fx
 
@@ -78,11 +79,15 @@ def get_net_worth_history(db: Session, reference_currency: str | None = None) ->
     applied uniformly across the whole history — not the rate on each
     valuation's actual date.
 
-    v1 limitation: each liability contributes its current remaining_amount
-    (not amortized backward over time) to every historical point on or
-    after its own start_date, and is excluded entirely before that date —
-    still not a real balance-over-time, but no longer subtracts a loan's
-    present-day balance from dates that precede the loan's existence.
+    Each liability contributes the balance it actually had on each historical date — forward-filled
+    between its own recorded LiabilityBalance entries (see app/services/liability_balance.py), the
+    same way an account is forward-filled between its own Valuation entries. A liability with no
+    recorded balance history at all (never synced through the liabilities API, e.g. a row from
+    before this existed) falls back to its current remaining_amount applied from its own start_date
+    onward — the previous v1 flat-backward-projection, kept only as a last resort for liabilities we
+    genuinely have no point-in-time data for. A liability with neither any recorded history nor a
+    start_date falls back to applying from the earliest reported date onward instead of crashing on
+    an unorderable comparison.
 
     v1 limitation: a valuation or liability whose currency has no available FX rate (see
     fx.FxRateUnavailableError) is dropped from the reconstruction entirely — excluded from every
@@ -127,31 +132,57 @@ def get_net_worth_history(db: Session, reference_currency: str | None = None) ->
     )
     pivot = pivot.sort_index().ffill()
     total_assets_by_date = pivot.sum(axis=1)
+    report_dates = pivot.index
+    earliest_reported_date = report_dates.min()
+    if not isinstance(earliest_reported_date, date):
+        earliest_reported_date = pd.Timestamp(earliest_reported_date).date()
 
-    # (start_date, converted remaining_amount) per liability, so a loan only counts against
-    # history points on or after it actually started — get_total_liabilities() has no date
-    # filter at all, which would otherwise subtract every loan's present-day balance even from
-    # dates years before it existed.
-    liability_balances = []
+    # Real point-in-time entries first, grouped by liability.
+    balances_by_liability: dict[int, list[tuple[date, Decimal]]] = {}
+    for balance in (
+        db.query(LiabilityBalance)
+        .order_by(LiabilityBalance.liability_id, LiabilityBalance.date, LiabilityBalance.id)
+        .all()
+    ):
+        balances_by_liability.setdefault(balance.liability_id, []).append((balance.date, balance.remaining_amount))
+
+    liability_rows = []
     for liability in db.query(Liability).all():
-        try:
-            amount = fx.convert(db, liability.remaining_amount, liability.currency, reference_currency)
-        except fx.FxRateUnavailableError:
-            logger.warning(
-                "Dropping liability %s (%s) from net worth history: no FX rate available",
-                liability.id, liability.currency,
-            )
-            continue
-        liability_balances.append((liability.start_date, amount))
+        entries = balances_by_liability.get(liability.id)
+        if not entries:
+            # No recorded history for this one — fall back to the old flat approximation:
+            # its current remaining_amount, applied from its own start_date onward (or from
+            # the earliest reported date if start_date isn't set, rather than an unorderable
+            # None <= date comparison).
+            entries = [(liability.start_date or earliest_reported_date, liability.remaining_amount)]
+        for entry_date, amount in entries:
+            try:
+                value = float(fx.convert(db, amount, liability.currency, reference_currency))
+            except fx.FxRateUnavailableError:
+                logger.warning(
+                    "Dropping liability %s (%s) from net worth history: no FX rate available",
+                    liability.id, liability.currency,
+                )
+                continue
+            liability_rows.append({"date": entry_date, "liability_id": liability.id, "value": value})
+
+    if liability_rows:
+        ldf = pd.DataFrame(liability_rows)
+        liability_pivot = ldf.pivot_table(index="date", columns="liability_id", values="value", aggfunc="last")
+        # Union with report_dates before forward-filling, so a balance entry that falls between
+        # two report dates (or before the first one) still gets picked up by ffill at the next
+        # report date — then drop back down to exactly the dates being reported on.
+        combined_index = liability_pivot.index.union(report_dates)
+        liability_pivot = liability_pivot.reindex(combined_index).sort_index().ffill()
+        total_liabilities_by_date = liability_pivot.reindex(report_dates).sum(axis=1)
+    else:
+        total_liabilities_by_date = pd.Series(0.0, index=report_dates)
 
     history = []
-    for d, assets in total_assets_by_date.items():
+    for d in report_dates:
         history_date = d if isinstance(d, date) else pd.Timestamp(d).date()
-        total_assets = Decimal(str(round(assets, 2)))
-        total_liabilities = sum(
-            (amount for start_date, amount in liability_balances if start_date <= history_date),
-            Decimal(0),
-        )
+        total_assets = Decimal(str(round(total_assets_by_date.loc[d], 2)))
+        total_liabilities = Decimal(str(round(total_liabilities_by_date.loc[d], 2)))
         history.append(
             {
                 "date": history_date.isoformat(),

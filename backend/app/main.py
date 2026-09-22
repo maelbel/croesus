@@ -20,6 +20,7 @@ from app.api.routes import (
     envelopes,
     fx,
     liabilities,
+    liability_balances,
     valuations,
     version,
 )
@@ -166,6 +167,7 @@ app.include_router(accounts.router)
 app.include_router(valuations.router)
 app.include_router(assets.router)
 app.include_router(liabilities.router)
+app.include_router(liability_balances.router)
 app.include_router(envelopes.router)
 app.include_router(dashboard.router)
 app.include_router(dashboard_layout.router)

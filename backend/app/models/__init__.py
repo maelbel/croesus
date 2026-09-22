@@ -5,6 +5,7 @@ from app.models.dashboard_layout import DashboardLayout
 from app.models.envelope import Envelope
 from app.models.fx_rate_cache import FxRateCache
 from app.models.liability import Liability, LiabilityType
+from app.models.liability_balance import LiabilityBalance
 from app.models.price_cache import PriceCache
 from app.models.user import User
 from app.models.valuation import Valuation
@@ -19,6 +20,7 @@ __all__ = [
     "Envelope",
     "FxRateCache",
     "Liability",
+    "LiabilityBalance",
     "LiabilityType",
     "PriceCache",
     "User",
