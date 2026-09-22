@@ -22,14 +22,25 @@ from app.models.valuation import Valuation
 AUTO_VALUATION_NOTE = "Auto-calculated from holdings"
 
 
-def _holdings_value(db: Session, account_id: int) -> Decimal | None:
+def _holdings_value(db: Session, account_id: int) -> tuple[Decimal, bool] | None:
+    """Returns (total, fully_priced). fully_priced is False when a symboled asset (one
+    pricing.py is supposed to keep priced) has no current_price yet — its cost basis fills in
+    for the total, but that's not the same thing as a fetched market price, and callers need to
+    be able to tell the difference. An asset with no symbol at all is expected to always
+    contribute cost basis (see ROADMAP.md) and never counts against fully_priced."""
     assets = db.query(Asset).filter(Asset.account_id == account_id).all()
     if not assets:
         return None
-    return sum(
-        (asset.quantity * (asset.current_price if asset.current_price is not None else asset.unit_cost) for asset in assets),
-        Decimal(0),
-    )
+    total = Decimal(0)
+    fully_priced = True
+    for asset in assets:
+        if asset.current_price is not None:
+            total += asset.quantity * asset.current_price
+        else:
+            total += asset.quantity * asset.unit_cost
+            if asset.symbol:
+                fully_priced = False
+    return total, fully_priced
 
 
 def sync_account_valuation_from_holdings(db: Session, account_id: int) -> None:
@@ -45,16 +56,26 @@ def sync_account_valuation_from_holdings(db: Session, account_id: int) -> None:
     if existing is not None and existing.note != AUTO_VALUATION_NOTE:
         return
 
-    total = _holdings_value(db, account_id)
-    if total is None:
+    holdings = _holdings_value(db, account_id)
+    if holdings is None:
         if existing is not None:
             db.delete(existing)
         return
+    total, fully_priced = holdings
 
     if existing is not None:
         existing.value = total
+        existing.fully_priced = fully_priced
     else:
-        db.add(Valuation(account_id=account_id, date=today, value=total, note=AUTO_VALUATION_NOTE))
+        db.add(
+            Valuation(
+                account_id=account_id,
+                date=today,
+                value=total,
+                note=AUTO_VALUATION_NOTE,
+                fully_priced=fully_priced,
+            )
+        )
 
 
 def sync_all_account_valuations_from_holdings(db: Session) -> None:
