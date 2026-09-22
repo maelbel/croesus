@@ -1,12 +1,16 @@
 import enum
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, DateTime, Enum, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.currency import Currency
+
+if TYPE_CHECKING:
+    from app.models.liability_balance import LiabilityBalance
 
 
 class LiabilityType(str, enum.Enum):
@@ -33,4 +37,8 @@ class Liability(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    balances: Mapped[list["LiabilityBalance"]] = relationship(
+        back_populates="liability", cascade="all, delete-orphan"
     )
