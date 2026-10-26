@@ -45,6 +45,10 @@ Two target usage modes:
   worth.
 - **Emergency fund**: a target goal attached to an account, with progress
   tracking.
+- **Transaction**: money moving in or out of a cash account, imported from a
+  bank export or entered by hand. Linked to a category, a payee, and
+  optionally to an envelope, a liability (repayment) or another account
+  (transfer, contribution).
 - **Budget envelope**: a named allocation bucket (e.g. "Vacation", "Home
   renovation"), independent of account type — a distinct concept from tax
   wrappers.
@@ -129,7 +133,39 @@ Two target usage modes:
       preset
 - [x] Empty-dashboard state prompting the first widget to be added
 
-## Phase 5 — Advanced analytics
+## Phase 5 — Cash flow & connected apps
+
+Adds a transactions ledger and makes it the data the other apps share:
+envelopes, liabilities, cash-account balances and Phase 6's insights read from
+it instead of manual entry. Full design, data model and security notes in
+[docs/plans/cash-flow-monitoring.md](./docs/plans/cash-flow-monitoring.md).
+
+- [ ] Groundwork — code grouped into per-app modules (`wealth`, `budget`,
+      `cashflow`, `pulse`, `insights`), app manifests with navigation served
+      by the backend, a cross-app links table and an in-process event
+      dispatcher; every table scoped by owner (`user_id`), ahead of Phase 7
+- [ ] Transactions ledger on cash accounts — OFX/QFX and CSV import (column
+      mapping, French date/decimal formats), preview before saving,
+      duplicate-safe re-imports; cash-account valuation derived from the
+      ledger, with a reconciliation warning when the bank's balance disagrees
+- [ ] Categories and rules — default FR/EN categories, rules applied on
+      import, an uncategorized inbox; envelopes linked to categories fill
+      themselves
+- [ ] Payees, transfers and repayments — payees built from bank labels,
+      transfers between own accounts paired and excluded from spending,
+      contributions to PEA/life insurance/PER recorded, loan repayments
+      linked to liabilities
+- [ ] Recurring and upcoming — detected subscriptions and bills (proposed,
+      never applied silently), the next 30 days of expected payments and
+      income, projected low balance
+- [ ] Pulse — a home feed across apps (upcoming bills, overspent envelopes,
+      uncategorized transactions, stale valuations, reconciliation warnings),
+      cross-app panels on account/envelope/liability/payee pages, and new
+      dashboard widget sources (spending, income vs expenses, savings rate)
+- [ ] Croesus ↔ Havre (later) — a read-only API/MCP scope so Havre can show
+      upcoming bills and a Croesus line in its morning brief
+
+## Phase 6 — Advanced analytics
 
 All grouped under a new top-level **Insights** page.
 
@@ -157,7 +193,7 @@ All grouped under a new top-level **Insights** page.
       guidance. Stays within the "no automated financial advice" non-goal —
       these are data-derived observations, not recommendations to act on
 
-## Phase 6 — Household sharing (optional)
+## Phase 7 — Household sharing (optional)
 
 - [ ] Shared/household net worth — multiple users on one instance, with
       some accounts shared and others kept private (supersedes the earlier
@@ -165,7 +201,7 @@ All grouped under a new top-level **Insights** page.
       flow to add a household member, and a "mine" vs "household" net worth
       scope switch usable throughout the app (dashboard, accounts, insights)
 
-## Phase 7 — Data portability & reliability
+## Phase 8 — Data portability & reliability
 
 - [ ] Import from spreadsheet/CSV or XLSX (bootstrapping from an existing
       manual tracker) — column mapping step (date, value, currency columns)
@@ -187,7 +223,7 @@ All grouped under a new top-level **Insights** page.
       recovery codes) and visibility/revocation of active sessions,
       alongside the existing password/OIDC login
 
-## Phase 8 — Bank aggregation
+## Phase 9 — Bank aggregation
 
 - [ ] Powens (formerly Budget Insight) or Bridge API integration for
       automatic sync of French bank accounts
@@ -197,7 +233,7 @@ All grouped under a new top-level **Insights** page.
 
 ## Non-goals (for now)
 
-- Automated financial advice (projections stay simple — see Phase 5)
+- Automated financial advice (projections stay simple — see Phase 6)
 - Automated cross-platform builds (will come via CI/CD — GitHub Actions —
   rather than locally from the Pi, which can't natively compile Windows/macOS
   binaries)
